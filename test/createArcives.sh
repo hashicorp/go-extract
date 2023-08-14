@@ -27,6 +27,10 @@ done
 # create with ../ filepath
 cd "$testDir"
 prepare_overwrite
+cd ..
+
+# prepare 42.zip testcase
+cp 42.zip $testDir/42.zip
 
 
 exit 0
