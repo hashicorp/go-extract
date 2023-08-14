@@ -21,3 +21,4 @@
 go.work
 extract
 test/test-dir-*
+*.DS_Store
