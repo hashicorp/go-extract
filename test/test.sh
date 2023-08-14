@@ -4,7 +4,7 @@ cd test-dir-*
 
 for zip in *.zip
 do
-    ../../extract -v $zip -o $(basename $zip )
+    ../../extract -v $zip 
 done
 
 ls -lR
