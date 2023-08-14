@@ -8,7 +8,7 @@ Secure extraction of any archive type.
 
 ## Intended filetypes
 
-- [ ] zip
+- [x] zip
 - [ ] slug
 - [ ] tar
 - [ ] gz
