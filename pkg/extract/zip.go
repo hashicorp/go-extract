@@ -24,8 +24,6 @@ func (z *Zip) Extract(src, dst string) error {
 	}
 	defer archive.Close()
 
-	// TODO(jan): add timeout
-
 	// walk over archive
 	for _, f := range archive.File {
 		dstFilePath := filepath.Clean(filepath.Join(dst, f.Name))

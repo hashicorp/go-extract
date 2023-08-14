@@ -23,6 +23,8 @@ func Extract(ctx context.Context, src, dst string) error {
 	defer os.RemoveAll(tmpDir)
 	tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
 
+	// TODO(jan): add timeout
+
 	// extract zip
 	if err := unzip.Extract(src, tmpDir); err != nil {
 		return err
