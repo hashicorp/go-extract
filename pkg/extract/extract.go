@@ -3,6 +3,7 @@ package extract
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,6 +44,22 @@ func DetermineArchiveType(inputArchive []byte) (*ArchiveType, error) {
 	return nil, fmt.Errorf("unknown filetype")
 }
 
+func writeSymbolicLink(filePath string, targetPath string) error {
+	log.Printf("writeSymbolicLink(filePath, targetPath): %v, %v", filePath, targetPath)
+
+	// create dirs
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
+	}
+
+	// create link
+	if err := os.Symlink(targetPath, filePath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type ArchiveType struct {
 	Algorithm  string
 	MagicBytes []byte
@@ -79,5 +96,21 @@ func verifyPathPrefix(pathPrefix, path string) error {
 	if !strings.HasPrefix(path, pathPrefix) {
 		return fmt.Errorf("path prefix missmatch")
 	}
+	return nil
+}
+
+func writeSymbolicLink(filePath string, targetPath string) error {
+	log.Printf("writeSymbolicLink(filePath, targetPath): %v, %v", filePath, targetPath)
+
+	// create dirs
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
+	}
+
+	// create link
+	if err := os.Symlink(targetPath, filePath); err != nil {
+		return err
+	}
+
 	return nil
 }
