@@ -39,7 +39,7 @@ func Run(version, commit, date string) {
 
 	// extract archive
 	if err := extract.Extract(ctx, cli.Archive, cli.Output); err != nil {
-		log.Printf("error during extraction: %w", err)
+		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}
 }

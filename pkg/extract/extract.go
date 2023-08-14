@@ -75,7 +75,7 @@ func MaxArchiveHeaderLength() int {
 
 func verifyPathPrefix(pathPrefix, path string) error {
 	if !strings.HasPrefix(path, pathPrefix) {
-		return fmt.Errorf("pathPrefix does not match path")
+		return fmt.Errorf("path prefix missmatch")
 	}
 	return nil
 }
