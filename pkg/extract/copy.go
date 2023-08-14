@@ -3,7 +3,6 @@ package extract
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -30,9 +29,6 @@ func CopyDirectory(scrDir, dest string) error {
 		if !ok {
 			return fmt.Errorf("failed to get raw syscall.Stat_t data for '%s'", sourcePath)
 		}
-
-		// if f.FileHeader.Mode()&os.ModeType == os.ModeSymlink {
-		log.Printf("fileInfo.Mode(): %d", (fileInfo.Mode() & os.ModeType))
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
@@ -115,7 +111,6 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 }
 
 func CopySymLink(source, dest string) error {
-	log.Printf("CopySymLink(source, dest): %v, %v", source, dest)
 	link, err := os.Readlink(source)
 	if err != nil {
 		return err

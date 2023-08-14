@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,107 +24,127 @@ func (z *Zip) Extract(src, dst string) error {
 	defer archive.Close()
 
 	// walk over archive
-	for _, f := range archive.File {
-		dstFilePath := filepath.Clean(filepath.Join(dst, f.Name))
+	for _, archiveFile := range archive.File {
 
-		// path sanitization
-		if err := verifyPathPrefix(dst, dstFilePath); err != nil {
-			return fmt.Errorf("%v: %v", err, f.Name)
-		}
-
-		// handle directory
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(dstFilePath, os.ModePerm)
+		switch archiveFile.FileHeader.Mode() & os.ModeType {
+		case os.ModeDir:
+			// handle directory
+			if err := createDir(dst, archiveFile.Name); err != nil {
+				return err
+			}
 			continue
-		}
 
-		// create sub dirs for file
-		if err := os.MkdirAll(filepath.Dir(dstFilePath), os.ModePerm); err != nil {
-			return err
-		}
-
-		// check for symlink
-		if f.FileHeader.Mode()&os.ModeType == os.ModeSymlink {
-
-			// read content to determine symlink destination
-			rc, err := f.Open()
-			if err != nil {
+		case os.ModeSymlink:
+			// handle symlink
+			if err := createSymlink(dst, archiveFile); err != nil {
 				return err
 			}
-			defer func() {
-				if err := rc.Close(); err != nil {
-					panic(err)
-				}
-			}()
-			data, err := io.ReadAll(rc)
-			symlinkDst := string(data)
-			if err != nil {
-				return err
-			}
-
-			// check symlink destination
-			if strings.HasPrefix(symlinkDst, "/") {
-				return fmt.Errorf("symlink with absolut path: %v", symlinkDst)
-			}
-			canonicalTarget := filepath.Clean(filepath.Join(dst, symlinkDst))
-			if err := verifyPathPrefix(dst, canonicalTarget); err != nil {
-				return fmt.Errorf("%v: %v", err, symlinkDst)
-			}
-
-			writeSymbolicLink(dstFilePath, symlinkDst)
 			continue
-		}
 
-		// create dst file
-		dstFile, err := os.OpenFile(dstFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		// open file in archive
-		fileInArchive, err := f.Open()
-		if err != nil {
-			return err
-		}
-
-		// TODO(jan): filesize check
-		log.Printf("copy from archive: %v, %v", dstFile.Name(), f.FileHeader.Name)
-		if _, err := io.Copy(dstFile, fileInArchive); err != nil {
-			return err
-		}
-
-		// symlink check
-		linkInfo, err := os.Lstat(dstFilePath)
-		if linkInfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-
-			// check if file is a symlink
-			origSymlinkDst, err := os.Readlink(dstFilePath)
-			if err != nil {
+		default:
+			// handle files
+			if err := createFile(dst, archiveFile); err != nil {
 				return err
 			}
-			expandedSymlinkDst := filepath.Clean(filepath.Join(dst, origSymlinkDst))
-			if err := verifyPathPrefix(dst, expandedSymlinkDst); err != nil {
-				return fmt.Errorf("symlink outside archive identified")
-			}
 		}
 
-		dstFile.Close()
-		fileInArchive.Close()
 	}
 
 	return nil
 }
 
-func writeSymbolicLink(filePath string, targetPath string) error {
-	log.Printf("writeSymbolicLink(filePath, targetPath): %v, %v", filePath, targetPath)
+func createDir(dstDir, dirName string) error {
+
+	// get absolut path
+	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
+
+	// check path
+	if !strings.HasPrefix(tragetDir, dstDir) {
+		return fmt.Errorf("path traversal detected: %v", dirName)
+	}
 
 	// create dirs
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(tragetDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	// create link
-	if err := os.Symlink(targetPath, filePath); err != nil {
+	return nil
+}
+
+func createSymlink(dstDir string, f *zip.File) error {
+
+	// create target dir
+	if err := createDir(dstDir, filepath.Dir(f.Name)); err != nil {
+		return err
+	}
+
+	// target file
+	targetFilePath := filepath.Clean(filepath.Join(dstDir, f.Name))
+
+	// read content to determine symlink destination
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		rc.Close()
+	}()
+	data, err := io.ReadAll(rc)
+	symlinkTarget := string(data)
+	if err != nil {
+		return err
+	}
+
+	// check absolut path
+	// TODO(jan): check for windows
+	if strings.HasPrefix(symlinkTarget, "/") {
+		return fmt.Errorf("absolut path detected: %v", symlinkTarget)
+	}
+
+	// check relative path
+	canonicalTarget := filepath.Clean(filepath.Join(dstDir, symlinkTarget))
+	if !strings.HasPrefix(canonicalTarget, dstDir) {
+		return fmt.Errorf("path traversal detected: %v", symlinkTarget)
+	}
+
+	// write the final link
+	if err := writeSymbolicLink(targetFilePath, symlinkTarget); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createFile(dstDir string, f *zip.File) error {
+
+	// create target dir
+	if err := createDir(dstDir, filepath.Dir(f.Name)); err != nil {
+		return err
+	}
+
+	// target file
+	targetFilePath := filepath.Clean(filepath.Join(dstDir, f.Name))
+
+	// create dst file
+	dstFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		dstFile.Close()
+	}()
+
+	// open file in archive
+	fileInArchive, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		fileInArchive.Close()
+	}()
+
+	// TODO(jan): filesize check
+	if _, err := io.Copy(dstFile, fileInArchive); err != nil {
 		return err
 	}
 

@@ -2,11 +2,8 @@ package extract
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func Extract(ctx context.Context, src, dst string) error {
@@ -39,68 +36,7 @@ func Extract(ctx context.Context, src, dst string) error {
 	return nil
 }
 
-func DetermineArchiveType(inputArchive []byte) (*ArchiveType, error) {
-
-	return nil, fmt.Errorf("unknown filetype")
-}
-
 func writeSymbolicLink(filePath string, targetPath string) error {
-	log.Printf("writeSymbolicLink(filePath, targetPath): %v, %v", filePath, targetPath)
-
-	// create dirs
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return err
-	}
-
-	// create link
-	if err := os.Symlink(targetPath, filePath); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type ArchiveType struct {
-	Algorithm  string
-	MagicBytes []byte
-	Name       string
-	Offset     int
-	// Extract Pointer
-}
-
-var KnownTypes = []ArchiveType{
-	{
-		Algorithm:  "Lempel-Ziv-Welch",
-		Name:       "zip",
-		Offset:     0,
-		MagicBytes: []byte{0x1F, 0x9D},
-	},
-}
-
-func (at *ArchiveType) FileHeaderSize() int {
-	return at.Offset + len(at.MagicBytes)
-}
-
-func MaxArchiveHeaderLength() int {
-	bufferSize := 0
-	for _, at := range KnownTypes {
-		signatureLen := (at.Offset + len(at.MagicBytes))
-		if signatureLen > bufferSize {
-			bufferSize = signatureLen
-		}
-	}
-	return bufferSize
-}
-
-func verifyPathPrefix(pathPrefix, path string) error {
-	if !strings.HasPrefix(path, pathPrefix) {
-		return fmt.Errorf("path prefix missmatch")
-	}
-	return nil
-}
-
-func writeSymbolicLink(filePath string, targetPath string) error {
-	log.Printf("writeSymbolicLink(filePath, targetPath): %v, %v", filePath, targetPath)
 
 	// create dirs
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
