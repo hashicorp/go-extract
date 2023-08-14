@@ -20,6 +20,7 @@ func CopyDirectory(scrDir, dest string) error {
 		sourcePath := filepath.Join(scrDir, entry.Name())
 		destPath := filepath.Join(dest, entry.Name())
 
+		// changed to os.Lstat from os.Stat to not follow symlinks
 		fileInfo, err := os.Lstat(sourcePath)
 		if err != nil {
 			return err
