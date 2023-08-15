@@ -2,11 +2,22 @@
 
 cd test-dir-*
 
-for zip in *.zip
+for type in *
 do
-    echo "[!] ../../extract -v $zip "
-    ../../extract -v $zip 
+  cd $type
+  echo "-------------------------------"
+  echo [i] $(pwd)
+  echo "-------------------------------"
+  for archive in *
+  do
+      echo "[!] ../../../extract -v $archive "
+      ../../../extract -v $archive
+  done
+  
+  cd ..
+
 done
+
 
 echo "################################"
 echo "# Tests performed"
@@ -14,6 +25,7 @@ echo "################################"
 
 
 ls -lR
+ls -l /tmp/traversalextract
 cd ..
 rm -rf test-dir-*
 
