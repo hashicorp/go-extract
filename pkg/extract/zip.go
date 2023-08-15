@@ -97,6 +97,7 @@ func createSymlink(dstDir string, f *zip.File) error {
 
 	// check absolut path
 	// TODO(jan): check for windows
+	// TODO(jan): network drives concideration on win `\\<remote>`
 	if strings.HasPrefix(symlinkTarget, "/") {
 		return fmt.Errorf("absolut path detected: %v", symlinkTarget)
 	}
