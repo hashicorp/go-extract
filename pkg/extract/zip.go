@@ -2,11 +2,9 @@ package extract
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
+	"log"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
@@ -26,7 +24,9 @@ func (z *Zip) Extract(src, dst string) error {
 	// walk over archive
 	for _, archiveFile := range archive.File {
 
-		switch archiveFile.FileHeader.Mode() & os.ModeType {
+		fileMode := archiveFile.FileHeader.Mode() & os.ModeType
+
+		switch fileMode {
 		case os.ModeDir:
 			// handle directory
 			if err := createDir(dst, archiveFile.Name); err != nil {
@@ -36,16 +36,25 @@ func (z *Zip) Extract(src, dst string) error {
 
 		case os.ModeSymlink:
 			// handle symlink
-			if err := createSymlink(dst, archiveFile); err != nil {
+			linkTarget, err := readLinkTargetFromZip(archiveFile)
+			if err != nil {
+				return err
+			}
+			if err := createSymlink(dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 			continue
 
-		default:
-			// handle files
-			if err := createFile(dst, archiveFile); err != nil {
+		// in case of a normal file the value is not set
+		case 0:
+			if err := createFileFromZip(dst, archiveFile); err != nil {
 				return err
 			}
+
+		// catch all for unspported file modes
+		default:
+			log.Printf("unspported filemode: %s", fileMode)
+
 		}
 
 	}
@@ -53,38 +62,11 @@ func (z *Zip) Extract(src, dst string) error {
 	return nil
 }
 
-func createDir(dstDir, dirName string) error {
-
-	// get absolut path
-	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
-
-	// check path
-	if !strings.HasPrefix(tragetDir, dstDir) {
-		return fmt.Errorf("path traversal detected: %v", dirName)
-	}
-
-	// create dirs
-	if err := os.MkdirAll(tragetDir, os.ModePerm); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createSymlink(dstDir string, f *zip.File) error {
-
-	// create target dir
-	if err := createDir(dstDir, filepath.Dir(f.Name)); err != nil {
-		return err
-	}
-
-	// target file
-	targetFilePath := filepath.Clean(filepath.Join(dstDir, f.Name))
-
+func readLinkTargetFromZip(f *zip.File) (string, error) {
 	// read content to determine symlink destination
 	rc, err := f.Open()
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer func() {
 		rc.Close()
@@ -92,48 +74,13 @@ func createSymlink(dstDir string, f *zip.File) error {
 	data, err := io.ReadAll(rc)
 	symlinkTarget := string(data)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// check absolut path
-	// TODO(jan): check for windows
-	// TODO(jan): network drives concideration on win `\\<remote>`
-	if strings.HasPrefix(symlinkTarget, "/") {
-		return fmt.Errorf("absolut path detected: %v", symlinkTarget)
-	}
-
-	// check relative path
-	canonicalTarget := filepath.Clean(filepath.Join(dstDir, symlinkTarget))
-	if !strings.HasPrefix(canonicalTarget, dstDir) {
-		return fmt.Errorf("path traversal detected: %v", symlinkTarget)
-	}
-
-	// write the final link
-	if err := writeSymbolicLink(targetFilePath, symlinkTarget); err != nil {
-		return err
-	}
-
-	return nil
+	return symlinkTarget, nil
 }
 
-func createFile(dstDir string, f *zip.File) error {
-
-	// create target dir
-	if err := createDir(dstDir, filepath.Dir(f.Name)); err != nil {
-		return err
-	}
-
-	// target file
-	targetFilePath := filepath.Clean(filepath.Join(dstDir, f.Name))
-
-	// create dst file
-	dstFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-	if err != nil {
-		return err
-	}
-	defer func() {
-		dstFile.Close()
-	}()
+func createFileFromZip(dstDir string, f *zip.File) error {
 
 	// open file in archive
 	fileInArchive, err := f.Open()
@@ -144,8 +91,8 @@ func createFile(dstDir string, f *zip.File) error {
 		fileInArchive.Close()
 	}()
 
-	// TODO(jan): filesize check
-	if _, err := io.Copy(dstFile, fileInArchive); err != nil {
+	// create the file
+	if err := createFile(dstDir, f.Name, fileInArchive, f.Mode()); err != nil {
 		return err
 	}
 
