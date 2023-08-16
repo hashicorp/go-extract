@@ -23,22 +23,20 @@ func (z *Zip) FileSuffix() string {
 
 func (z *Zip) Extract(e *Extract, src string, dst string) error {
 
-	// open archive
-	archive, err := zip.OpenReader(src)
+	// open zipFile
+	zipFile, err := zip.OpenReader(src)
 	if err != nil {
 		return err
 	}
-	defer archive.Close()
+	defer zipFile.Close()
 
-	var fileCounter int64
+	// check for to many files in archive
+	if err := e.checkMaxFiles(int64(len(zipFile.File))); err != nil {
+		return err
+	}
 
 	// walk over archive
-	for _, archiveFile := range archive.File {
-
-		// check for to many files in archive
-		if err := e.incrementAndCheckMaxFiles(&fileCounter); err != nil {
-			return err
-		}
+	for _, archiveFile := range zipFile.File {
 
 		hdr := archiveFile.FileHeader
 

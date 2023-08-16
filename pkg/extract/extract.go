@@ -208,8 +208,7 @@ func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode 
 	return nil
 }
 
-func (e *Extract) incrementAndCheckMaxFiles(counter *int64) error {
-	*counter++
+func (e *Extract) checkMaxFiles(counter int64) error {
 
 	// check if disabled
 	if e.MaxFiles == -1 {
@@ -217,7 +216,7 @@ func (e *Extract) incrementAndCheckMaxFiles(counter *int64) error {
 	}
 
 	// check value
-	if *counter > e.MaxFiles {
+	if counter > e.MaxFiles {
 		return fmt.Errorf("to many files to extract")
 	}
 	return nil

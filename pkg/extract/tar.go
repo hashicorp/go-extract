@@ -52,7 +52,8 @@ func (t *Tar) Extract(e *Extract, src, dst string) error {
 		}
 
 		// check for to many files in archive
-		if err := e.incrementAndCheckMaxFiles(&fileCounter); err != nil {
+		fileCounter++
+		if err := e.checkMaxFiles(fileCounter); err != nil {
 			return err
 		}
 
