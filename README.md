@@ -11,6 +11,7 @@ Secure extraction of any archive type.
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
+- [ ] go tests
 
 ## Intended filetypes
 
