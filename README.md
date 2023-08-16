@@ -33,6 +33,7 @@ Secure extraction of any archive type.
 ## Future extensions
 
 - [ ] slug
+- [ ] bzip2
 - [ ] 7zip
 - [ ] rar
 - [ ] deb
