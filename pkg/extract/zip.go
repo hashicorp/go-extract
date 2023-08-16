@@ -10,9 +10,18 @@ import (
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
 type Zip struct {
+	fileSuffix string
 }
 
-func (z *Zip) Extract(src, dst string) error {
+func NewZip() *Zip {
+	return &Zip{fileSuffix: ".zip"}
+}
+
+func (z *Zip) FileSuffix() string {
+	return z.fileSuffix
+}
+
+func (z *Zip) Extract(e *Extract, src string, dst string) error {
 
 	// open archive
 	archive, err := zip.OpenReader(src)
@@ -21,15 +30,22 @@ func (z *Zip) Extract(src, dst string) error {
 	}
 	defer archive.Close()
 
+	var fileCounter int64
+
 	// walk over archive
 	for _, archiveFile := range archive.File {
 
-		fileMode := archiveFile.FileHeader.Mode() & os.ModeType
+		// check for to many files in archive
+		if err := e.incrementAndCheckMaxFiles(&fileCounter); err != nil {
+			return err
+		}
 
-		switch fileMode {
+		hdr := archiveFile.FileHeader
+
+		switch hdr.Mode() & os.ModeType {
 		case os.ModeDir:
 			// handle directory
-			if err := createDir(dst, archiveFile.Name); err != nil {
+			if err := e.createDir(dst, archiveFile.Name); err != nil {
 				return err
 			}
 			continue
@@ -40,23 +56,36 @@ func (z *Zip) Extract(src, dst string) error {
 			if err != nil {
 				return err
 			}
-			if err := createSymlink(dst, archiveFile.Name, linkTarget); err != nil {
+			if err := e.createSymlink(dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 			continue
 
 		// in case of a normal file the value is not set
 		case 0:
-			if err := createFileFromZip(dst, archiveFile); err != nil {
+
+			// check for file size
+			if err := e.checkFileSize(int64(archiveFile.UncompressedSize64)); err != nil {
+				return err
+			}
+
+			fileInArchive, err := archiveFile.Open()
+			if err != nil {
+				return err
+			}
+			defer func() {
+				fileInArchive.Close()
+			}()
+			// create the file
+			if err := e.createFile(dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				return err
 			}
 
 		// catch all for unspported file modes
 		default:
-			log.Printf("unspported filemode: %s", fileMode)
+			log.Printf("unspported filemode: %s", hdr.Mode()&os.ModeType)
 
 		}
-
 	}
 
 	return nil
@@ -78,23 +107,4 @@ func readLinkTargetFromZip(f *zip.File) (string, error) {
 	}
 
 	return symlinkTarget, nil
-}
-
-func createFileFromZip(dstDir string, f *zip.File) error {
-
-	// open file in archive
-	fileInArchive, err := f.Open()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		fileInArchive.Close()
-	}()
-
-	// create the file
-	if err := createFile(dstDir, f.Name, fileInArchive, f.Mode()); err != nil {
-		return err
-	}
-
-	return nil
 }
