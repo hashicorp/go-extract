@@ -10,9 +10,7 @@ Secure extraction of any archive type.
 
 - [x] extraction size check
 - [x] max num of extracted files
-- [ ] extraction time exhaustion
-- [ ] recursive extraction
-- [ ] filetype detection based on magic bytes
+- [x] extraction time exhaustion
 
 ## Intended filetypes
 
@@ -22,7 +20,6 @@ Secure extraction of any archive type.
     - [x] symlink with absolut path is detected
     - [x] file with path traversal is detected
     - [x] file with absolut path is detected
-- [ ] slug
 - [x] tar
     - [x] symlink inside archive
     - [x] symlink to outside is detected
@@ -31,8 +28,17 @@ Secure extraction of any archive type.
     - [x] file with absolut path is detected
 - [ ] gunzip
 - [ ] tar.gz
+
+## Future extensions
+
+- [ ] slug
 - [ ] 7zip
 - [ ] rar
 - [ ] deb
 - [ ] jar
 - [ ] pkg
+
+## Future features
+
+- [ ] recursive extraction
+- [ ] filetype detection based on magic bytes
