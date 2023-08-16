@@ -10,13 +10,34 @@ import (
 	"strings"
 )
 
-func Extract(ctx context.Context, src, dst string) error {
+type extractor interface {
+	Extract(e *Extract, src string, dst string) error
+	FileSuffix() string
+}
 
-	// Extractors
-	var unzip Zip
-	var untar Tar
+type Extract struct {
+	// MaxFiles is the maximum of files in an archive
+	MaxFiles int64
 
-	// TODO(jan): determine correct extractor
+	// MaxFileSize is the maximum size of a file after decmpression
+	MaxFileSize int64
+}
+
+// Create a new Extract object with defaults
+func New() *Extract {
+	return &Extract{
+		MaxFiles:    1000,
+		MaxFileSize: 1 << (10 * 3), // 1 Gb
+	}
+}
+
+func (e *Extract) Unpack(ctx context.Context, src, dst string) error {
+
+	var ex extractor
+
+	if ex = e.findExtractor(src); ex == nil {
+		return fmt.Errorf("archive type not supported")
+	}
 
 	// create tmp directory
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "extract*")
@@ -27,20 +48,10 @@ func Extract(ctx context.Context, src, dst string) error {
 	tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
 
 	// TODO(jan): add timeout
-	// TODO(jan): detect filetype based on magic bytes
-	switch {
-	case strings.HasSuffix(src, ".zip"):
-		// extract zip
-		if err := unzip.Extract(src, tmpDir); err != nil {
-			return err
-		}
-	case strings.HasSuffix(src, ".tar"):
-		if err := untar.Extract(src, tmpDir); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("unspported archive type")
 
+	// extract files in tmpDir
+	if err := ex.Extract(e, src, tmpDir); err != nil {
+		return err
 	}
 
 	// move content from tmpDir to destination
@@ -51,7 +62,39 @@ func Extract(ctx context.Context, src, dst string) error {
 	return nil
 }
 
-func createDir(dstDir, dirName string) error {
+// findExtractor identifies the correct extractor based on src filename with longest suffix match
+func (e *Extract) findExtractor(src string) extractor {
+
+	// TODO(jan): detect filetype based on magic bytes
+
+	// Prepare available extractors
+	extractors := []extractor{NewTar(), NewZip()}
+
+	// find extractor with longest suffix match
+	var maxSuffixLength int
+	var engine extractor
+	for _, ex := range extractors {
+
+		// get suffix
+		suff := ex.FileSuffix()
+
+		// skip non-matching extractors
+		if !strings.HasSuffix(src, suff) {
+			continue
+		}
+
+		// check for longest suffix
+		if len(suff) > maxSuffixLength {
+			maxSuffixLength = len(suff)
+			engine = ex
+		}
+	}
+
+	return engine
+}
+
+// createDir creates in dstDir all directories that are provided in dirName
+func (e *Extract) createDir(dstDir string, dirName string) error {
 
 	// get absolut path
 	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
@@ -69,10 +112,11 @@ func createDir(dstDir, dirName string) error {
 	return nil
 }
 
-func createSymlink(dstDir string, name string, linkTarget string) error {
+// createSymlink creates in dstDir a symlink name with destination linkTarget
+func (e *Extract) createSymlink(dstDir string, name string, linkTarget string) error {
 
 	// create target dir
-	if err := createDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := e.createDir(dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
@@ -100,10 +144,12 @@ func createSymlink(dstDir string, name string, linkTarget string) error {
 	return nil
 }
 
-func createFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
+// createFile creates name in dstDir with conte nt from reader and file
+// headers as provided in mode
+func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
 	// create target dir
-	if err := createDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := e.createDir(dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
@@ -124,5 +170,20 @@ func createFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) 
 		return err
 	}
 
+	return nil
+}
+
+func (e *Extract) incrementAndCheckMaxFiles(counter *int64) error {
+	*counter++
+	if *counter > e.MaxFiles {
+		return fmt.Errorf("to many files to extract")
+	}
+	return nil
+}
+
+func (e *Extract) checkFileSize(fileSize int64) error {
+	if fileSize > e.MaxFileSize {
+		return fmt.Errorf("maximum filesize exceeded")
+	}
 	return nil
 }
