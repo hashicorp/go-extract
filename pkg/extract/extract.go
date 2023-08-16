@@ -165,7 +165,7 @@ func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode 
 		dstFile.Close()
 	}()
 
-	// TODO(jan): filesize check
+	// finaly copy the data
 	if _, err := io.Copy(dstFile, reader); err != nil {
 		return err
 	}
