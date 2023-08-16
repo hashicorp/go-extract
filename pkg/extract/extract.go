@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type extractor interface {
@@ -16,25 +17,31 @@ type extractor interface {
 }
 
 type Extract struct {
-	// MaxFiles is the maximum of files in an archive
+	// MaxFiles is the maximum of files in an archive.
+	// Set value to -1 to disable the check.
 	MaxFiles int64
 
-	// MaxFileSize is the maximum size of a file after decmpression
+	// MaxFileSize is the maximum size of a file after decompression.
+	// Set value to -1 to disable the check.
 	MaxFileSize int64
+
+	// Maximum time in seconds that an extraction should need to finish
+	MaxExtractionTime int64
 }
 
 // Create a new Extract object with defaults
 func New() *Extract {
 	return &Extract{
-		MaxFiles:    1000,
-		MaxFileSize: 1 << (10 * 3), // 1 Gb
+		MaxFiles:          1000,
+		MaxFileSize:       1 << (10 * 3), // 1 Gb
+		MaxExtractionTime: 60,            // 1 minute
 	}
 }
 
 func (e *Extract) Unpack(ctx context.Context, src, dst string) error {
 
+	// identify extraction engine
 	var ex extractor
-
 	if ex = e.findExtractor(src); ex == nil {
 		return fmt.Errorf("archive type not supported")
 	}
@@ -47,16 +54,44 @@ func (e *Extract) Unpack(ctx context.Context, src, dst string) error {
 	defer os.RemoveAll(tmpDir)
 	tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
 
-	// TODO(jan): add timeout
-
-	// extract files in tmpDir
-	if err := ex.Extract(e, src, tmpDir); err != nil {
-		return err
+	// check if extraction timeout is set
+	if e.MaxExtractionTime == -1 {
+		if err := ex.Extract(e, src, dst); err != nil {
+			return err
+		}
+	} else {
+		if err := e.extractWithTimeout(ex, src, tmpDir); err != nil {
+			return err
+		}
 	}
 
 	// move content from tmpDir to destination
 	if err := CopyDirectory(tmpDir, dst); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (e *Extract) extractWithTimeout(ex extractor, src string, dst string) error {
+	// prepare extraction process
+	exChan := make(chan error, 1)
+	go func() {
+		// extract files in tmpDir
+		if err := ex.Extract(e, src, dst); err != nil {
+			exChan <- err
+		}
+		exChan <- nil
+	}()
+
+	// start extraction in on thread
+	select {
+	case err := <-exChan:
+		if err != nil {
+			return err
+		}
+	case <-time.After(time.Duration(e.MaxExtractionTime) * time.Second):
+		return fmt.Errorf("maximum extraction time exceeded")
 	}
 
 	return nil
@@ -175,6 +210,13 @@ func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode 
 
 func (e *Extract) incrementAndCheckMaxFiles(counter *int64) error {
 	*counter++
+
+	// check if disabled
+	if e.MaxFiles == -1 {
+		return nil
+	}
+
+	// check value
 	if *counter > e.MaxFiles {
 		return fmt.Errorf("to many files to extract")
 	}
@@ -182,6 +224,13 @@ func (e *Extract) incrementAndCheckMaxFiles(counter *int64) error {
 }
 
 func (e *Extract) checkFileSize(fileSize int64) error {
+
+	// check if disabled
+	if e.MaxFileSize == -1 {
+		return nil
+	}
+
+	// check value
 	if fileSize > e.MaxFileSize {
 		return fmt.Errorf("maximum filesize exceeded")
 	}
