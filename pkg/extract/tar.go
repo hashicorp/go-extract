@@ -2,8 +2,8 @@ package extract
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -86,7 +86,7 @@ func (t *Tar) Extract(e *Extract, src, dst string) error {
 			}
 
 		default:
-			log.Printf("unspported filemode: %v", hdr.Typeflag)
+			return fmt.Errorf("unspported filemode: %v", hdr.Typeflag)
 		}
 
 	}

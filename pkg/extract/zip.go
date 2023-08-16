@@ -2,8 +2,8 @@ package extract
 
 import (
 	"archive/zip"
+	"fmt"
 	"io"
-	"log"
 	"os"
 )
 
@@ -83,7 +83,7 @@ func (z *Zip) Extract(e *Extract, src string, dst string) error {
 
 		// catch all for unspported file modes
 		default:
-			log.Printf("unspported filemode: %s", hdr.Mode()&os.ModeType)
+			return fmt.Errorf("unspported filemode: %s", hdr.Mode()&os.ModeType)
 
 		}
 	}
