@@ -8,8 +8,9 @@ Secure extraction of any archive type.
 
 ##  Feature collection
 
+- [x] extraction size check
+- [x] max num of extracted files
 - [ ] extraction time exhaustion
-- [ ] extraction size / zip bomb
 - [ ] recursive extraction
 - [ ] filetype detection based on magic bytes
 
