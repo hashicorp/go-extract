@@ -28,5 +28,6 @@ ls -lR
 ls -l /tmp/traversalextract
 cd ..
 rm -rf test-dir-*
+rm /tmp/traversalextract
 
 exit 0
