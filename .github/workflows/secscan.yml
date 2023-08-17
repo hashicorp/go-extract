@@ -1,0 +1,43 @@
+name: Security Scanner
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  sec_scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Configure Git
+      env:
+        GITHUB_TOKEN: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
+      run: |
+        git config --global url."https://hashibot-prodsec:$GITHUB_TOKEN@github.com".insteadOf "https://github.com"
+
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+    - name: Scan
+      id: scan
+      uses: hashicorp/security-scanner@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
+      with:
+        repository: "$PWD" # (path or github.com/owner/name)
+        config: |
+          repository {
+            go_modules = true
+            osv        = true
+            secrets {
+              all = true
+            } 
+          }
+
+    - name: SARIF Output 
+      shell: bash
+      run: cat results.sarif | jq
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@85c77f1dfc42a47cc98299e8779c151d2159b120 # codeql-bundle-v2.14.0
+      with:
+        sarif_file: results.sarif
