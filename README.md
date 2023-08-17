@@ -1,4 +1,7 @@
 # go-extract
+
+[![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=947a1cd3c713db9775b0bf469f39bec535a13d6b9c213bfd1babb4a0a0e01a15)](https://heimdall.hashicorp.services/site/assets/go-extract)
+
 Secure extraction of any archive type.
 
 ## Ressources
