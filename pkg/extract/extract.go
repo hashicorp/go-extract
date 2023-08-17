@@ -223,7 +223,7 @@ func (e *Extract) checkMaxFiles(counter int64) error {
 
 	// check value
 	if counter > e.MaxFiles {
-		return fmt.Errorf("to many files to extract")
+		return fmt.Errorf("to many files in archive")
 	}
 	return nil
 }
