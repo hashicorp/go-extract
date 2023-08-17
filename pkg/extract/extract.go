@@ -114,7 +114,7 @@ func (e *Extract) findExtractor(src string) extractor {
 		suff := ex.FileSuffix()
 
 		// skip non-matching extractors
-		if !strings.HasSuffix(src, suff) {
+		if !strings.HasSuffix(strings.ToLower(src), suff) {
 			continue
 		}
 
@@ -201,7 +201,13 @@ func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode 
 	}()
 
 	// finaly copy the data
-	if _, err := io.Copy(dstFile, reader); err != nil {
+	writtenBytes, err := io.Copy(dstFile, reader)
+	if err != nil {
+		return err
+	}
+
+	// check if too much bytes written
+	if err := e.checkFileSize(writtenBytes); err != nil {
 		return err
 	}
 
