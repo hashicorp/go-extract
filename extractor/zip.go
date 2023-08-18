@@ -6,18 +6,18 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
 )
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
 type Zip struct {
-	config     *extract.Config
+	config     *config.Config
 	fileSuffix string
 }
 
-func NewZip(config *extract.Config) *Zip {
+func NewZip(config *config.Config) *Zip {
 	return &Zip{fileSuffix: ".zip", config: config}
 }
 

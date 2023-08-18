@@ -1,4 +1,4 @@
-package extractor
+package extract
 
 import (
 	"context"
@@ -8,19 +8,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/extractor"
 )
 
 func Unpack(ctx context.Context, src string, dst string) error {
-	config := extract.Default()
+	config := config.Default()
 	return UnpackWithConfig(ctx, config, src, dst)
 }
 
 // Unpack extracts archive supplied in src to dst.
-func UnpackWithConfig(ctx context.Context, config *extract.Config, src string, dst string) error {
+func UnpackWithConfig(ctx context.Context, config *config.Config, src string, dst string) error {
 
 	// identify extraction engine
-	var ex extract.Extractor
+	var ex Extractor
 	if ex = findExtractor(config, src); ex == nil {
 		return fmt.Errorf("archive type not supported")
 	}
@@ -54,16 +55,16 @@ func UnpackWithConfig(ctx context.Context, config *extract.Config, src string, d
 }
 
 // findExtractor identifies the correct extractor based on src filename with longest suffix match
-func findExtractor(config *extract.Config, src string) extract.Extractor {
+func findExtractor(config *config.Config, src string) Extractor {
 
 	// TODO(jan): detect filetype based on magic bytes
 
 	// Prepare available extractors
-	extractors := []extract.Extractor{NewTar(config), NewZip(config)}
+	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config)}
 
 	// find extractor with longest suffix match
 	var maxSuffixLength int
-	var engine extract.Extractor
+	var engine Extractor
 	for _, ex := range extractors {
 
 		// get suffix
@@ -85,7 +86,7 @@ func findExtractor(config *extract.Config, src string) extract.Extractor {
 }
 
 // extractWithTimeout extracts src with supplied extractor ex to dst
-func extractWithTimeout(config *extract.Config, ex extract.Extractor, src string, dst string) error {
+func extractWithTimeout(config *config.Config, ex Extractor, src string, dst string) error {
 	// prepare extraction process
 	exChan := make(chan error, 1)
 	go func() {

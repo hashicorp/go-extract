@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 )
 
 type Os struct{}
@@ -66,7 +66,7 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 
 // CreateSafeFile creates name in dstDir with conte nt from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(config *extract.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
+func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
 	// create target dir
 	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {

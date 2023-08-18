@@ -4,14 +4,14 @@ import (
 	"io"
 	"io/fs"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 )
 
 type Target interface {
 
 	// CreateSafeFile creates name in dstDir with conte nt from reader and file
 	// headers as provided in mode
-	CreateSafeFile(config *extract.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
+	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
 
 	CreateSafeDir(dstDir string, dirName string) error
 

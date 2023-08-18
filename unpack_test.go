@@ -1,4 +1,4 @@
-package extractor
+package extract
 
 import (
 	"archive/tar"
@@ -10,7 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/extractor"
 )
 
 func TestFindExtractor(t *testing.T) {
@@ -18,27 +19,27 @@ func TestFindExtractor(t *testing.T) {
 	cases := []struct {
 		name     string
 		input    string
-		expected extract.Extractor
+		expected Extractor
 	}{
 		{
 			name:     "get zip extractor from file",
 			input:    "foo.zip",
-			expected: NewZip(extract.Default()),
+			expected: extractor.NewZip(config.Default()),
 		},
 		{
 			name:     "get zip extractor from file in path",
 			input:    "foo.zip",
-			expected: NewZip(extract.Default()),
+			expected: extractor.NewZip(config.Default()),
 		},
 		{
 			name:     "get tar extractor from file",
 			input:    "foo.tar",
-			expected: NewTar(extract.Default()),
+			expected: extractor.NewTar(config.Default()),
 		},
 		{
 			name:     "get tar extractor from file in path",
 			input:    "foo.tar",
-			expected: NewTar(extract.Default()),
+			expected: extractor.NewTar(config.Default()),
 		},
 		{
 			name:     "unspported file type .7z",
@@ -53,12 +54,12 @@ func TestFindExtractor(t *testing.T) {
 		{
 			name:     "camel case",
 			input:    "foo.zIp",
-			expected: NewZip(extract.Default()),
+			expected: extractor.NewZip(config.Default()),
 		},
 		{
 			name:     "camel case",
 			input:    "foo.TaR",
-			expected: NewTar(extract.Default()),
+			expected: extractor.NewTar(config.Default()),
 		},
 	}
 
@@ -70,7 +71,7 @@ func TestFindExtractor(t *testing.T) {
 			want := tc.expected
 
 			// perform actual tests
-			got := findExtractor(extract.Default(), tc.input)
+			got := findExtractor(config.Default(), tc.input)
 
 			// success if both are nil and no engine found
 			if want == got {
@@ -105,67 +106,67 @@ func TestUnpack(t *testing.T) {
 	cases := []struct {
 		name           string
 		inputGenerator TestfileGenerator
-		config         *extract.Config
+		config         *config.Config
 		expectError    bool
 	}{
 		{
 			name:           "normal zip",
 			inputGenerator: createTestZipNormal,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    false,
 		},
 		{
 			name:           "normal zip with 5 files",
 			inputGenerator: createTestZipNormalFiveFiles,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    false,
 		},
 		{
 			name:           "normal zip with 5 files, but extraction limit",
 			inputGenerator: createTestZipNormalFiveFiles,
-			config:         &extract.Config{MaxFiles: 1, MaxExtractionTime: -1, MaxFileSize: -1},
+			config:         &config.Config{MaxFiles: 1, MaxExtractionTime: -1, MaxFileSize: -1},
 			expectError:    true,
 		},
 		{
 			name:           "normal zip, but extraction time exceeded",
 			inputGenerator: createTestZipNormal,
-			config:         &extract.Config{MaxFiles: -1, MaxExtractionTime: 0, MaxFileSize: -1},
+			config:         &config.Config{MaxFiles: -1, MaxExtractionTime: 0, MaxFileSize: -1},
 			expectError:    true,
 		},
 		{
 			name:           "normal zip, but limited extraction size of 1 byte",
 			inputGenerator: createTestZipNormal,
-			config:         &extract.Config{MaxFiles: -1, MaxExtractionTime: -1, MaxFileSize: 1},
+			config:         &config.Config{MaxFiles: -1, MaxExtractionTime: -1, MaxFileSize: 1},
 			expectError:    true,
 		},
 		{
 			name:           "malicious zip with path traversal",
 			inputGenerator: createTestZipPathtraversal,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    true,
 		},
 		{
 			name:           "normal zip with symlink",
 			inputGenerator: createTestZipWithSymlink,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    false,
 		},
 		{
 			name:           "malicous zip with symlink target containing path traversal",
 			inputGenerator: createTestZipWithSymlinkTargetPathTraversal,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    true,
 		},
 		{
 			name:           "malicous zip with symlink target refering absolut path",
 			inputGenerator: createTestZipWithSymlinkAbsolutPath,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    true,
 		},
 		{
 			name:           "malicous zip with symlink name path traversal",
 			inputGenerator: createTestZipWithSymlinkPathTraversalName,
-			config:         extract.Default(),
+			config:         config.Default(),
 			expectError:    true,
 		},
 	}

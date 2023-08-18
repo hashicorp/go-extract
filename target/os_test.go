@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 )
 
 func TestCreateSafeDir(t *testing.T) {
@@ -222,7 +222,7 @@ func TestCreateSafeFile(t *testing.T) {
 	cases := []struct {
 		name        string
 		input       fnInput
-		config      *extract.Config
+		config      *config.Config
 		expectError bool
 	}{
 		{
@@ -232,7 +232,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      extract.Default(), // default settings are fine
+			config:      config.Default(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -242,7 +242,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      extract.Default(), // default settings are fine
+			config:      config.Default(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -252,7 +252,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      extract.Default(), // default settings are fine
+			config:      config.Default(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -262,7 +262,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      extract.Default(), // default settings are fine
+			config:      config.Default(), // default settings are fine
 			expectError: true,
 		},
 		{
@@ -272,7 +272,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      extract.Default(), // default settings are fine
+			config:      config.Default(), // default settings are fine
 			expectError: true,
 		},
 		{
@@ -282,7 +282,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("1234567890")), // 10 byte file content
 				mode:   0,
 			},
-			config:      &extract.Config{MaxFileSize: 5, MaxFiles: -1, MaxExtractionTime: -1}, // allow only 5 byte files
+			config:      &config.Config{MaxFileSize: 5, MaxFiles: -1, MaxExtractionTime: -1}, // allow only 5 byte files
 			expectError: true,
 		},
 	}

@@ -6,18 +6,18 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
 )
 
 // reference https://www.geeksforgeeks.org/time-sleep-function-in-golang-with-examples/
 
 type Tar struct {
-	config     *extract.Config
+	config     *config.Config
 	fileSuffix string
 }
 
-func NewTar(config *extract.Config) *Tar {
+func NewTar(config *config.Config) *Tar {
 	return &Tar{fileSuffix: ".tar", config: config}
 }
 
