@@ -21,7 +21,10 @@ clean:
 	@go clean
 	@rm extract
 
-foo:
-	cd ./test && ./createArcives.sh && ./test.sh
+test:
+	go test ./...
+
+test_coverage:
+	go test ./... -coverprofile=coverage.out
 
 all: build install
