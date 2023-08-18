@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/hashicorp/go-extract/pkg/extract"
+	"github.com/hashicorp/go-extract/extractor"
 )
 
 type CLI struct {
@@ -38,8 +38,7 @@ func Run(version, commit, date string) {
 	}
 
 	// extract archive
-	ex := extract.New()
-	if err := ex.Unpack(ctx, cli.Archive, cli.Output); err != nil {
+	if err := extractor.Unpack(ctx, cli.Archive, cli.Output); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}
