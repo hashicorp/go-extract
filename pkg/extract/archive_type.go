@@ -1,7 +1,5 @@
 package extract
 
-import "fmt"
-
 type ArchiveType struct {
 	Algorithm  string
 	MagicBytes []byte
@@ -34,6 +32,8 @@ func MaxArchiveHeaderLength() int {
 	return bufferSize
 }
 
+// TODO(jan): implement
 func DetermineArchiveType(inputArchive []byte) (*ArchiveType, error) {
-	return nil, fmt.Errorf("unknown filetype")
+	panic("TODO")
+	// return nil, fmt.Errorf("unknown filetype")
 }

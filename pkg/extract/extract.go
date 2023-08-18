@@ -29,7 +29,7 @@ type Extract struct {
 	MaxExtractionTime int64
 }
 
-// Create a new Extract object with defaults
+// New creates a new Extract object with defaults
 func New() *Extract {
 	return &Extract{
 		MaxFiles:          1000,
@@ -38,6 +38,7 @@ func New() *Extract {
 	}
 }
 
+// Unpack extracts archive supplied in src to dst.
 func (e *Extract) Unpack(ctx context.Context, src, dst string) error {
 
 	// identify extraction engine
@@ -73,6 +74,7 @@ func (e *Extract) Unpack(ctx context.Context, src, dst string) error {
 	return nil
 }
 
+// extractWithTimeout extracts src with supplied extractor ex to dst
 func (e *Extract) extractWithTimeout(ex extractor, src string, dst string) error {
 	// prepare extraction process
 	exChan := make(chan error, 1)
@@ -214,6 +216,7 @@ func (e *Extract) createFile(dstDir string, name string, reader io.Reader, mode 
 	return nil
 }
 
+// checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e
 func (e *Extract) checkMaxFiles(counter int64) error {
 
 	// check if disabled
@@ -228,6 +231,7 @@ func (e *Extract) checkMaxFiles(counter int64) error {
 	return nil
 }
 
+// checkFileSize checks if fileSize exceeds the MaxFileSize of the Extractor e
 func (e *Extract) checkFileSize(fileSize int64) error {
 
 	// check if disabled
