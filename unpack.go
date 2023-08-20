@@ -37,11 +37,11 @@ func UnpackWithConfig(ctx context.Context, config *config.Config, src string, ds
 
 	// check if extraction timeout is set
 	if config.MaxExtractionTime == -1 {
-		if err := ex.Unpack(src, dst); err != nil {
+		if err := ex.Unpack(ctx, src, dst); err != nil {
 			return err
 		}
 	} else {
-		if err := extractWithTimeout(config, ex, src, tmpDir); err != nil {
+		if err := extractWithTimeout(ctx, config, ex, src, tmpDir); err != nil {
 			return err
 		}
 	}
@@ -86,12 +86,12 @@ func findExtractor(config *config.Config, src string) Extractor {
 }
 
 // extractWithTimeout extracts src with supplied extractor ex to dst
-func extractWithTimeout(config *config.Config, ex Extractor, src string, dst string) error {
+func extractWithTimeout(ctx context.Context, config *config.Config, ex Extractor, src string, dst string) error {
 	// prepare extraction process
 	exChan := make(chan error, 1)
 	go func() {
 		// extract files in tmpDir
-		if err := ex.Unpack(src, dst); err != nil {
+		if err := ex.Unpack(ctx, src, dst); err != nil {
 			exChan <- err
 		}
 		exChan <- nil

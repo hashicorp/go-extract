@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/zip"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +26,7 @@ func (z *Zip) FileSuffix() string {
 	return z.fileSuffix
 }
 
-func (z *Zip) Unpack(src string, dst string) error {
+func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 
 	target := &target.Os{}
 

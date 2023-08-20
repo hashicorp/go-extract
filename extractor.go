@@ -1,7 +1,8 @@
 package extract
 
+import "context"
+
 type Extractor interface {
-	// TODO(jan): add ctx
-	Unpack(src string, dst string) error
+	Unpack(ctx context.Context, src string, dst string) error
 	FileSuffix() string
 }

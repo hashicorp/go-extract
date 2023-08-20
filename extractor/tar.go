@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +26,7 @@ func (t *Tar) FileSuffix() string {
 	return t.fileSuffix
 }
 
-func (t *Tar) Unpack(src, dst string) error {
+func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 
 	target := &target.Os{}
 
