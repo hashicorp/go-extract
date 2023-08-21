@@ -114,3 +114,11 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 
 	return nil
 }
+
+func CreateTmpDir() string {
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		panic(err)
+	}
+	return tmpDir
+}

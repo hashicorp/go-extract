@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -32,6 +33,35 @@ func (t *Tar) Config() *config.Config {
 
 func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 
+	// start extraction without timer
+	if t.config.MaxExtractionTime == -1 {
+		return t.unpack(ctx, src, dst)
+	}
+
+	exChan := make(chan error, 1)
+	go func() {
+		// extract files in tmpDir
+		if err := t.unpack(ctx, src, dst); err != nil {
+			exChan <- err
+		}
+		exChan <- nil
+	}()
+
+	// start extraction in on thread
+	select {
+	case err := <-exChan:
+		if err != nil {
+			return err
+		}
+	case <-time.After(time.Duration(t.config.MaxExtractionTime) * time.Second):
+		return fmt.Errorf("maximum extraction time exceeded")
+	}
+
+	return nil
+
+}
+
+func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
 	target := &target.Os{}
 
 	tarFile, err := os.Open(src)
@@ -102,4 +132,5 @@ func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 		}
 
 	}
+
 }

@@ -21,19 +21,7 @@ func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption
 		opt(&ex)
 	}
 
-	// check if extraction timeout is set
-	if ex.Config().MaxExtractionTime == -1 {
-		if err := ex.Unpack(ctx, src, dst); err != nil {
-			return err
-		}
-	} else {
-		if err := extractWithTimeout(ctx, ex, src, dst); err != nil {
-			return err
-		}
-	}
-
-	return nil
-
+	return ex.Unpack(ctx, src, dst)
 }
 
 func WithMaxFiles(maxFiles int64) ExtractorOption {

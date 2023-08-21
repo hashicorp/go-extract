@@ -32,8 +32,7 @@ func MaxArchiveHeaderLength() int {
 	return bufferSize
 }
 
-// TODO(jan): implement
 func DetermineArchiveType(inputArchive []byte) (*ArchiveType, error) {
-	panic("TODO")
+	panic("TODO(jan): implement")
 	// return nil, fmt.Errorf("unknown filetype")
 }

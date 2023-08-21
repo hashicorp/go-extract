@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -32,6 +33,34 @@ func (z *Zip) Config() *config.Config {
 
 func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 
+	// start extraction without timer
+	if z.config.MaxExtractionTime == -1 {
+		return z.unpack(ctx, src, dst)
+	}
+
+	exChan := make(chan error, 1)
+	go func() {
+		// extract files in tmpDir
+		if err := z.unpack(ctx, src, dst); err != nil {
+			exChan <- err
+		}
+		exChan <- nil
+	}()
+
+	// start extraction in on thread
+	select {
+	case err := <-exChan:
+		if err != nil {
+			return err
+		}
+	case <-time.After(time.Duration(z.config.MaxExtractionTime) * time.Second):
+		return fmt.Errorf("maximum extraction time exceeded")
+	}
+
+	return nil
+}
+
+func (z *Zip) unpack(ctx context.Context, src string, dst string) error {
 	target := &target.Os{}
 
 	// open zipFile
