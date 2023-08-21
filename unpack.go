@@ -21,15 +21,6 @@ func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption
 		opt(&ex)
 	}
 
-	// create tmp directory
-	// TODO(jan): check if tmpDir needed
-	// tmpDir, err := os.MkdirTemp(os.TempDir(), "extract*")
-	// if err != nil {
-	// 	return err
-	// }
-	// defer os.RemoveAll(tmpDir)
-	// tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
-
 	// check if extraction timeout is set
 	if ex.Config().MaxExtractionTime == -1 {
 		if err := ex.Unpack(ctx, src, dst); err != nil {
@@ -40,11 +31,6 @@ func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption
 			return err
 		}
 	}
-
-	// // move content from tmpDir to destination
-	// if err := CopyDirectory(tmpDir, dst); err != nil {
-	// 	return err
-	// }
 
 	return nil
 
