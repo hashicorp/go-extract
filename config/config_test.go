@@ -15,20 +15,20 @@ func TestCheckMaxFiles(t *testing.T) {
 	}{
 		{
 			name:        "less files then maximum",
-			input:       5,                     // within limit
-			config:      &Config{MaxFiles: 10}, // 10
+			input:       5,                           // within limit
+			config:      NewConfig(WithMaxFiles(10)), // 10
 			expectError: false,
 		},
 		{
 			name:        "more files then maximum",
-			input:       15,                    // over limit
-			config:      &Config{MaxFiles: 10}, // 10
+			input:       15,                          // over limit
+			config:      NewConfig(WithMaxFiles(10)), // 10
 			expectError: true,
 		},
 		{
 			name:        "disable file counter check",
-			input:       5000,                  // ignored
-			config:      &Config{MaxFiles: -1}, // disable
+			input:       5000,                        // ignored
+			config:      NewConfig(WithMaxFiles(-1)), // disable
 			expectError: false,
 		},
 	}
@@ -56,20 +56,20 @@ func TestCheckFileSize(t *testing.T) {
 	}{
 		{
 			name:        "file size less then maximum",
-			input:       1 << (9 * 1),                        // 512b
-			config:      &Config{MaxFileSize: 1 << (10 * 1)}, // 1kb
+			input:       1 << (9 * 1),                              // 512b
+			config:      NewConfig(WithMaxFileSize(1 << (10 * 1))), // 1kb
 			expectError: false,
 		},
 		{
 			name:        "file bigger then maximum",
-			input:       5 << (10 * 1),                       // 5kb
-			config:      &Config{MaxFileSize: 1 << (10 * 1)}, // 1 kb
+			input:       5 << (10 * 1),                             // 5kb
+			config:      NewConfig(WithMaxFileSize(1 << (10 * 1))), // 1kb
 			expectError: true,
 		},
 		{
 			name:        "disable filzes check",
-			input:       5 << (10 * 1),            // 5kb
-			config:      &Config{MaxFileSize: -1}, // disable
+			input:       5 << (10 * 1),                  // 5kb
+			config:      NewConfig(WithMaxFileSize(-1)), // 1kb
 			expectError: false,
 		},
 	}
