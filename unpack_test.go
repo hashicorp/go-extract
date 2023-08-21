@@ -168,19 +168,79 @@ func TestUnpack(t *testing.T) {
 			opts:           []ExtractorOption{},
 			expectError:    true,
 		},
+		{
+			name:           "unpack normal tar",
+			inputGenerator: createTestTarNormal,
+			opts:           []ExtractorOption{},
+			expectError:    false,
+		},
+		{
+			name:           "unpack normal tar with 5 files",
+			inputGenerator: createTestTarFiveFiles,
+			opts:           []ExtractorOption{},
+			expectError:    false,
+		},
+		{
+			name:           "unpack normal tar with 5 files, but file limit",
+			inputGenerator: createTestTarFiveFiles,
+			opts:           []ExtractorOption{WithMaxFiles(4)},
+			expectError:    true,
+		},
+		{
+			name:           "unpack normal tar, but extraction time exceeded",
+			inputGenerator: createTestTarNormal,
+			opts:           []ExtractorOption{WithMaxExtractionTime(0)},
+			expectError:    true,
+		},
+		{
+			name:           "unpack normal tar, but extraction size exceeded",
+			inputGenerator: createTestTarNormal,
+			opts:           []ExtractorOption{WithMaxFileSize(1)},
+			expectError:    true,
+		},
+		{
+			name:           "unpack malicious tar, with traversal",
+			inputGenerator: createTestTarWithPathTraversalInFile,
+			opts:           []ExtractorOption{},
+			expectError:    true,
+		},
+		{
+			name:           "unpack normal tar with symlink",
+			inputGenerator: createTestTarWithSymlink,
+			opts:           []ExtractorOption{},
+			expectError:    false,
+		},
+		{
+			name:           "unpack normal tar with traversal symlink",
+			inputGenerator: createTestTarWithPathTraversalSymlink,
+			opts:           []ExtractorOption{},
+			expectError:    true,
+		},
+		{
+			name:           "unpack normal tar with absolut path in symlink",
+			inputGenerator: createTestTarWithAbsolutPathSymlink,
+			opts:           []ExtractorOption{},
+			expectError:    true,
+		},
+		{
+			name:           "malicous tar with symlink name path traversal",
+			inputGenerator: createTestTarWithTraversalInSymlinkName,
+			opts:           []ExtractorOption{},
+			expectError:    true,
+		},
 	}
-
-	// create testing directory
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
 
 	// run cases
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+
+			// create testing directory
+			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+			defer os.RemoveAll(testDir)
 
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
@@ -195,51 +255,165 @@ func TestUnpack(t *testing.T) {
 	}
 }
 
-// func createTestTarNormal(dstDir string) string {
+func createTestTarNormal(dstDir string) string {
 
-// 	targetFile := filepath.Join(dstDir, "TarNormal.tar")
+	targetFile := filepath.Join(dstDir, "TarNormal.tar")
 
-// 	// create a temporary dir for files in zip archive
-// 	tmpDir := createTmpDir()
-// 	defer os.RemoveAll(tmpDir)
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
 
-// 	// prepare generated zip+writer
-// 	tarWriter := createTar(targetFile)
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
 
-// 	// prepare testfile for be added to tar
-// 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-// 	defer f1.Close()
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
 
-// 	// write file into tar
+	// Add file to tar
+	addFileToTarArchive(tarWriter, f1.Name(), f1)
 
-// 	// create a new dir/file header
-// 	header, err := tar.FileInfoHeader(f1., fi.Name())
-// 	if err != nil {
-// 		return err
-// 	}
+	// close zip
+	tarWriter.Close()
 
-// 	// update the name to correctly reflect the desired destination when untaring
-// 	header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
+	// return path to zip
+	return targetFile
+}
 
-// 	// write the header
-// 	if err := tw.WriteHeader(header); err != nil {
-// 		return err
-// 	}
+func createTestTarWithSymlink(dstDir string) string {
 
-// 	w1, err := tarWriter.Create("test")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	if _, err := io.Copy(w1, f1); err != nil {
-// 		panic(err)
-// 	}
+	targetFile := filepath.Join(dstDir, "TarWithSymlink.tar")
 
-// 	// close zip
-// 	tarWriter.Close()
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
 
-// 	// return path to zip
-// 	return targetFile
-// }
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add symlink
+	addLinkToTarArchive(tarWriter, "testLink", "testTarget")
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+func createTestTarWithTraversalInSymlinkName(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithTraversalInSymlinkName.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add symlink
+	addLinkToTarArchive(tarWriter, "../testLink", "testTarget")
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+func createTestTarWithPathTraversalSymlink(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithPathTraversalSymlink.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add symlink
+	addLinkToTarArchive(tarWriter, "testLink", "../testTarget")
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+func createTestTarWithAbsolutPathSymlink(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithAbsolutPathSymlink.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add symlink
+	addLinkToTarArchive(tarWriter, "testLink", "/tmp/test")
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+func createTestTarWithPathTraversalInFile(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithPathTraversalInFile.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// add
+	addFileToTarArchive(tarWriter, "../test", f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+func createTestTarFiveFiles(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarFiveFiles.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	for i := 0; i < 5; i++ {
+
+		// prepare testfile for be added to tar
+		f1 := createTestFile(filepath.Join(tmpDir, fmt.Sprintf("test%d", i)), "foobar content")
+		defer f1.Close()
+
+		// add
+		addFileToTarArchive(tarWriter, f1.Name(), f1)
+	}
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
 
 func createTestZipNormal(dstDir string) string {
 
@@ -345,7 +519,7 @@ func createTestZipWithSymlink(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToArchive(zipWriter, "legitLinkName", "legitLinkTarget"); err != nil {
+	if err := addLinkToZipArchive(zipWriter, "legitLinkName", "legitLinkTarget"); err != nil {
 		panic(err)
 	}
 
@@ -364,7 +538,7 @@ func createTestZipWithSymlinkPathTraversalName(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToArchive(zipWriter, "../malicousLink", "nirvana"); err != nil {
+	if err := addLinkToZipArchive(zipWriter, "../malicousLink", "nirvana"); err != nil {
 		panic(err)
 	}
 
@@ -383,7 +557,7 @@ func createTestZipWithSymlinkAbsolutPath(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToArchive(zipWriter, "maliciousLink", "/etc/passwd"); err != nil {
+	if err := addLinkToZipArchive(zipWriter, "maliciousLink", "/etc/passwd"); err != nil {
 		panic(err)
 	}
 
@@ -402,7 +576,7 @@ func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToArchive(zipWriter, "maliciousLink", "../malicousLinkTarget"); err != nil {
+	if err := addLinkToZipArchive(zipWriter, "maliciousLink", "../malicousLinkTarget"); err != nil {
 		panic(err)
 	}
 
@@ -413,7 +587,7 @@ func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 	return targetFile
 }
 
-func addLinkToArchive(zipWriter *zip.Writer, linkName string, linkTarget string) error {
+func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget string) error {
 
 	// create a temporary dir for files in zip archive
 	tmpDir := createTmpDir()
@@ -454,6 +628,64 @@ func addLinkToArchive(zipWriter *zip.Writer, linkName string, linkTarget string)
 	}
 
 	return nil
+}
+
+func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
+	fileInfo, err := os.Lstat(f1.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	// create a new dir/file header
+	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	// adjust filename
+	header.Name = fileName
+
+	// write the header
+	if err := tarWriter.WriteHeader(header); err != nil {
+		panic(err)
+	}
+
+	// add content
+	if _, err := io.Copy(tarWriter, f1); err != nil {
+		panic(err)
+	}
+}
+
+func addLinkToTarArchive(tarWriter *tar.Writer, fileName string, linkTarget string) {
+	// create a temporary dir for files in zip archive
+	tmpDir := createTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// create dummy link to get data structure
+	dummyLink := filepath.Join(tmpDir, "dummylink")
+	if err := os.Symlink("nirvana", dummyLink); err != nil {
+		panic(err)
+	}
+
+	// get file stats for testing operating system
+	info, err := os.Lstat(dummyLink)
+	if err != nil {
+		panic(err)
+	}
+
+	// create a new dir/file header
+	header, err := tar.FileInfoHeader(info, info.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	// adjust file headers
+	header.Name = fileName
+	header.Linkname = linkTarget
+
+	if err := tarWriter.WriteHeader(header); err != nil {
+		panic(err)
+	}
 }
 
 func createTar(filePath string) *tar.Writer {
