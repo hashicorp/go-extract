@@ -14,7 +14,7 @@ import (
 type Os struct{}
 
 // CreateSafeDir creates in dstDir all directories that are provided in dirName
-func (o *Os) CreateSafeDir(dstDir string, dirName string) error {
+func (o *Os) CreateSafeDir(config *config.Config, dstDir string, dirName string) error {
 
 	// get absolut path
 	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
@@ -33,15 +33,26 @@ func (o *Os) CreateSafeDir(dstDir string, dirName string) error {
 }
 
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
-func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) error {
+func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error {
 
 	// create target dir
-	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
 	// target file
 	targetFilePath := filepath.Clean(filepath.Join(dstDir, name))
+
+	// Check for file existence and if it should be overwritten
+	if _, err := os.Lstat(targetFilePath); err == nil {
+		if !config.Overwrite {
+			return fmt.Errorf("%v already exists!\n", name)
+		} else {
+			fmt.Printf("file %v exist and is going to be overwritten\n", name)
+		}
+	} else {
+		fmt.Printf("%v new created\n", targetFilePath)
+	}
 
 	// check absolut path
 	// TODO(jan): check for windows
@@ -69,17 +80,22 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
 	// create target dir
-	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
 	// target file
 	targetFilePath := filepath.Clean(filepath.Join(dstDir, name))
 
+	// Check for file existence and if it should be overwritten
+	if _, err := os.Lstat(targetFilePath); err == nil && !config.Overwrite {
+		return fmt.Errorf("%v already exists!", name)
+	}
+
 	// create dst file
 	dstFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return err
+		return fmt.Errorf("openFile error: %v", err)
 	}
 	defer func() {
 		dstFile.Close()

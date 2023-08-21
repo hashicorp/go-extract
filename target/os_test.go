@@ -74,7 +74,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			got := target.CreateSafeDir(testDir, tc.input) != nil
+			got := target.CreateSafeDir(config.NewConfig(), testDir, tc.input) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -199,7 +199,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
-			err = target.CreateSafeSymlink(testDir, tc.input.name, tc.input.target)
+			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
@@ -232,7 +232,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      config.Default(), // default settings are fine
+			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -242,7 +242,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      config.Default(), // default settings are fine
+			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -252,7 +252,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      config.Default(), // default settings are fine
+			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
 		},
 		{
@@ -262,7 +262,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      config.Default(), // default settings are fine
+			config:      config.NewConfig(), // default settings are fine
 			expectError: true,
 		},
 		{
@@ -272,7 +272,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0,
 			},
-			config:      config.Default(), // default settings are fine
+			config:      config.NewConfig(), // default settings are fine
 			expectError: true,
 		},
 		{
@@ -282,7 +282,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("1234567890")), // 10 byte file content
 				mode:   0,
 			},
-			config:      &config.Config{MaxFileSize: 5, MaxFiles: -1, MaxExtractionTime: -1}, // allow only 5 byte files
+			config:      config.NewConfig(config.WithMaxFileSize(5)), // adjusted default
 			expectError: true,
 		},
 	}
@@ -302,6 +302,73 @@ func TestCreateSafeFile(t *testing.T) {
 			// perform actual tests
 			target := &Os{}
 			want := tc.expectError
+			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			got := err != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+			}
+
+		})
+	}
+
+}
+
+func TestOverwriteFile(t *testing.T) {
+
+	// test cases
+
+	type fnInput struct {
+		name   string
+		reader io.Reader
+		mode   fs.FileMode
+	}
+
+	cases := []struct {
+		name        string
+		input       fnInput
+		config      *config.Config
+		expectError bool
+	}{
+		{
+			name: "normal behaviour does not allow overwrite",
+			input: fnInput{
+				name:   "foo",
+				reader: bytes.NewReader([]byte("data")),
+				mode:   0644,
+			},
+			config:      config.NewConfig(), // default settings are fine
+			expectError: true,
+		},
+		{
+			name: "allow overwrite",
+
+			input: fnInput{
+				name:   "aaa/bbb",
+				reader: bytes.NewReader([]byte("data")),
+				mode:   0644,
+			},
+			config:      config.NewConfig(config.WithOverwrite()), // allow overwrite
+			expectError: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+
+			// create testing directory
+			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+			defer os.RemoveAll(testDir)
+
+			// perform actual tests
+			target := &Os{}
+			want := tc.expectError
+			// double extract
+			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
 			if got != want {

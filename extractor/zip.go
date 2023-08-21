@@ -26,6 +26,10 @@ func (z *Zip) FileSuffix() string {
 	return z.fileSuffix
 }
 
+func (z *Zip) Config() *config.Config {
+	return z.config
+}
+
 func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 
 	target := &target.Os{}
@@ -50,7 +54,7 @@ func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 		switch hdr.Mode() & os.ModeType {
 		case os.ModeDir:
 			// handle directory
-			if err := target.CreateSafeDir(dst, archiveFile.Name); err != nil {
+			if err := target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
 				return err
 			}
 			continue
@@ -61,7 +65,7 @@ func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 			if err != nil {
 				return err
 			}
-			if err := target.CreateSafeSymlink(dst, archiveFile.Name, linkTarget); err != nil {
+			if err := target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 			continue

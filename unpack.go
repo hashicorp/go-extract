@@ -3,8 +3,6 @@ package extract
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -12,52 +10,77 @@ import (
 	"github.com/hashicorp/go-extract/extractor"
 )
 
-func Unpack(ctx context.Context, src string, dst string) error {
-	config := config.Default()
-	return UnpackWithConfig(ctx, config, src, dst)
-}
+func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption) error {
 
-// Unpack extracts archive supplied in src to dst.
-func UnpackWithConfig(ctx context.Context, config *config.Config, src string, dst string) error {
-
-	// identify extraction engine
 	var ex Extractor
-	if ex = findExtractor(config, src); ex == nil {
+	if ex = findExtractor(src); ex == nil {
 		return fmt.Errorf("archive type not supported")
+	}
+
+	for _, opt := range opts {
+		opt(&ex)
 	}
 
 	// create tmp directory
 	// TODO(jan): check if tmpDir needed
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "extract*")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpDir)
-	tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
+	// tmpDir, err := os.MkdirTemp(os.TempDir(), "extract*")
+	// if err != nil {
+	// 	return err
+	// }
+	// defer os.RemoveAll(tmpDir)
+	// tmpDir = filepath.Clean(tmpDir) + string(os.PathSeparator)
 
 	// check if extraction timeout is set
-	if config.MaxExtractionTime == -1 {
+	if ex.Config().MaxExtractionTime == -1 {
 		if err := ex.Unpack(ctx, src, dst); err != nil {
 			return err
 		}
 	} else {
-		if err := extractWithTimeout(ctx, config, ex, src, tmpDir); err != nil {
+		if err := extractWithTimeout(ctx, ex, src, dst); err != nil {
 			return err
 		}
 	}
 
-	// move content from tmpDir to destination
-	if err := CopyDirectory(tmpDir, dst); err != nil {
-		return err
-	}
+	// // move content from tmpDir to destination
+	// if err := CopyDirectory(tmpDir, dst); err != nil {
+	// 	return err
+	// }
 
 	return nil
+
+}
+
+func WithMaxFiles(maxFiles int64) ExtractorOption {
+	return func(e *Extractor) {
+		(*e).Config().MaxFiles = maxFiles
+	}
+}
+
+func WithMaxFileSize(maxFileSize int64) ExtractorOption {
+	return func(e *Extractor) {
+		(*e).Config().MaxFileSize = maxFileSize
+	}
+}
+
+func WithMaxExtractionTime(maxExtractionTime int64) ExtractorOption {
+	return func(e *Extractor) {
+		(*e).Config().MaxExtractionTime = maxExtractionTime
+	}
+}
+
+func WithOverwrite() ExtractorOption {
+	return func(e *Extractor) {
+		(*e).Config().Overwrite = true
+	}
 }
 
 // findExtractor identifies the correct extractor based on src filename with longest suffix match
-func findExtractor(config *config.Config, src string) Extractor {
+func findExtractor(src string) Extractor {
 
 	// TODO(jan): detect filetype based on magic bytes
+
+	// generate config
+	config := config.NewConfig()
 
 	// Prepare available extractors
 	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config)}
@@ -86,7 +109,7 @@ func findExtractor(config *config.Config, src string) Extractor {
 }
 
 // extractWithTimeout extracts src with supplied extractor ex to dst
-func extractWithTimeout(ctx context.Context, config *config.Config, ex Extractor, src string, dst string) error {
+func extractWithTimeout(ctx context.Context, ex Extractor, src string, dst string) error {
 	// prepare extraction process
 	exChan := make(chan error, 1)
 	go func() {
@@ -103,7 +126,7 @@ func extractWithTimeout(ctx context.Context, config *config.Config, ex Extractor
 		if err != nil {
 			return err
 		}
-	case <-time.After(time.Duration(config.MaxExtractionTime) * time.Second):
+	case <-time.After(time.Duration(ex.Config().MaxExtractionTime) * time.Second):
 		return fmt.Errorf("maximum extraction time exceeded")
 	}
 

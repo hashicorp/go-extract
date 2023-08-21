@@ -13,7 +13,7 @@ type Target interface {
 	// headers as provided in mode
 	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
 
-	CreateSafeDir(dstDir string, dirName string) error
+	CreateSafeDir(config *config.Config, dstDir string, dirName string) error
 
-	CreateSymlink(dstDir string, name string, linkTarget string) error
+	CreateSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
 }

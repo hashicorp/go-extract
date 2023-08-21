@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+type ConfigOption func(*Config)
+
 type Config struct {
 	// MaxFiles is the maximum of files in an archive.
 	// Set value to -1 to disable the check.
@@ -15,20 +17,54 @@ type Config struct {
 
 	// Maximum time in seconds that an extraction should need to finish
 	MaxExtractionTime int64
+
+	// Define if files should be overwritten in the Destination
+	Overwrite bool
 }
 
-// Default creates a new Extract object with defaults
-func Default() *Config {
-	return &Config{
-		MaxFiles:          1000,
-		MaxFileSize:       1 << (10 * 3), // 1 Gb
-		MaxExtractionTime: 60,            // 1 minute
+func NewConfig(opts ...ConfigOption) *Config {
+	const (
+		maxFiles          = 1000
+		maxFileSize       = 1 << (10 * 3) // 1 Gb
+		maxExtractionTime = 60            // 1 minute
+	)
+
+	config := &Config{
+		MaxFiles:          maxFiles,
+		MaxFileSize:       maxFileSize,
+		MaxExtractionTime: maxExtractionTime,
+	}
+
+	// Loop through each option
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	// return the modified house instance
+	return config
+}
+
+func WithMaxFiles(maxFiles int64) ConfigOption {
+	return func(c *Config) {
+		c.MaxFiles = maxFiles
 	}
 }
 
-// Default creates a new Extract object with defaults
-func SafeDefault() *Config {
-	return Default()
+func WithMaxExtractionTime(maxExtractionTime int64) ConfigOption {
+	return func(c *Config) {
+		c.MaxExtractionTime = maxExtractionTime
+	}
+}
+func WithMaxFileSize(maxFileSize int64) ConfigOption {
+	return func(c *Config) {
+		c.MaxFileSize = maxFileSize
+	}
+}
+
+func WithOverwrite() ConfigOption {
+	return func(c *Config) {
+		c.Overwrite = true
+	}
 }
 
 // checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e

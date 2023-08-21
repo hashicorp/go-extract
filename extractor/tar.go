@@ -26,6 +26,10 @@ func (t *Tar) FileSuffix() string {
 	return t.fileSuffix
 }
 
+func (t *Tar) Config() *config.Config {
+	return t.config
+}
+
 func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 
 	target := &target.Os{}
@@ -70,7 +74,7 @@ func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
 			// handle directory
-			if err := target.CreateSafeDir(dst, hdr.Name); err != nil {
+			if err := target.CreateSafeDir(t.config, dst, hdr.Name); err != nil {
 				return err
 			}
 			continue
@@ -89,7 +93,7 @@ func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 		// its a symlink !!
 		case tar.TypeSymlink:
 			// create link
-			if err := target.CreateSafeSymlink(dst, hdr.Name, hdr.Linkname); err != nil {
+			if err := target.CreateSafeSymlink(t.config, dst, hdr.Name, hdr.Linkname); err != nil {
 				return err
 			}
 

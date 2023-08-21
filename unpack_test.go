@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
 )
 
@@ -24,22 +23,22 @@ func TestFindExtractor(t *testing.T) {
 		{
 			name:     "get zip extractor from file",
 			input:    "foo.zip",
-			expected: extractor.NewZip(config.Default()),
+			expected: extractor.NewZip(nil),
 		},
 		{
 			name:     "get zip extractor from file in path",
 			input:    "foo.zip",
-			expected: extractor.NewZip(config.Default()),
+			expected: extractor.NewZip(nil),
 		},
 		{
 			name:     "get tar extractor from file",
 			input:    "foo.tar",
-			expected: extractor.NewTar(config.Default()),
+			expected: extractor.NewTar(nil),
 		},
 		{
 			name:     "get tar extractor from file in path",
 			input:    "foo.tar",
-			expected: extractor.NewTar(config.Default()),
+			expected: extractor.NewTar(nil),
 		},
 		{
 			name:     "unspported file type .7z",
@@ -54,12 +53,12 @@ func TestFindExtractor(t *testing.T) {
 		{
 			name:     "camel case",
 			input:    "foo.zIp",
-			expected: extractor.NewZip(config.Default()),
+			expected: extractor.NewZip(nil),
 		},
 		{
 			name:     "camel case",
 			input:    "foo.TaR",
-			expected: extractor.NewTar(config.Default()),
+			expected: extractor.NewTar(nil),
 		},
 	}
 
@@ -71,7 +70,7 @@ func TestFindExtractor(t *testing.T) {
 			want := tc.expected
 
 			// perform actual tests
-			got := findExtractor(config.Default(), tc.input)
+			got := findExtractor(tc.input)
 
 			// success if both are nil and no engine found
 			if want == got {
@@ -106,87 +105,87 @@ func TestUnpack(t *testing.T) {
 	cases := []struct {
 		name           string
 		inputGenerator TestfileGenerator
-		config         *config.Config
+		opts           []ExtractorOption
 		expectError    bool
 	}{
 		{
 			name:           "normal zip",
 			inputGenerator: createTestZipNormal,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    false,
 		},
 		{
 			name:           "normal zip with 5 files",
 			inputGenerator: createTestZipNormalFiveFiles,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    false,
 		},
 		{
 			name:           "normal zip with 5 files, but extraction limit",
 			inputGenerator: createTestZipNormalFiveFiles,
-			config:         &config.Config{MaxFiles: 1, MaxExtractionTime: -1, MaxFileSize: -1},
+			opts:           []ExtractorOption{WithMaxFiles(1)},
 			expectError:    true,
 		},
 		{
 			name:           "normal zip, but extraction time exceeded",
 			inputGenerator: createTestZipNormal,
-			config:         &config.Config{MaxFiles: -1, MaxExtractionTime: 0, MaxFileSize: -1},
+			opts:           []ExtractorOption{WithMaxExtractionTime(0)},
 			expectError:    true,
 		},
 		{
 			name:           "normal zip, but limited extraction size of 1 byte",
 			inputGenerator: createTestZipNormal,
-			config:         &config.Config{MaxFiles: -1, MaxExtractionTime: -1, MaxFileSize: 1},
+			opts:           []ExtractorOption{WithMaxFileSize(1)},
 			expectError:    true,
 		},
 		{
 			name:           "malicious zip with path traversal",
 			inputGenerator: createTestZipPathtraversal,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    true,
 		},
 		{
 			name:           "normal zip with symlink",
 			inputGenerator: createTestZipWithSymlink,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    false,
 		},
 		{
 			name:           "malicous zip with symlink target containing path traversal",
 			inputGenerator: createTestZipWithSymlinkTargetPathTraversal,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    true,
 		},
 		{
 			name:           "malicous zip with symlink target refering absolut path",
 			inputGenerator: createTestZipWithSymlinkAbsolutPath,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    true,
 		},
 		{
 			name:           "malicous zip with symlink name path traversal",
 			inputGenerator: createTestZipWithSymlinkPathTraversalName,
-			config:         config.Default(),
+			opts:           []ExtractorOption{},
 			expectError:    true,
 		},
 	}
+
+	// create testing directory
+	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
 
 	// run cases
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
-			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
-
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = UnpackWithConfig(context.Background(), tc.config, input, testDir)
+			err = Unpack(context.Background(), input, testDir, tc.opts...)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
