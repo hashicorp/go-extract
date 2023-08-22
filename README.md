@@ -14,7 +14,12 @@ Secure extraction of any archive type.
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
-- [ ] go tests
+- [x] go tests
+- [x] option pattern for configuration
+- [x] options pattern for target
+- [ ] s3 as target
+- [ ] virtual fs as target
+- [ ] byte stream as source
 
 ## Intended filetypes
 
