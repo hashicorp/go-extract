@@ -12,23 +12,40 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// reference https://www.geeksforgeeks.org/time-sleep-function-in-golang-with-examples/
-
 type Tar struct {
 	config     *config.Config
 	fileSuffix string
+	target     target.Target
 }
 
 func NewTar(config *config.Config) *Tar {
-	return &Tar{fileSuffix: ".tar", config: config}
+	// defaults
+	const (
+		fileSuffix = ".tar"
+	)
+	target := target.NewOs()
+
+	// instantiate
+	tar := Tar{
+		fileSuffix: fileSuffix,
+		config:     config,
+		target:     &target,
+	}
+
+	// return the modified house instance
+	return &tar
 }
 
 func (t *Tar) FileSuffix() string {
 	return t.fileSuffix
 }
 
-func (t *Tar) Config() *config.Config {
-	return t.config
+func (t *Tar) SetConfig(config *config.Config) {
+	t.config = config
+}
+
+func (t *Tar) SetTarget(target *target.Target) {
+	t.target = *target
 }
 
 func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
@@ -62,8 +79,6 @@ func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 }
 
 func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
-	target := &target.Os{}
-
 	tarFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -104,7 +119,7 @@ func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
 		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
 			// handle directory
-			if err := target.CreateSafeDir(t.config, dst, hdr.Name); err != nil {
+			if err := t.target.CreateSafeDir(t.config, dst, hdr.Name); err != nil {
 				return err
 			}
 			continue
@@ -116,14 +131,14 @@ func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
 				return err
 			}
 
-			if err := target.CreateSafeFile(t.config, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+			if err := t.target.CreateSafeFile(t.config, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 				return err
 			}
 
 		// its a symlink !!
 		case tar.TypeSymlink:
 			// create link
-			if err := target.CreateSafeSymlink(t.config, dst, hdr.Name, hdr.Linkname); err != nil {
+			if err := t.target.CreateSafeSymlink(t.config, dst, hdr.Name, hdr.Linkname); err != nil {
 				return err
 			}
 

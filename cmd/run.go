@@ -9,6 +9,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
+	"github.com/hashicorp/go-extract/config"
 )
 
 type CLI struct {
@@ -41,13 +42,14 @@ func Run(version, commit, date string) {
 	}
 
 	// process cli params
+	config := config.NewConfig(
+		config.WithMaxExtractionTime(cli.MaxExtractionTime),
+		config.WithMaxFiles(cli.MaxFiles),
+		config.WithMaxFileSize(cli.MaxFileSize),
+		config.WithOverwrite(cli.Force),
+	)
 	extractOptions := []extract.ExtractorOption{
-		extract.WithMaxExtractionTime(cli.MaxExtractionTime),
-		extract.WithMaxFiles(cli.MaxFiles),
-		extract.WithMaxFileSize(cli.MaxFileSize),
-	}
-	if cli.Force {
-		extractOptions = append(extractOptions, extract.WithOverwrite())
+		extract.WithConfig(config),
 	}
 
 	// extract archive

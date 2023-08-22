@@ -13,23 +13,8 @@ import (
 
 type Os struct{}
 
-// CreateSafeDir creates in dstDir all directories that are provided in dirName
-func (o *Os) CreateSafeDir(config *config.Config, dstDir string, dirName string) error {
-
-	// get absolut path
-	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
-
-	// check path
-	if !strings.HasPrefix(tragetDir, dstDir) {
-		return fmt.Errorf("filename path traversal detected: %v", dirName)
-	}
-
-	// create dirs
-	if err := os.MkdirAll(tragetDir, os.ModePerm); err != nil {
-		return err
-	}
-
-	return nil
+func NewOs() Os {
+	return Os{}
 }
 
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
@@ -69,6 +54,26 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 
 	// create link
 	if err := os.Symlink(linkTarget, targetFilePath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateSafeDir creates in dstDir all directories that are provided in dirName
+// CreateSafeDir(config *config.Config, dstDir string, dirName string) error
+func (o *Os) CreateSafeDir(config *config.Config, dstDir string, dirName string) error {
+
+	// get absolut path
+	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
+
+	// check path
+	if !strings.HasPrefix(tragetDir, dstDir) {
+		return fmt.Errorf("filename path traversal detected: %v", dirName)
+	}
+
+	// create dirs
+	if err := os.MkdirAll(tragetDir, os.ModePerm); err != nil {
 		return err
 	}
 

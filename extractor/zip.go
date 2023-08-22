@@ -17,18 +17,33 @@ import (
 type Zip struct {
 	config     *config.Config
 	fileSuffix string
+	target     target.Target
 }
 
 func NewZip(config *config.Config) *Zip {
-	return &Zip{fileSuffix: ".zip", config: config}
+	// defaults
+	const (
+		fileSuffix = ".zip"
+	)
+	target := target.NewOs()
+
+	// instantiate
+	zip := Zip{
+		fileSuffix: ".zip",
+		config:     config,
+		target:     &target,
+	}
+
+	// return
+	return &zip
 }
 
 func (z *Zip) FileSuffix() string {
 	return z.fileSuffix
 }
 
-func (z *Zip) Config() *config.Config {
-	return z.config
+func (z *Zip) SetConfig(config *config.Config) {
+	z.config = config
 }
 
 func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
@@ -60,8 +75,11 @@ func (z *Zip) Unpack(ctx context.Context, src string, dst string) error {
 	return nil
 }
 
+func (z *Zip) SetTarget(target *target.Target) {
+	z.target = *target
+}
+
 func (z *Zip) unpack(ctx context.Context, src string, dst string) error {
-	target := &target.Os{}
 
 	// open zipFile
 	zipFile, err := zip.OpenReader(src)
@@ -83,7 +101,7 @@ func (z *Zip) unpack(ctx context.Context, src string, dst string) error {
 		switch hdr.Mode() & os.ModeType {
 		case os.ModeDir:
 			// handle directory
-			if err := target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
+			if err := z.target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
 				return err
 			}
 			continue
@@ -94,7 +112,7 @@ func (z *Zip) unpack(ctx context.Context, src string, dst string) error {
 			if err != nil {
 				return err
 			}
-			if err := target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
+			if err := z.target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 			continue
@@ -115,7 +133,7 @@ func (z *Zip) unpack(ctx context.Context, src string, dst string) error {
 				fileInArchive.Close()
 			}()
 			// create the file
-			if err := target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := z.target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				return err
 			}
 

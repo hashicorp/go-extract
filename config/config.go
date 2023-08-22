@@ -27,12 +27,14 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxFiles          = 1000
 		maxFileSize       = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
+		overwrite         = false
 	)
 
 	config := &Config{
 		MaxFiles:          maxFiles,
 		MaxFileSize:       maxFileSize,
 		MaxExtractionTime: maxExtractionTime,
+		Overwrite:         overwrite,
 	}
 
 	// Loop through each option
@@ -61,9 +63,9 @@ func WithMaxFileSize(maxFileSize int64) ConfigOption {
 	}
 }
 
-func WithOverwrite() ConfigOption {
+func WithOverwrite(enable bool) ConfigOption {
 	return func(c *Config) {
-		c.Overwrite = true
+		c.Overwrite = enable
 	}
 }
 
