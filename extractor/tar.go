@@ -16,6 +16,8 @@ type Tar struct {
 	config     *config.Config
 	fileSuffix string
 	target     target.Target
+	magicBytes [][]byte
+	offset     int
 }
 
 func NewTar(config *config.Config) *Tar {
@@ -23,6 +25,12 @@ func NewTar(config *config.Config) *Tar {
 	const (
 		fileSuffix = ".tar"
 	)
+	magicBytes := [][]byte{
+		{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
+		{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
+	}
+	offset := 257
+
 	target := target.NewOs()
 
 	// instantiate
@@ -30,6 +38,8 @@ func NewTar(config *config.Config) *Tar {
 		fileSuffix: fileSuffix,
 		config:     config,
 		target:     &target,
+		magicBytes: magicBytes,
+		offset:     offset,
 	}
 
 	// return the modified house instance
@@ -48,13 +58,22 @@ func (t *Tar) SetTarget(target *target.Target) {
 	t.target = *target
 }
 
-func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
+func (t *Tar) Offset() int {
+	return t.offset
+}
+
+func (t *Tar) MagicBytes() [][]byte {
+	return t.magicBytes
+}
+
+func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// start extraction without timer
 	if t.config.MaxExtractionTime == -1 {
 		return t.unpack(ctx, src, dst)
 	}
 
+	// TODO(jan): use context for cancleation/timeout
 	exChan := make(chan error, 1)
 	go func() {
 		// extract files in tmpDir
@@ -78,15 +97,11 @@ func (t *Tar) Unpack(ctx context.Context, src string, dst string) error {
 
 }
 
-func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
-	tarFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
+func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	var fileCounter int64
 
-	tr := tar.NewReader(tarFile)
+	tr := tar.NewReader(src)
 
 	for {
 		hdr, err := tr.Next()
@@ -109,6 +124,7 @@ func (t *Tar) unpack(ctx context.Context, src string, dst string) error {
 
 		// check for to many files in archive
 		fileCounter++
+		// TODO(jan): move size check before extract
 		if err := t.config.CheckMaxFiles(fileCounter); err != nil {
 			return err
 		}

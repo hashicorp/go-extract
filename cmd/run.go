@@ -52,8 +52,14 @@ func Run(version, commit, date string) {
 		extract.WithConfig(config),
 	}
 
+	// open archive
+	archive, err := os.Open(cli.Archive)
+	if err != nil {
+		panic(err)
+	}
+
 	// extract archive
-	if err := extract.Unpack(ctx, cli.Archive, cli.Output, extractOptions...); err != nil {
+	if err := extract.Unpack(ctx, archive, cli.Output, extractOptions...); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}

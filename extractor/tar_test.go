@@ -100,7 +100,7 @@ func TestTarUnpack(t *testing.T) {
 			untarer := NewTar(config.NewConfig(tc.opts...))
 
 			// perform actual tests
-			input := tc.inputGenerator(testDir)
+			input, _ := os.Open(tc.inputGenerator(testDir))
 			want := tc.expectError
 			err = untarer.Unpack(context.Background(), input, testDir)
 			got := err != nil

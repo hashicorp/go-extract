@@ -17,6 +17,8 @@ func NewOs() Os {
 	return Os{}
 }
 
+// TODO(jan): on point functiion parameter and documentation
+
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
 func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error {
 
@@ -31,7 +33,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFilePath); err == nil {
 		if !config.Overwrite {
-			return fmt.Errorf("%v already exists!\n", name)
+			return fmt.Errorf("already exists %q!", name)
 		} else {
 			fmt.Printf("file %v exist and is going to be overwritten\n", name)
 		}
@@ -64,6 +66,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 // CreateSafeDir(config *config.Config, dstDir string, dirName string) error
 func (o *Os) CreateSafeDir(config *config.Config, dstDir string, dirName string) error {
 
+	// TODO(jan): clarify that we are protecting against ../
 	// get absolut path
 	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
 
@@ -93,8 +96,10 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 	targetFilePath := filepath.Clean(filepath.Join(dstDir, name))
 
 	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(targetFilePath); err == nil && !config.Overwrite {
-		return fmt.Errorf("%v already exists!", name)
+	if _, err := os.Lstat(targetFilePath); err == nil {
+		if !config.Overwrite {
+			return fmt.Errorf("already exists: %v", name)
+		}
 	}
 
 	// create dst file

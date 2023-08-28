@@ -1,18 +1,25 @@
 package extract
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"strings"
+	"io"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
 )
 
-func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption) error {
+func Unpack(ctx context.Context, src io.Reader, dst string, opts ...ExtractorOption) error {
 	var ex Extractor
 
-	if ex = findExtractor(src); ex == nil {
+	// get bytes
+	archive, err := io.ReadAll(src)
+	if err != nil {
+		return err
+	}
+
+	if ex = findExtractor(archive); ex == nil {
 		return fmt.Errorf("archive type not supported")
 	}
 
@@ -21,11 +28,11 @@ func Unpack(ctx context.Context, src string, dst string, opts ...ExtractorOption
 		opt(&ex)
 	}
 
-	return ex.Unpack(ctx, src, dst)
+	return ex.Unpack(ctx, bytes.NewReader(archive), dst)
 }
 
 // findExtractor identifies the correct extractor based on src filename with longest suffix match
-func findExtractor(src string) Extractor {
+func findExtractor(data []byte) Extractor {
 
 	// prepare config
 	config := config.NewConfig()
@@ -34,24 +41,30 @@ func findExtractor(src string) Extractor {
 	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config)}
 
 	// find extractor with longest suffix match
-	var maxSuffixLength int
-	var engine Extractor
 	for _, ex := range extractors {
 
 		// get suffix
-		suff := ex.FileSuffix()
+		offset := ex.Offset()
 
-		// skip non-matching extractors
-		if !strings.HasSuffix(strings.ToLower(src), suff) {
-			continue
-		}
+		for _, magicBytes := range ex.MagicBytes() {
 
-		// check for longest suffix
-		if len(suff) > maxSuffixLength {
-			maxSuffixLength = len(suff)
-			engine = ex
+			// compare magic bytes with readed bytes
+			var missMatch bool
+			for idx, fileByte := range data[offset : offset+len(magicBytes)] {
+				if fileByte != magicBytes[idx] {
+					missMatch = true
+					break
+				}
+			}
+
+			// if no missmatch, successfull identified engine!
+			if !missMatch {
+				return ex
+			}
+
 		}
 	}
 
-	return engine
+	// no matching reader found
+	return nil
 }

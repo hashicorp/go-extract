@@ -100,7 +100,7 @@ func TestZipUnpack(t *testing.T) {
 			unzipper := NewZip(config.NewConfig(tc.opts...))
 
 			// perform actual tests
-			input := tc.inputGenerator(testDir)
+			input, _ := os.Open(tc.inputGenerator(testDir))
 			want := tc.expectError
 			err = unzipper.Unpack(context.Background(), input, testDir)
 			got := err != nil
