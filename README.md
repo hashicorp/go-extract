@@ -17,9 +17,8 @@ Secure extraction of any archive type.
 - [x] go tests
 - [x] option pattern for configuration
 - [x] options pattern for target
-- [ ] s3 as target <<-- skiped due too dependency reduction
 - [ ] virtual fs as target
-- [ ] byte stream as source
+- [x] byte stream as source
 
 ## Intended filetypes
 

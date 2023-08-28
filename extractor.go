@@ -15,8 +15,6 @@ type Extractor interface {
 	FileSuffix() string
 	SetConfig(config *config.Config)
 	SetTarget(target *target.Target)
-
-	// TODO(jan): detect filetype based on magic bytes
 	MagicBytes() [][]byte
 	Offset() int
 }

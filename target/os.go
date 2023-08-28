@@ -63,16 +63,18 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 }
 
 // CreateSafeDir creates in dstDir all directories that are provided in dirName
-// CreateSafeDir(config *config.Config, dstDir string, dirName string) error
-func (o *Os) CreateSafeDir(config *config.Config, dstDir string, dirName string) error {
+func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+
+	// ensure clean dstBase
+	dstBase = filepath.Clean(dstBase) + string(os.PathSeparator)
 
 	// TODO(jan): clarify that we are protecting against ../
 	// get absolut path
-	tragetDir := filepath.Clean(filepath.Join(dstDir, dirName)) + string(os.PathSeparator)
+	tragetDir := filepath.Clean(filepath.Join(dstBase, newDir)) + string(os.PathSeparator)
 
 	// check path
-	if !strings.HasPrefix(tragetDir, dstDir) {
-		return fmt.Errorf("filename path traversal detected: %v", dirName)
+	if !strings.HasPrefix(tragetDir, dstBase) {
+		return fmt.Errorf("filename path traversal detected: %v", newDir)
 	}
 
 	// create dirs
