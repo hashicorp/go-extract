@@ -14,40 +14,30 @@ Secure extraction of any archive type.
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
+- [x] context based cancleation
 - [x] go tests
 - [x] option pattern for configuration
 - [x] options pattern for target
-- [ ] virtual fs as target
 - [x] byte stream as source
+- [x] symlink inside archive
+- [x] symlink to outside is detected
+- [x] symlink with absolut path is detected
+- [x] file with path traversal is detected
+- [x] file with absolut path is detected
+- [x] filetype detection based on magic bytes
 
 ## Intended filetypes
 
-- [x] zip
-    - [x] symlink inside archive
-    - [x] symlink to outside is detected
-    - [x] symlink with absolut path is detected
-    - [x] file with path traversal is detected
-    - [x] file with absolut path is detected
+- [x] zip (/jar)
 - [x] tar
-    - [x] symlink inside archive
-    - [x] symlink to outside is detected
-    - [x] symlink with absolut path is detected
-    - [x] file with path traversal is detected
-    - [x] file with absolut path is detected
 - [ ] gunzip
 - [ ] tar.gz
 
 ## Future extensions
 
-- [ ] slug
 - [ ] bzip2
 - [ ] 7zip
 - [ ] rar
 - [ ] deb
-- [ ] jar
-- [ ] pkg
-
-## Future features
-
 - [ ] recursive extraction
-- [ ] filetype detection based on magic bytes
+- [ ] virtual fs as target
