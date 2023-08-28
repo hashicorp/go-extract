@@ -32,7 +32,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFilePath); err == nil {
-		if !config.Overwrite {
+		if !config.Force {
 			return fmt.Errorf("already exists %q!", name)
 		} else {
 			fmt.Printf("file %v exist and is going to be overwritten\n", name)
@@ -99,7 +99,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFilePath); err == nil {
-		if !config.Overwrite {
+		if !config.Force {
 			return fmt.Errorf("already exists: %v", name)
 		}
 	}

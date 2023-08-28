@@ -70,7 +70,9 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 		return z.unpack(ctx, src, dst)
 	}
 
-	// TODO(jan): use context for cancleation/timeout
+	// prepare timeout
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(z.config.MaxExtractionTime)*time.Second)
+	defer cancel()
 
 	exChan := make(chan error, 1)
 	go func() {
@@ -86,7 +88,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 		if err != nil {
 			return err
 		}
-	case <-time.After(time.Duration(z.config.MaxExtractionTime) * time.Second):
+	case <-ctx.Done():
 		return fmt.Errorf("maximum extraction time exceeded")
 	}
 
@@ -121,6 +123,12 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 	// walk over archive
 	for _, archiveFile := range zipReader.File {
 
+		// check if context is cancled
+		if ctx.Err() != nil {
+			return nil
+		}
+
+		// get next file
 		hdr := archiveFile.FileHeader
 
 		switch hdr.Mode() & os.ModeType {

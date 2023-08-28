@@ -19,7 +19,7 @@ type Config struct {
 	MaxExtractionTime int64
 
 	// Define if files should be overwritten in the Destination
-	Overwrite bool
+	Force bool
 }
 
 func NewConfig(opts ...ConfigOption) *Config {
@@ -27,14 +27,14 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxFiles          = 1000
 		maxFileSize       = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
-		overwrite         = false
+		force             = false
 	)
 
 	config := &Config{
 		MaxFiles:          maxFiles,
 		MaxFileSize:       maxFileSize,
 		MaxExtractionTime: maxExtractionTime,
-		Overwrite:         overwrite,
+		Force:             force,
 	}
 
 	// Loop through each option
@@ -63,9 +63,9 @@ func WithMaxFileSize(maxFileSize int64) ConfigOption {
 	}
 }
 
-func WithOverwrite(enable bool) ConfigOption {
+func WithForce(enable bool) ConfigOption {
 	return func(c *Config) {
-		c.Overwrite = enable
+		c.Force = enable
 	}
 }
 

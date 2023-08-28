@@ -73,7 +73,10 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 		return t.unpack(ctx, src, dst)
 	}
 
-	// TODO(jan): use context for cancleation/timeout
+	// prepare timeout
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.MaxExtractionTime)*time.Second)
+	defer cancel()
+
 	exChan := make(chan error, 1)
 	go func() {
 		// extract files in tmpDir
@@ -89,7 +92,7 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 		if err != nil {
 			return err
 		}
-	case <-time.After(time.Duration(t.config.MaxExtractionTime) * time.Second):
+	case <-ctx.Done():
 		return fmt.Errorf("maximum extraction time exceeded")
 	}
 
@@ -104,6 +107,13 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 	tr := tar.NewReader(src)
 
 	for {
+
+		// check if context is cancled
+		if ctx.Err() != nil {
+			return nil
+		}
+
+		// get next file
 		hdr, err := tr.Next()
 
 		switch {
@@ -124,7 +134,8 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 		// check for to many files in archive
 		fileCounter++
-		// TODO(jan): move size check before extract
+
+		// check if size is exceeded
 		if err := t.config.CheckMaxFiles(fileCounter); err != nil {
 			return err
 		}

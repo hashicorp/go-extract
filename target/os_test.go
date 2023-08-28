@@ -347,7 +347,7 @@ func TestOverwriteFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0644,
 			},
-			config:      config.NewConfig(config.WithOverwrite(true)), // allow overwrite
+			config:      config.NewConfig(config.WithForce(true)), // allow overwrite
 			expectError: false,
 		},
 	}
