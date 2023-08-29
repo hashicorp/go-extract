@@ -176,3 +176,32 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 	}
 
 }
+
+func (t *Tar) MagicBytesMatch(data []byte) bool {
+
+	// check all possible magic bytes for extract engine
+	for _, magicBytes := range t.magicBytes {
+
+		// skip if data is smaler als tar header
+		if t.offset+len(magicBytes) > len(data) {
+			continue
+		}
+
+		// compare magic bytes with readed bytes
+		var missMatch bool
+		for idx, fileByte := range data[t.offset : t.offset+len(magicBytes)] {
+			if fileByte != magicBytes[idx] {
+				missMatch = true
+				break
+			}
+		}
+
+		// if no missmatch, successfull identified engine!
+		if !missMatch {
+			return true
+		}
+
+	}
+
+	return false
+}

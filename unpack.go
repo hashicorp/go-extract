@@ -38,7 +38,7 @@ func findExtractor(data []byte) Extractor {
 	config := config.NewConfig()
 
 	// Prepare available extractors
-	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config)}
+	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config), extractor.NewGunzip(config)}
 
 	// find extractor with longest suffix match
 	for _, ex := range extractors {
@@ -46,6 +46,7 @@ func findExtractor(data []byte) Extractor {
 		// get suffix
 		offset := ex.Offset()
 
+		// check all possible magic bytes for extract engine
 		for _, magicBytes := range ex.MagicBytes() {
 
 			// compare magic bytes with readed bytes
