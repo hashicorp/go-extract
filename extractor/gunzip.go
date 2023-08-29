@@ -74,7 +74,7 @@ func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// size check
 	var bytesBuffer bytes.Buffer
-	if gz.config.MaxFileSize > -1 {
+	if gz.config.MaxExtractionSize > -1 {
 		var readBytes int64
 		for {
 			buf := make([]byte, 1024)
@@ -89,7 +89,7 @@ func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 			// check if maximum is exceeded
-			if readBytes+int64(n) < gz.config.MaxFileSize {
+			if readBytes+int64(n) < gz.config.MaxExtractionSize {
 				bytesBuffer.Write(buf[:n])
 				readBytes = readBytes + int64(n)
 			}

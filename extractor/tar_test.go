@@ -50,7 +50,7 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:           "unpack normal tar, but extraction size exceeded",
 			inputGenerator: createTestTarNormal,
-			opts:           []config.ConfigOption{config.WithMaxFileSize(1)},
+			opts:           []config.ConfigOption{config.WithMaxExtractionSize(1)},
 			expectError:    true,
 		},
 		{

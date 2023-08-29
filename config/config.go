@@ -11,9 +11,9 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	MaxFiles int64
 
-	// MaxFileSize is the maximum size of a file after decompression.
+	// MaxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
-	MaxFileSize int64
+	MaxExtractionSize int64
 
 	// Maximum time in seconds that an extraction should need to finish
 	MaxExtractionTime int64
@@ -25,14 +25,14 @@ type Config struct {
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		maxFiles          = 1000
-		maxFileSize       = 1 << (10 * 3) // 1 Gb
+		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
 		force             = false
 	)
 
 	config := &Config{
 		MaxFiles:          maxFiles,
-		MaxFileSize:       maxFileSize,
+		MaxExtractionSize: maxExtractionSize,
 		MaxExtractionTime: maxExtractionTime,
 		Force:             force,
 	}
@@ -57,9 +57,9 @@ func WithMaxExtractionTime(maxExtractionTime int64) ConfigOption {
 		c.MaxExtractionTime = maxExtractionTime
 	}
 }
-func WithMaxFileSize(maxFileSize int64) ConfigOption {
+func WithMaxExtractionSize(maxFileSize int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxFileSize = maxFileSize
+		c.MaxExtractionSize = maxFileSize
 	}
 }
 
@@ -88,12 +88,12 @@ func (e *Config) CheckMaxFiles(counter int64) error {
 func (e *Config) CheckFileSize(fileSize int64) error {
 
 	// check if disabled
-	if e.MaxFileSize == -1 {
+	if e.MaxExtractionSize == -1 {
 		return nil
 	}
 
 	// check value
-	if fileSize > e.MaxFileSize {
+	if fileSize > e.MaxExtractionSize {
 		return fmt.Errorf("maximum filesize exceeded")
 	}
 	return nil

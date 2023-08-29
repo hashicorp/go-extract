@@ -346,7 +346,7 @@ func TestCreateSafeFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("1234567890")), // 10 byte file content
 				mode:   0,
 			},
-			config:      config.NewConfig(config.WithMaxFileSize(5)), // adjusted default
+			config:      config.NewConfig(config.WithMaxExtractionSize(5)), // adjusted default
 			expectError: true,
 		},
 	}

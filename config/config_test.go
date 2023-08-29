@@ -56,20 +56,20 @@ func TestCheckFileSize(t *testing.T) {
 	}{
 		{
 			name:        "file size less then maximum",
-			input:       1 << (9 * 1),                              // 512b
-			config:      NewConfig(WithMaxFileSize(1 << (10 * 1))), // 1kb
+			input:       1 << (9 * 1),                                    // 512b
+			config:      NewConfig(WithMaxExtractionSize(1 << (10 * 1))), // 1kb
 			expectError: false,
 		},
 		{
 			name:        "file bigger then maximum",
-			input:       5 << (10 * 1),                             // 5kb
-			config:      NewConfig(WithMaxFileSize(1 << (10 * 1))), // 1kb
+			input:       5 << (10 * 1),                                   // 5kb
+			config:      NewConfig(WithMaxExtractionSize(1 << (10 * 1))), // 1kb
 			expectError: true,
 		},
 		{
 			name:        "disable filzes check",
-			input:       5 << (10 * 1),                  // 5kb
-			config:      NewConfig(WithMaxFileSize(-1)), // 1kb
+			input:       5 << (10 * 1),                        // 5kb
+			config:      NewConfig(WithMaxExtractionSize(-1)), // 1kb
 			expectError: false,
 		},
 	}

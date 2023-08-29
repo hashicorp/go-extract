@@ -50,7 +50,7 @@ func TestZipUnpack(t *testing.T) {
 		{
 			name:           "normal zip, but limited extraction size of 1 byte",
 			inputGenerator: createTestZipNormal,
-			opts:           []config.ConfigOption{config.WithMaxFileSize(1)},
+			opts:           []config.ConfigOption{config.WithMaxExtractionSize(1)},
 			expectError:    true,
 		},
 		{
