@@ -15,6 +15,7 @@ import (
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
+// Zip is implements the Extractor interface to extract zip archives.
 type Zip struct {
 	config     *config.Config
 	fileSuffix string
@@ -23,6 +24,7 @@ type Zip struct {
 	offset     int
 }
 
+// NewZip returns a new zip object with config as configuration.
 func NewZip(config *config.Config) *Zip {
 	// defaults
 	const (
@@ -36,7 +38,7 @@ func NewZip(config *config.Config) *Zip {
 
 	// instantiate
 	zip := Zip{
-		fileSuffix: ".zip",
+		fileSuffix: fileSuffix,
 		config:     config,
 		target:     target,
 		magicBytes: magicBytes,
@@ -47,22 +49,27 @@ func NewZip(config *config.Config) *Zip {
 	return &zip
 }
 
+// FileSuffix returns the common file suffix of zip archive type.
 func (z *Zip) FileSuffix() string {
 	return z.fileSuffix
 }
 
+// SetConfig sets config as configuration.
 func (z *Zip) SetConfig(config *config.Config) {
 	z.config = config
 }
 
+// Offset returns the offset for the magic bytes.
 func (z *Zip) Offset() int {
 	return z.offset
 }
 
+// MagicBytes returns the magic bytes that identifies zip files.
 func (z *Zip) MagicBytes() [][]byte {
 	return z.magicBytes
 }
 
+// Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// start extraction without timer
@@ -95,10 +102,12 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 	return nil
 }
 
+// SetTarget sets target as a extraction destination
 func (z *Zip) SetTarget(target *target.Target) {
 	z.target = *target
 }
 
+// unpack checks ctx for cancelation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// convert io.Reader to io.ReaderAt
@@ -135,26 +144,34 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		hdr := archiveFile.FileHeader
 
 		switch hdr.Mode() & os.ModeType {
-		case os.ModeDir:
-			// handle directory
+
+		case os.ModeDir: // handle directory
+
+			// create dir
 			if err := z.target.CreateSafeDir(dst, archiveFile.Name); err != nil {
 				return err
 			}
+
+			// next item
 			continue
 
-		case os.ModeSymlink:
-			// handle symlink
+		case os.ModeSymlink: // handle symlink
+
+			// extract link target
 			linkTarget, err := readLinkTargetFromZip(archiveFile)
 			if err != nil {
 				return err
 			}
+
+			// create link
 			if err := z.target.CreateSafeSymlink(dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
+
+			// next item
 			continue
 
-		// in case of a normal file the value is not set
-		case 0:
+		case 0: // handle regular files
 
 			// check for file size
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
@@ -162,6 +179,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 				return err
 			}
 
+			// open stream
 			fileInArchive, err := archiveFile.Open()
 			if err != nil {
 				return err
@@ -169,35 +187,46 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			defer func() {
 				fileInArchive.Close()
 			}()
+
 			// create the file
 			if err := z.target.CreateSafeFile(dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				return err
 			}
 
-		// catch all for unspported file modes
-		default:
+			// next item
+			continue
+
+		default: // catch all for unspported file modes
+
+			// drop error
 			return fmt.Errorf("unspported filemode: %s", hdr.Mode()&os.ModeType)
 
 		}
 	}
 
+	// finished without problems
 	return nil
 }
 
-func readLinkTargetFromZip(f *zip.File) (string, error) {
+// readLinkTargetFromZip extracts the symlink destination for symlinkFile
+func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
+
 	// read content to determine symlink destination
-	rc, err := f.Open()
+	rc, err := symlinkFile.Open()
 	if err != nil {
 		return "", err
 	}
 	defer func() {
 		rc.Close()
 	}()
+
+	// read link target
 	data, err := io.ReadAll(rc)
-	symlinkTarget := string(data)
 	if err != nil {
 		return "", err
 	}
+	symlinkTarget := string(data)
 
+	// return result
 	return symlinkTarget, nil
 }

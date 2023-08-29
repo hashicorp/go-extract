@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
+// TestZipUnpack test with various testcases the implementation of zip.Unpack
 func TestZipUnpack(t *testing.T) {
 
 	type TestfileGenerator func(string) string
@@ -112,6 +113,7 @@ func TestZipUnpack(t *testing.T) {
 	}
 }
 
+// createTestZipNormal creates a test zip file in dstDir for testing
 func createTestZipNormal(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipNormal.zip")
@@ -143,6 +145,7 @@ func createTestZipNormal(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipPathtraversal creates a test with a filename path traversal zip file in dstDir for testing
 func createTestZipPathtraversal(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipTraversal.zip")
@@ -174,6 +177,7 @@ func createTestZipPathtraversal(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipNormalFiveFiles creates a test zip file with five files in dstDir for testing
 func createTestZipNormalFiveFiles(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipNormalFiveFiles.zip")
@@ -208,6 +212,7 @@ func createTestZipNormalFiveFiles(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipWithSymlink creates a test zip file with a legit sym link in dstDir for testing
 func createTestZipWithSymlink(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipNormalWithSymlink.zip")
@@ -227,6 +232,7 @@ func createTestZipWithSymlink(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipWithSymlinkPathTraversalName creates a test zip file, with a symlink, which filename contains a path traversal, in dstDir for testing
 func createTestZipWithSymlinkPathTraversalName(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "createTestZipWithSymlinkPathTraversalName.zip")
@@ -246,6 +252,7 @@ func createTestZipWithSymlinkPathTraversalName(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipWithSymlinkAbsolutPath creates a test zip file, with a symlink to a absolut path, in dstDir for testing
 func createTestZipWithSymlinkAbsolutPath(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetAbsolutPath.zip")
@@ -265,6 +272,7 @@ func createTestZipWithSymlinkAbsolutPath(dstDir string) string {
 	return targetFile
 }
 
+// createTestZipWithSymlinkTargetPathTraversal creates a test zip file, with a path traversal in the link target, in dstDir for testing
 func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetPathTraversal.zip")
@@ -284,6 +292,7 @@ func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 	return targetFile
 }
 
+// addLinkToZipArchive writes symlink linkName to linkTarget into zipWriter
 func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget string) error {
 
 	// create a temporary dir for files in zip archive
@@ -327,6 +336,7 @@ func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget stri
 	return nil
 }
 
+// createZip creates a new zip file in filePath
 func createZip(filePath string) *zip.Writer {
 	targetFile := filepath.Join(filePath)
 	archive, err := os.Create(targetFile)
@@ -336,6 +346,7 @@ func createZip(filePath string) *zip.Writer {
 	return zip.NewWriter(archive)
 }
 
+// createTestFile creates a file under path containing content
 func createTestFile(path string, content string) *os.File {
 	byteArray := []byte(content)
 	err := os.WriteFile(path, byteArray, 0644)
