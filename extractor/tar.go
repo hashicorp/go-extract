@@ -106,6 +106,8 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	tr := tar.NewReader(src)
 
+	var extractionSize uint64
+
 	for {
 
 		// check if context is cancled
@@ -154,7 +156,13 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		// if it's a file create it
 		case tar.TypeReg:
 
-			if err := t.config.CheckFileSize(hdr.Size); err != nil {
+			// check extraction size
+			extractionSize = extractionSize + uint64(hdr.Size)
+			if err := t.config.CheckExtractionSize(int64(extractionSize)); err != nil {
+				return err
+			}
+
+			if err := t.config.CheckExtractionSize(hdr.Size); err != nil {
 				return err
 			}
 

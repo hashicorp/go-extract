@@ -120,6 +120,9 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		return err
 	}
 
+	// summarize filesizes
+	var extractionSize uint64
+
 	// walk over archive
 	for _, archiveFile := range zipReader.File {
 
@@ -154,7 +157,8 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		case 0:
 
 			// check for file size
-			if err := z.config.CheckFileSize(int64(archiveFile.UncompressedSize64)); err != nil {
+			extractionSize = extractionSize + archiveFile.UncompressedSize64
+			if err := z.config.CheckExtractionSize(int64(extractionSize)); err != nil {
 				return err
 			}
 
