@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -14,47 +15,91 @@ import (
 
 func TestCreateSafeDir(t *testing.T) {
 
-	// create testing directory
 	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	defer os.RemoveAll(testDir)
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+	syscall.Chdir(testDir)
 
 	cases := []struct {
 		name        string
-		input       string
+		basePath    string
+		newDir      string
 		expectError bool
 	}{
 		{
 			name:        "legit directory name",
-			input:       "test",
+			basePath:    ".",
+			newDir:      "test",
 			expectError: false,
 		},
 		{
 			name:        "legit directory path",
-			input:       "test/foo/bar",
+			basePath:    ".",
+			newDir:      "test/foo/bar",
 			expectError: false,
 		},
 		{
 			name:        "legit directory path with taversal",
-			input:       "test/foo/../bar",
+			basePath:    ".",
+			newDir:      "test/foo/../bar",
 			expectError: false,
 		},
 		{
 			name:        "just the current dir",
-			input:       ".",
+			basePath:    ".",
+			newDir:      ".",
 			expectError: false,
 		},
 		{
 			name:        "directory traversal",
-			input:       "../foo",
+			basePath:    ".",
+			newDir:      "../foo",
 			expectError: true,
 		},
 		{
 			name:        "more tricky traversal",
-			input:       "./test/../foo/../../outside",
+			basePath:    ".",
+			newDir:      "./test/../foo/../../outside",
+			expectError: true,
+		},
+
+		{
+			name:        "base with traversal, legit directory name",
+			basePath:    "..",
+			newDir:      "test",
+			expectError: false,
+		},
+		{
+			name:        "base with traversal, legit directory path",
+			basePath:    "..",
+			newDir:      "test/foo/bar",
+			expectError: false,
+		},
+		{
+			name:        "base with traversal, legit directory path with taversal",
+			basePath:    "..",
+			newDir:      "test/foo/../bar",
+			expectError: false,
+		},
+		{
+			name:        "base with traversal, just the current dir",
+			basePath:    "..",
+			newDir:      ".",
+			expectError: false,
+		},
+		{
+			name:        "base with traversal, directory traversal",
+			basePath:    "..",
+			newDir:      "../foo",
+			expectError: true,
+		},
+		{
+			name:        "base with traversal, more tricky traversal",
+			basePath:    "..",
+			newDir:      "./test/../foo/../../outside",
 			expectError: true,
 		},
 	}
@@ -74,7 +119,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			got := target.CreateSafeDir(config.NewConfig(), testDir, tc.input) != nil
+			got := target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -83,6 +128,14 @@ func TestCreateSafeDir(t *testing.T) {
 }
 
 func TestCreateSafeSymlink(t *testing.T) {
+
+	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+	syscall.Chdir(testDir)
 
 	// test cases
 	cases := []struct {
@@ -106,7 +159,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			input: struct {
 				name   string
 				target string
-			}{name: "test/foo/bar", target: "baz"},
+			}{name: "te/bar", target: "baz"},
 			expectError: false,
 		},
 		{
@@ -166,6 +219,15 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "legit link",
+			input: struct {
+				name   string
+				target string
+			}{name: "foo/test3", target: "../baz"},
+			expectError: false,
+		},
+
+		{
 			name: "malicious link target with more complex path taversal",
 			input: struct {
 				name   string
@@ -190,7 +252,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
 			if err != nil {
-				t.Errorf(err.Error())
+				panic(err.Error())
 			}
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
@@ -199,6 +261,8 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
+
+			err = nil
 			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
@@ -379,3 +443,68 @@ func TestOverwriteFile(t *testing.T) {
 	}
 
 }
+
+// func TestCheckForTraversal(t *testing.T) {
+
+// 	cases := []struct {
+// 		name        string
+// 		basePath    string
+// 		testPath    string
+// 		expectError bool
+// 	}{
+// 		{
+// 			name:        "legit path",
+// 			basePath:    ".",
+// 			testPath:    "test",
+// 			expectError: false,
+// 		},
+// 		{
+// 			name:        "legit path in sub",
+// 			basePath:    ".",
+// 			testPath:    "foo/test",
+// 			expectError: false,
+// 		},
+// 		{
+// 			name:        "legit path in other dir",
+// 			basePath:    "/foo",
+// 			testPath:    "bar",
+// 			expectError: false,
+// 		},
+// 		{
+// 			name:        "legit path with traversal",
+// 			basePath:    "../",
+// 			testPath:    "bar",
+// 			expectError: false,
+// 		},
+// 		{
+// 			name:        "legit base with traversal, malicious path",
+// 			basePath:    "../",
+// 			testPath:    "../bar",
+// 			expectError: true,
+// 		},
+
+// 		{
+// 			name:        "simple traversal",
+// 			basePath:    ".",
+// 			testPath:    "../test",
+// 			expectError: true,
+// 		},
+// 	}
+
+// 	// run cases
+// 	for i, tc := range cases {
+// 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+
+// 			// perform actual tests
+// 			want := tc.expectError
+// 			// double extract
+// 			err := checkForTraversal(tc.basePath, tc.testPath)
+// 			got := err != nil
+// 			if got != want {
+// 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+// 			}
+
+// 		})
+// 	}
+
+// }
