@@ -35,7 +35,7 @@ func NewGunzip(config *config.Config) *Gunzip {
 	gunzip := Gunzip{
 		fileSuffix: fileSuffix,
 		config:     config,
-		target:     &target,
+		target:     target,
 		magicBytes: magicBytes,
 		offset:     offset,
 	}
@@ -109,6 +109,6 @@ func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 	}
 
 	// Create file
-	return gz.target.CreateSafeFile(gz.config, dst, uncompressedStream.Header.Name, bytes.NewReader(bytesBuffer.Bytes()), 0)
+	return gz.target.CreateSafeFile(dst, uncompressedStream.Header.Name, bytes.NewReader(bytesBuffer.Bytes()), 0)
 
 }

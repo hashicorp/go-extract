@@ -38,7 +38,7 @@ func NewZip(config *config.Config) *Zip {
 	zip := Zip{
 		fileSuffix: ".zip",
 		config:     config,
-		target:     &target,
+		target:     target,
 		magicBytes: magicBytes,
 		offset:     offset,
 	}
@@ -137,7 +137,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		switch hdr.Mode() & os.ModeType {
 		case os.ModeDir:
 			// handle directory
-			if err := z.target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
+			if err := z.target.CreateSafeDir(dst, archiveFile.Name); err != nil {
 				return err
 			}
 			continue
@@ -148,7 +148,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			if err != nil {
 				return err
 			}
-			if err := z.target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
+			if err := z.target.CreateSafeSymlink(dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 			continue
@@ -170,7 +170,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 				fileInArchive.Close()
 			}()
 			// create the file
-			if err := z.target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := z.target.CreateSafeFile(dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				return err
 			}
 
