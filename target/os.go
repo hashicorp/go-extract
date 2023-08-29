@@ -68,7 +68,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 	// create dst file
 	dstFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return fmt.Errorf("openFile error: %v", err)
+		return err
 	}
 	defer func() {
 		dstFile.Close()
@@ -86,7 +86,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 		}
 
 		// filesize check
-		if err := config.CheckFileSize(sumRead + int64(n)); err != nil {
+		if err := config.CheckExtractionSize(sumRead + int64(n)); err != nil {
 			return err
 		}
 
