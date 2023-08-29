@@ -16,6 +16,7 @@ type Os struct {
 	config *config.Config
 }
 
+// NewOs creates a new Os and applies provided options from opts
 func NewOs(opts ...TargetOption) *Os {
 	// defaults
 	config := config.NewConfig()
@@ -34,7 +35,7 @@ func NewOs(opts ...TargetOption) *Os {
 
 // TODO(jan): on point functiion parameter and documentation
 
-// CreateSafeDir creates in dstBase directory newDir on the configtarget
+// CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 
 	// clean the directories
@@ -66,18 +67,18 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 		return err
 	}
 
-	// target file
-	targetFilePath := filepath.Clean(filepath.Join(dstDir, name))
+	// target file will contain the content
+	targetFile := filepath.Clean(filepath.Join(dstDir, name))
 
 	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(targetFilePath); err == nil {
+	if _, err := os.Lstat(targetFile); err == nil {
 		if !o.config.Force {
 			return fmt.Errorf("file already exists!")
 		}
 	}
 
 	// create dst file
-	dstFile, err := os.OpenFile(targetFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
 		return err
 	}
