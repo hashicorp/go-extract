@@ -15,7 +15,6 @@ Secure extraction of any archive type.
 - [x] max num of extracted files
 - [x] extraction time exhaustion
 - [x] context based cancleation
-- [~] go tests
 - [x] option pattern for configuration
 - [x] options pattern for target
 - [x] byte stream as source
@@ -25,6 +24,12 @@ Secure extraction of any archive type.
 - [x] file with path traversal is detected
 - [x] file with absolut path is detected
 - [x] filetype detection based on magic bytes
+- [ ] tests for gunzip
+- [ ] function documentation
+- [ ] verify tests transfered from go-slug
+- [ ] check for windows
+- [ ] network pathes
+
 
 ## Intended filetypes
 

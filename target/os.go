@@ -33,8 +33,6 @@ func NewOs(opts ...TargetOption) *Os {
 	return os
 }
 
-// TODO(jan): on point functiion parameter and documentation
-
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 
@@ -58,7 +56,7 @@ func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 	return nil
 }
 
-// CreateSafeFile creates name in dstDir with conte nt from reader and file
+// CreateSafeFile creates name in dstDir with content from reader and file
 // headers as provided in mode
 func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
@@ -124,8 +122,6 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) error {
 
 	// check absolut path for link target
-	// TODO(jan): check for windows
-	// TODO(jan): network drives concideration on win `\\<remote>`
 	if strings.HasPrefix(linkTarget, "/") {
 		return fmt.Errorf("absolut path in symlink!")
 	}
