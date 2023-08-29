@@ -57,9 +57,9 @@ func WithMaxExtractionTime(maxExtractionTime int64) ConfigOption {
 		c.MaxExtractionTime = maxExtractionTime
 	}
 }
-func WithMaxExtractionSize(maxFileSize int64) ConfigOption {
+func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxExtractionSize = maxFileSize
+		c.MaxExtractionSize = maxExtractionSize
 	}
 }
 
@@ -85,7 +85,7 @@ func (e *Config) CheckMaxFiles(counter int64) error {
 }
 
 // checkFileSize checks if fileSize exceeds the MaxFileSize of the Extractor e
-func (e *Config) CheckFileSize(fileSize int64) error {
+func (e *Config) CheckExtractionSize(fileSize int64) error {
 
 	// check if disabled
 	if e.MaxExtractionSize == -1 {
@@ -94,7 +94,7 @@ func (e *Config) CheckFileSize(fileSize int64) error {
 
 	// check value
 	if fileSize > e.MaxExtractionSize {
-		return fmt.Errorf("maximum filesize exceeded")
+		return fmt.Errorf("maximum extraction size exceeded")
 	}
 	return nil
 }

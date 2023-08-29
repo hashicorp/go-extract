@@ -78,7 +78,7 @@ func TestCheckFileSize(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			got := tc.config.CheckFileSize(tc.input) != nil
+			got := tc.config.CheckExtractionSize(tc.input) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
