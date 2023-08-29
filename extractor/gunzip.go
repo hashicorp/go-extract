@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
+// reference https://socketloop.com/tutorials/golang-gunzip-file
+
 type Gunzip struct {
 	config     *config.Config
 	fileSuffix string
