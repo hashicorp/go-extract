@@ -15,7 +15,7 @@ Secure extraction of any archive type.
 - [x] max num of extracted files
 - [x] extraction time exhaustion
 - [x] context based cancleation
-- [x] go tests
+- [~] go tests
 - [x] option pattern for configuration
 - [x] options pattern for target
 - [x] byte stream as source
@@ -30,8 +30,8 @@ Secure extraction of any archive type.
 
 - [x] zip (/jar)
 - [x] tar
-- [ ] gunzip
-- [ ] tar.gz
+- [x] gunzip
+- [x] tar.gz
 
 ## Future extensions
 
