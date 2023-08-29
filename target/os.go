@@ -12,35 +12,46 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-type Os struct{}
+type Os struct {
+	config *config.Config
+}
 
-func NewOs() Os {
-	return Os{}
+func NewOs(opts ...TargetOption) *Os {
+	// defaults
+	config := config.NewConfig()
+
+	// create object
+	os := &Os{
+		config: config,
+	}
+
+	for _, opt := range opts {
+		opt(os)
+	}
+
+	return os
 }
 
 // TODO(jan): on point functiion parameter and documentation
 
-// CreateSafeDir creates in dstDir all directories that are provided in dirName
-func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+// CreateSafeDir creates in dstBase directory newDir on the configtarget
+func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 
-	// absolut path for destination
-	dstBase, err := filepath.Abs(dstBase)
-	if err != nil {
-		return fmt.Errorf("CreateSafeDir::cannot get filepath.Abs(): %v", err)
-	}
-	dstBase = dstBase + string(os.PathSeparator)
-
-	// get absolut path for new dir
-	newDir = filepath.Clean(filepath.Join(dstBase, newDir)) + string(os.PathSeparator)
+	// clean the directories
+	dstBase = filepath.Clean(dstBase)
+	newDir = filepath.Clean(newDir)
 
 	// check that the new directory is within base
-	if !strings.HasPrefix(newDir, dstBase) {
-		return fmt.Errorf("filename path traversal detected: %v", newDir)
+	if strings.HasPrefix(newDir, "..") {
+		return fmt.Errorf("path traversal detected")
 	}
 
+	// compose new directory
+	createDir := filepath.Clean(filepath.Join(dstBase, newDir))
+
 	// create dirs
-	if err := os.MkdirAll(newDir, os.ModePerm); err != nil {
-		return fmt.Errorf("cannot create directories: %v", err)
+	if err := os.MkdirAll(createDir, os.ModePerm); err != nil {
+		return err
 	}
 
 	return nil
@@ -48,10 +59,10 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 // CreateSafeFile creates name in dstDir with conte nt from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
+func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
-	// create target dir
-	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
+	// create target dir && check for path traversal
+	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
@@ -60,8 +71,8 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFilePath); err == nil {
-		if !config.Force {
-			return fmt.Errorf("already exists: %v", name)
+		if !o.config.Force {
+			return fmt.Errorf("file already exists!")
 		}
 	}
 
@@ -85,14 +96,14 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 			return err
 		}
 
-		// filesize check
-		if err := config.CheckExtractionSize(sumRead + int64(n)); err != nil {
-			return err
-		}
-
 		// nothing left to read, finished
 		if n == 0 {
 			break
+		}
+
+		// filesize check
+		if err := o.config.CheckExtractionSize(sumRead + int64(n)); err != nil {
+			return err
 		}
 
 		// store in buffer
@@ -109,30 +120,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 }
 
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
-func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error {
-
-	// get absolut path of destination
-	dstDirAbsolut, err := filepath.Abs(dstDir)
-	if err != nil {
-		return err
-	}
-	dstDirAbsolut = dstDirAbsolut + string(os.PathSeparator)
-
-	// absolut path and directory of new file
-	targetFilePathAbsolut := filepath.Clean(filepath.Join(dstDirAbsolut, name))
-	targetFileDirAbsolut := filepath.Dir(targetFilePathAbsolut)
-
-	// create target dir // check for traversal in file name
-	if err := o.CreateSafeDir(config, dstDirAbsolut, filepath.Dir(name)); err != nil {
-		return err
-	}
-
-	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(targetFilePathAbsolut); err == nil {
-		if !config.Force {
-			return fmt.Errorf("file already exist!")
-		}
-	}
+func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) error {
 
 	// check absolut path for link target
 	// TODO(jan): check for windows
@@ -141,22 +129,34 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 		return fmt.Errorf("absolut path in symlink!")
 	}
 
-	// expand link to get absolut path of target
-	linkTargetAbsolut, err := filepath.Abs(filepath.Join(targetFileDirAbsolut, linkTarget))
-	if err != nil {
-		return err
-	}
-
-	if !strings.HasPrefix(linkTargetAbsolut, dstDirAbsolut) {
+	// check link target for traversal
+	linkTargetCleaned := filepath.Clean(filepath.Join(filepath.Dir(name), linkTarget))
+	if strings.HasPrefix(linkTargetCleaned, "..") {
 		return fmt.Errorf("symlink path traversal detected!")
 	}
 
+	// create target dir && check for traversal in file name
+	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
+		return err
+	}
+
+	// Check for file existence and if it should be overwritten
+	if _, err := os.Lstat(filepath.Join(dstDir, name)); err == nil {
+		if !o.config.Force {
+			return fmt.Errorf("file already exist!")
+		}
+	}
+
 	// create link
-	if err := os.Symlink(linkTarget, targetFilePathAbsolut); err != nil {
+	if err := os.Symlink(linkTarget, filepath.Join(dstDir, name)); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (o *Os) SetConfig(config *config.Config) {
+	o.config = config
 }
 
 func CreateTmpDir() string {
