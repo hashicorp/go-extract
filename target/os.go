@@ -123,10 +123,10 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 		return fmt.Errorf("absolut path in symlink!")
 	}
 
-	// // check absolut path for link target on windows
-	// if p := []rune(linkTarget); len(p) > 2 && p[1] == rune(':') {
-	// 	return fmt.Errorf("absolut path in symlink!")
-	// }
+	// check absolut path for link target on windows
+	if p := []rune(linkTarget); len(p) > 2 && p[1] == rune(':') {
+		return fmt.Errorf("absolut path in symlink!")
+	}
 
 	// check link target for traversal
 	linkTargetCleaned := filepath.Clean(filepath.Join(filepath.Dir(name), linkTarget))
