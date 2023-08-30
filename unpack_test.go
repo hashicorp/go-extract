@@ -213,7 +213,7 @@ func createTestTar(dstDir string) string {
 	defer f1.Close()
 
 	// Add file to tar
-	addFileToTarArchive(tarWriter, f1.Name(), f1)
+	addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
 
 	// close zip
 	tarWriter.Close()

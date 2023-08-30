@@ -272,7 +272,7 @@ func createTestTarFiveFiles(dstDir string) string {
 		defer f1.Close()
 
 		// add
-		addFileToTarArchive(tarWriter, f1.Name(), f1)
+		addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
 	}
 
 	// close zip
