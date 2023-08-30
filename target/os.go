@@ -47,7 +47,7 @@ func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 
 	// create dirs
 	if err := os.MkdirAll(createDir, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("dstBase: %s, newDir: %s, err: %s", dstBase, newDir, err)
 	}
 
 	return nil
@@ -118,10 +118,15 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
 func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) error {
 
-	// check absolut path for link target
+	// check absolut path for link target on unix
 	if strings.HasPrefix(linkTarget, "/") {
 		return fmt.Errorf("absolut path in symlink!")
 	}
+
+	// // check absolut path for link target on windows
+	// if p := []rune(linkTarget); len(p) > 2 && p[1] == rune(':') {
+	// 	return fmt.Errorf("absolut path in symlink!")
+	// }
 
 	// check link target for traversal
 	linkTargetCleaned := filepath.Clean(filepath.Join(filepath.Dir(name), linkTarget))

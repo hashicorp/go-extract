@@ -243,13 +243,21 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolut path",
+			name: "malicious link target with absolut path linux",
 			input: struct {
 				name   string
 				target string
 			}{name: "test5", target: "/etc/passwd"},
 			expectError: true,
 		},
+		// {
+		// 	name: "malicious link target with absolut path windows",
+		// 	input: struct {
+		// 		name   string
+		// 		target string
+		// 	}{name: "test6", target: "C:\\windows\\Systems32"},
+		// 	expectError: true,
+		// },
 	}
 
 	// run cases
