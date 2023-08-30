@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -81,6 +82,12 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:           "malicous tar with symlink name path traversal",
 			inputGenerator: createTestTarWithTraversalInSymlinkName,
+			opts:           []config.ConfigOption{},
+			expectError:    true,
+		},
+		{
+			name:           "malicous tar.gz with empty name for a dir",
+			inputGenerator: createTestTarGzWithEmptyNameDirectory,
 			opts:           []config.ConfigOption{},
 			expectError:    true,
 		},
@@ -279,6 +286,31 @@ func createTestTarFiveFiles(dstDir string) string {
 	tarWriter.Close()
 
 	// return path to zip
+	return targetFile
+}
+
+func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarEmptyNameDir.tar.gz")
+	f, _ := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+
+	// test is from https://github.com/hashicorp/go-slug/blob/7f973de24b87701dd63a6cf2d12c4afdf8565302/slug_test.go#L1057
+
+	gw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gw)
+	tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeDir,
+	})
+	tw.Close()
+	gw.Close()
+	f.Close()
+
+	if info, err := os.Stat(targetFile); err != nil {
+		if info.Size() == 0 {
+			panic("unable to create tar properly")
+		}
+	}
+
 	return targetFile
 }
 
