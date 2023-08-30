@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// TestCreateSafeDir implements test cases
 func TestCreateSafeDir(t *testing.T) {
 
 	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
@@ -279,6 +280,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 	}
 }
 
+// TestCreateSafeFile implements testcases
 func TestCreateSafeFile(t *testing.T) {
 
 	// test cases
@@ -383,6 +385,7 @@ func TestCreateSafeFile(t *testing.T) {
 
 }
 
+// TestOverwriteFile implements a test case
 func TestOverwriteFile(t *testing.T) {
 
 	// test cases
@@ -450,67 +453,12 @@ func TestOverwriteFile(t *testing.T) {
 
 }
 
-// func TestCheckForTraversal(t *testing.T) {
+// TestCreateTempDir implements a test case
+func TestCreateTempDir(t *testing.T) {
+	path := CreateTmpDir()
+	defer os.RemoveAll(path)
 
-// 	cases := []struct {
-// 		name        string
-// 		basePath    string
-// 		testPath    string
-// 		expectError bool
-// 	}{
-// 		{
-// 			name:        "legit path",
-// 			basePath:    ".",
-// 			testPath:    "test",
-// 			expectError: false,
-// 		},
-// 		{
-// 			name:        "legit path in sub",
-// 			basePath:    ".",
-// 			testPath:    "foo/test",
-// 			expectError: false,
-// 		},
-// 		{
-// 			name:        "legit path in other dir",
-// 			basePath:    "/foo",
-// 			testPath:    "bar",
-// 			expectError: false,
-// 		},
-// 		{
-// 			name:        "legit path with traversal",
-// 			basePath:    "../",
-// 			testPath:    "bar",
-// 			expectError: false,
-// 		},
-// 		{
-// 			name:        "legit base with traversal, malicious path",
-// 			basePath:    "../",
-// 			testPath:    "../bar",
-// 			expectError: true,
-// 		},
-
-// 		{
-// 			name:        "simple traversal",
-// 			basePath:    ".",
-// 			testPath:    "../test",
-// 			expectError: true,
-// 		},
-// 	}
-
-// 	// run cases
-// 	for i, tc := range cases {
-// 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-
-// 			// perform actual tests
-// 			want := tc.expectError
-// 			// double extract
-// 			err := checkForTraversal(tc.basePath, tc.testPath)
-// 			got := err != nil
-// 			if got != want {
-// 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
-// 			}
-
-// 		})
-// 	}
-
-// }
+	if stat, err := os.Stat(path); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
+		t.Errorf("creation of temp directory failed")
+	}
+}

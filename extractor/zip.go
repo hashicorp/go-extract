@@ -30,7 +30,8 @@ func NewZip(config *config.Config) *Zip {
 	const (
 		fileSuffix = ".zip"
 	)
-	target := target.NewOs()
+	target := target.NewOs(config)
+
 	magicBytes := [][]byte{
 		{0x50, 0x4B, 0x03, 0x04},
 	}
@@ -57,6 +58,7 @@ func (z *Zip) FileSuffix() string {
 // SetConfig sets config as configuration.
 func (z *Zip) SetConfig(config *config.Config) {
 	z.config = config
+	z.target.SetConfig(config)
 }
 
 // Offset returns the offset for the magic bytes.

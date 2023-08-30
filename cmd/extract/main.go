@@ -8,7 +8,7 @@ var (
 	date    = "unknown"
 )
 
-// main start the security assessment tool
+// main start go-extract cli `extract`
 func main() {
 	cmd.Run(version, commit, date)
 }

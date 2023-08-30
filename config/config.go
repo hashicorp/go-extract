@@ -4,8 +4,10 @@ import (
 	"fmt"
 )
 
+// ConfigOption is a function pointer to implement the option pattern
 type ConfigOption func(*Config)
 
+// Config is a struct type that holds all config options
 type Config struct {
 	// MaxFiles is the maximum of files in an archive.
 	// Set value to -1 to disable the check.
@@ -22,6 +24,8 @@ type Config struct {
 	Force bool
 }
 
+// NewConfig is a generator option that takes opts as adjustments of the
+// default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		maxFiles          = 1000
@@ -46,23 +50,28 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
+// WithMaxFiles options pattern function to set maxFiles in the config
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxFiles = maxFiles
 	}
 }
 
+// WithMaxExtractionTime options pattern function to set WithMaxExtractionTime in the config
 func WithMaxExtractionTime(maxExtractionTime int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxExtractionTime = maxExtractionTime
 	}
 }
+
+// WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the config
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxExtractionSize = maxExtractionSize
 	}
 }
 
+// WithForce options pattern function to set force in the config
 func WithForce(enable bool) ConfigOption {
 	return func(c *Config) {
 		c.Force = enable

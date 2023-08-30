@@ -24,11 +24,12 @@ Secure extraction of any archive type.
 - [x] file with path traversal is detected
 - [x] file with absolut path is detected
 - [x] filetype detection based on magic bytes
-- [ ] tests for gunzip
-- [ ] function documentation
-- [ ] verify tests transfered from go-slug
+- [x] tests for gunzip
+- [x] function documentation
 - [ ] check for windows
 - [ ] network pathes
+- [ ] verify tests transfered from go-slug
+
 
 
 ## Intended filetypes

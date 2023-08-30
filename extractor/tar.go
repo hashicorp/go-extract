@@ -12,14 +12,26 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
+// Tar holds information that are needed for tar extraction.
 type Tar struct {
-	config     *config.Config
+
+	// config is the provided configuration for the extraction process
+	config *config.Config
+
+	// fileSuffix is the common file suffix for tar archives
 	fileSuffix string
-	target     target.Target
+
+	// target is the target of the extraction
+	target target.Target
+
+	// magicBytes contains slices of byte that are used to identify tar archives
 	magicBytes [][]byte
-	offset     int
+
+	// ofset is the offset before the magicBytes
+	offset int
 }
 
+// NewTar creates a new untar object with config as configuration
 func NewTar(config *config.Config) *Tar {
 	// defaults
 	const (
@@ -31,7 +43,8 @@ func NewTar(config *config.Config) *Tar {
 	}
 	offset := 257
 
-	target := target.NewOs()
+	// configure target
+	target := target.NewOs(config)
 
 	// instantiate
 	tar := Tar{
@@ -46,26 +59,33 @@ func NewTar(config *config.Config) *Tar {
 	return &tar
 }
 
+// FileSuffix returns the common file suffix of tar archive type.
 func (t *Tar) FileSuffix() string {
 	return t.fileSuffix
 }
 
+// SetConfig sets config as configuration.
 func (t *Tar) SetConfig(config *config.Config) {
 	t.config = config
+	t.target.SetConfig(config)
 }
 
+// SetTarget sets target as target for the extraction
 func (t *Tar) SetTarget(target *target.Target) {
 	t.target = *target
 }
 
+// Offset returns the offset for the magic bytes.
 func (t *Tar) Offset() int {
 	return t.offset
 }
 
+// MagicBytes returns the magic bytes that identifies tar files.
 func (t *Tar) MagicBytes() [][]byte {
 	return t.magicBytes
 }
 
+// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// start extraction without timer
@@ -97,9 +117,9 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 	}
 
 	return nil
-
 }
 
+// unpack checks ctx for cancelation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	var fileCounter int64
@@ -182,9 +202,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		}
 
 	}
-
 }
 
+// MagicBytesMatch cheks if data matches the magic bytes for tar
 func (t *Tar) MagicBytesMatch(data []byte) bool {
 
 	// check all possible magic bytes for extract engine

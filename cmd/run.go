@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// CLI are the cli parameters for go-extract binary
 type CLI struct {
 	Archive           string `arg:"" name:"archive" help:"Path to csv or Epic issue id." type:"file"`
 	Force             bool   `short:"f" help:"Force extraction and overwrite if exist"`
@@ -23,6 +24,7 @@ type CLI struct {
 	Version           bool   `short:"V" optional:"" help:"Print release version information."`
 }
 
+// Run the entrypoint into go-extract as a cli tool
 func Run(version, commit, date string) {
 	ctx := context.Background()
 	var cli CLI

@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestCheckMaxFiles implements test cases
 func TestCheckMaxFiles(t *testing.T) {
 	// prepare testcases
 	cases := []struct {
@@ -45,6 +46,7 @@ func TestCheckMaxFiles(t *testing.T) {
 	}
 }
 
+// TestCheckFileSize  implements test cases
 func TestCheckFileSize(t *testing.T) {
 
 	// prepare testcases

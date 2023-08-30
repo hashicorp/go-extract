@@ -12,22 +12,19 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// Os is the struct type that holds all information for interacting with the filesystem
 type Os struct {
+
+	// config holds the configutaion and should be kept in sync wihth the config from the Extractor.
 	config *config.Config
 }
 
 // NewOs creates a new Os and applies provided options from opts
-func NewOs(opts ...TargetOption) *Os {
-	// defaults
-	config := config.NewConfig()
+func NewOs(config *config.Config) *Os {
 
 	// create object
 	os := &Os{
 		config: config,
-	}
-
-	for _, opt := range opts {
-		opt(os)
 	}
 
 	return os
@@ -152,10 +149,12 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 	return nil
 }
 
+// SetConfig implements interface function to set the config
 func (o *Os) SetConfig(config *config.Config) {
 	o.config = config
 }
 
+// CreateTmpDir creates a temporary directory and returns its path
 func CreateTmpDir() string {
 	tmpDir, err := os.MkdirTemp(os.TempDir(), "test*")
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
+// TestTarUnpack implements test cases
 func TestTarUnpack(t *testing.T) {
 
 	type TestfileGenerator func(string) string
@@ -112,6 +113,7 @@ func TestTarUnpack(t *testing.T) {
 	}
 }
 
+// createTestTarNormal is a helper function to generate test content
 func createTestTarNormal(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarNormal.tar")
@@ -137,6 +139,7 @@ func createTestTarNormal(dstDir string) string {
 	return targetFile
 }
 
+// createTestTarWithSymlink is a helper function to generate test content
 func createTestTarWithSymlink(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithSymlink.tar")
@@ -157,6 +160,8 @@ func createTestTarWithSymlink(dstDir string) string {
 	// return path to zip
 	return targetFile
 }
+
+// createTestTarWithTraversalInSymlinkName is a helper function to generate test content
 func createTestTarWithTraversalInSymlinkName(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithTraversalInSymlinkName.tar")
@@ -178,6 +183,7 @@ func createTestTarWithTraversalInSymlinkName(dstDir string) string {
 	return targetFile
 }
 
+// createTestTarWithPathTraversalSymlink is a helper function to generate test content
 func createTestTarWithPathTraversalSymlink(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithPathTraversalSymlink.tar")
@@ -198,6 +204,8 @@ func createTestTarWithPathTraversalSymlink(dstDir string) string {
 	// return path to zip
 	return targetFile
 }
+
+// createTestTarWithAbsolutPathSymlink is a helper function to generate test content
 func createTestTarWithAbsolutPathSymlink(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithAbsolutPathSymlink.tar")
@@ -219,6 +227,7 @@ func createTestTarWithAbsolutPathSymlink(dstDir string) string {
 	return targetFile
 }
 
+// createTestTarWithPathTraversalInFile is a helper function to generate test content
 func createTestTarWithPathTraversalInFile(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithPathTraversalInFile.tar")
@@ -244,6 +253,7 @@ func createTestTarWithPathTraversalInFile(dstDir string) string {
 	return targetFile
 }
 
+// createTestTarFiveFiles is a helper function to generate test content
 func createTestTarFiveFiles(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarFiveFiles.tar")
@@ -272,6 +282,7 @@ func createTestTarFiveFiles(dstDir string) string {
 	return targetFile
 }
 
+// addFileToTarArchive is a helper function to generate test content
 func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	fileInfo, err := os.Lstat(f1.Name())
 	if err != nil {
@@ -298,6 +309,7 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	}
 }
 
+// addLinkToTarArchive is a helper function to generate test content
 func addLinkToTarArchive(tarWriter *tar.Writer, fileName string, linkTarget string) {
 	// create a temporary dir for files in zip archive
 	tmpDir := target.CreateTmpDir()
@@ -330,6 +342,7 @@ func addLinkToTarArchive(tarWriter *tar.Writer, fileName string, linkTarget stri
 	}
 }
 
+// createTar is a helper function to generate test content
 func createTar(filePath string) *tar.Writer {
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 	if err != nil {
