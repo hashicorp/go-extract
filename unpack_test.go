@@ -194,24 +194,6 @@ func createTestFile(path string, content string) *os.File {
 	return newFile
 }
 
-func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarEmptyNameDir.tar.gz")
-	f, _ := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-
-	// test is from https://github.com/hashicorp/go-slug/blob/7f973de24b87701dd63a6cf2d12c4afdf8565302/slug_test.go#L1057
-
-	gw := gzip.NewWriter(f)
-	tw := tar.NewWriter(gw)
-	tw.WriteHeader(&tar.Header{
-		Typeflag: tar.TypeDir,
-	})
-	tw.Close()
-	gw.Close()
-
-	return targetFile
-}
-
 // createTestTar is a helper function to generate test data
 func createTestTar(dstDir string) string {
 
