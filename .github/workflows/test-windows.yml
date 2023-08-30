@@ -1,4 +1,4 @@
-name: Go test windows
+name: test windows
 
 on:
   push:

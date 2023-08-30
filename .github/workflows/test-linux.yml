@@ -1,4 +1,4 @@
-name: Go test linux
+name: test linux
 
 on:
   push:
