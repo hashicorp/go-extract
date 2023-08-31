@@ -30,7 +30,7 @@ import (
     // open archive
     archive, _ := os.Open(...)
 
-    // process cli params
+    // prepare config
     config := config.NewConfig(
         config.WithMaxExtractionTime(60),             // 1 minute
         config.WithMaxExtractionSize(1 << (10 * 3)),  // 1 Gb
@@ -46,6 +46,8 @@ import (
         // handle error
     }
 
+...
+
 ```
 
 ## Use binary
@@ -55,7 +57,7 @@ The libraray can also be used directly on the cli.
 ### Installation
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/NodyHub/fifi@latest
+GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract@latest
 ```
 
 ### Usage
