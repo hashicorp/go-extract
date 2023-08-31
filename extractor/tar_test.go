@@ -91,6 +91,12 @@ func TestTarUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{},
 			expectError:    true,
 		},
+		{
+			name:           "malicous tar with .. as filename",
+			inputGenerator: createTestTarDotDotFilename,
+			opts:           []config.ConfigOption{config.WithForce(true)},
+			expectError:    true,
+		},
 	}
 
 	// run cases
@@ -138,6 +144,32 @@ func createTestTarNormal(dstDir string) string {
 
 	// Add file to tar
 	addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+// createTestTarDotDotFilename is a helper function to generate test content
+func createTestTarDotDotFilename(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarNormal.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// Add file to tar
+	addFileToTarArchive(tarWriter, "..", f1)
 
 	// close zip
 	tarWriter.Close()
