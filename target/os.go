@@ -14,24 +14,19 @@ import (
 
 // Os is the struct type that holds all information for interacting with the filesystem
 type Os struct {
-
-	// config holds the configutaion and should be kept in sync wihth the config from the Extractor.
-	config *config.Config
 }
 
 // NewOs creates a new Os and applies provided options from opts
-func NewOs(config *config.Config) *Os {
+func NewOs() *Os {
 
 	// create object
-	os := &Os{
-		config: config,
-	}
+	os := &Os{}
 
 	return os
 }
 
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
-func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
+func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
 	// clean the directories
 	dstBase = filepath.Clean(dstBase)
@@ -55,10 +50,10 @@ func (o *Os) CreateSafeDir(dstBase string, newDir string) error {
 
 // CreateSafeFile creates name in dstDir with content from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
+func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
 	// create target dir && check for path traversal
-	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
@@ -67,7 +62,7 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFile); err == nil {
-		if !o.config.Force {
+		if !config.Force {
 			return fmt.Errorf("file already exists!")
 		}
 	}
@@ -98,7 +93,7 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 		}
 
 		// filesize check
-		if err := o.config.CheckExtractionSize(sumRead + int64(n)); err != nil {
+		if err := config.CheckExtractionSize(sumRead + int64(n)); err != nil {
 			return err
 		}
 
@@ -116,7 +111,7 @@ func (o *Os) CreateSafeFile(dstDir string, name string, reader io.Reader, mode f
 }
 
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
-func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) error {
+func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error {
 
 	// check absolut path for link target on unix
 	if strings.HasPrefix(linkTarget, "/") {
@@ -135,13 +130,13 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 	}
 
 	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(dstDir, filepath.Dir(name)); err != nil {
+	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(filepath.Join(dstDir, name)); err == nil {
-		if !o.config.Force {
+		if !config.Force {
 			return fmt.Errorf("file already exist!")
 		}
 	}
@@ -152,11 +147,6 @@ func (o *Os) CreateSafeSymlink(dstDir string, name string, linkTarget string) er
 	}
 
 	return nil
-}
-
-// SetConfig implements interface function to set the config
-func (o *Os) SetConfig(config *config.Config) {
-	o.config = config
 }
 
 // CreateTmpDir creates a temporary directory and returns its path

@@ -11,14 +11,11 @@ import (
 type Target interface {
 
 	// CreateSafeFile is used to create a file in directory dstDir, with name and reader as content
-	CreateSafeFile(dstDir string, name string, reader io.Reader, mode fs.FileMode) error
+	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
 
 	// CreateSafeDir creates dirName in dstDir
-	CreateSafeDir(dstDir string, dirName string) error
+	CreateSafeDir(config *config.Config, dstDir string, dirName string) error
 
 	// CreateSafeSymlink creates symlink name with destination linkTarget in dstDir
-	CreateSafeSymlink(dstDir string, name string, linkTarget string) error
-
-	// SetConfig sets the config for a target
-	SetConfig(config *config.Config)
+	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
 }

@@ -122,11 +122,11 @@ func TestCreateSafeDir(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			target := &Os{config: config.NewConfig()}
+			target := &Os{}
 
 			// perform actual test
 			want := tc.expectError
-			got := target.CreateSafeDir(tc.basePath, tc.newDir) != nil
+			got := target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -272,13 +272,13 @@ func TestCreateSafeSymlink(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			target := &Os{config: config.NewConfig()}
+			target := &Os{}
 
 			// perform actual tests
 			want := tc.expectError
 
 			err = nil
-			err = target.CreateSafeSymlink(testDir, tc.input.name, tc.input.target)
+			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
@@ -380,9 +380,9 @@ func TestCreateSafeFile(t *testing.T) {
 			defer os.RemoveAll(testDir)
 
 			// perform actual tests
-			target := &Os{config: tc.config}
+			target := &Os{}
 			want := tc.expectError
-			err = target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
@@ -446,11 +446,11 @@ func TestOverwriteFile(t *testing.T) {
 			defer os.RemoveAll(testDir)
 
 			// perform actual tests
-			target := &Os{config: tc.config}
+			target := &Os{}
 			want := tc.expectError
 			// double extract
-			err = target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode)
-			err = target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
