@@ -38,7 +38,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	}
 
 	// compose new directory
-	createDir := filepath.Clean(filepath.Join(dstBase, newDir))
+	createDir := filepath.Join(dstBase, newDir)
 
 	// create dirs
 	if err := os.MkdirAll(createDir, os.ModePerm); err != nil {
@@ -52,13 +52,18 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 // headers as provided in mode
 func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error {
 
+	// check if a name is provided
+	if len(name) == 0 {
+		return fmt.Errorf("cannot create file without name")
+	}
+
 	// create target dir && check for path traversal
 	if err := o.CreateSafeDir(config, dstDir, filepath.Dir(name)); err != nil {
 		return err
 	}
 
 	// target file will contain the content
-	targetFile := filepath.Clean(filepath.Join(dstDir, name))
+	targetFile := filepath.Join(dstDir, name)
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(targetFile); err == nil {
@@ -113,6 +118,11 @@ func (o *Os) CreateSafeFile(config *config.Config, dstDir string, name string, r
 // CreateSymlink creates in dstDir a symlink name with destination linkTarget
 func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error {
 
+	// check if a name is provided
+	if len(name) == 0 {
+		return fmt.Errorf("cannot create symlink without name")
+	}
+
 	// check absolut path for link target on unix
 	if strings.HasPrefix(linkTarget, "/") {
 		return fmt.Errorf("absolut path in symlink!")
@@ -124,7 +134,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 	}
 
 	// check link target for traversal
-	linkTargetCleaned := filepath.Clean(filepath.Join(filepath.Dir(name), linkTarget))
+	linkTargetCleaned := filepath.Join(filepath.Dir(name), linkTarget)
 	if strings.HasPrefix(linkTargetCleaned, "..") {
 		return fmt.Errorf("symlink path traversal detected!")
 	}
@@ -135,14 +145,15 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstDir string, name string
 	}
 
 	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(filepath.Join(dstDir, name)); err == nil {
+	linkName := filepath.Join(dstDir, name)
+	if _, err := os.Lstat(linkName); err == nil {
 		if !config.Force {
 			return fmt.Errorf("file already exist!")
 		}
 	}
 
 	// create link
-	if err := os.Symlink(linkTarget, filepath.Join(dstDir, name)); err != nil {
+	if err := os.Symlink(linkTarget, linkName); err != nil {
 		return err
 	}
 
