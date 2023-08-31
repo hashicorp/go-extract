@@ -28,6 +28,12 @@ Secure extraction of any archive type.
 - [x] function documentation
 - [x] check for windows
 - [ ] verify tests transfered from go-slug
+    - [x] dot-dot as file name
+    - [x] empty dir name
+    - [ ] FIFO in tar
+- [ ] Allow/deny symlinks in general
+- [ ] Allow/deny external directories!?
+
 
 
 
