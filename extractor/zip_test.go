@@ -7,8 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
-	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -360,14 +358,4 @@ func createTestFile(path string, content string) *os.File {
 		panic(err)
 	}
 	return newFile
-}
-
-// createTestFIFO creates a fifo under path
-func createTestFIFO(path string) {
-	// create only on non-windows systems
-	if runtime.GOOS != "windows" {
-		if err := syscall.Mkfifo(path, 0640); err != nil {
-			panic(err)
-		}
-	}
 }
