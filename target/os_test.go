@@ -22,7 +22,9 @@ func TestCreateSafeDir(t *testing.T) {
 	}
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 	defer os.RemoveAll(testDir)
-	syscall.Chdir(testDir)
+	if err := syscall.Chdir(testDir); err != nil {
+		t.Errorf(err.Error())
+	}
 
 	cases := []struct {
 		name        string
@@ -142,7 +144,9 @@ func TestCreateSafeSymlink(t *testing.T) {
 	}
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 	defer os.RemoveAll(testDir)
-	syscall.Chdir(testDir)
+	if err := syscall.Chdir(testDir); err != nil {
+		t.Errorf(err.Error())
+	}
 
 	// test cases
 	cases := []struct {
@@ -449,9 +453,9 @@ func TestOverwriteFile(t *testing.T) {
 			target := &Os{}
 			want := tc.expectError
 			// double extract
-			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
-			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
-			got := err != nil
+			err1 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err2 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			got := err1 != nil || err2 != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
 			}

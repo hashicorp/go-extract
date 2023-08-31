@@ -67,6 +67,9 @@ func TestFindExtractor(t *testing.T) {
 
 			// perform actual tests
 			f, err := os.Open(tc.fkt(testDir))
+			if err != nil {
+				panic(err)
+			}
 			input, err := io.ReadAll(f)
 
 			if err != nil {
@@ -167,7 +170,9 @@ func createTestZip(dstDir string) string {
 
 	// write file into zip
 	w1, _ := zipWriter.Create("test")
-	io.Copy(w1, f1)
+	if _, err := io.Copy(w1, f1); err != nil {
+		panic(err)
+	}
 
 	// return path to zip
 	return targetFile
