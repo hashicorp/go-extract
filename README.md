@@ -4,51 +4,115 @@
 
 Secure extraction of any archive type.
 
-## Ressources
+## Code Example
 
-* https://pypi.org/project/SecureZip/
-* https://www.unforgettable.dk/
+Add to `go.mod`:
 
-##  Feature collection
+```cli
+GOPRIVATE=github.com/hashicorp/go-extract go get github.com/hashicorp/go-extract
+```
 
+Usage in code:
+
+```go
+
+import (
+    ...
+    "github.com/hashicorp/go-extract"
+    "github.com/hashicorp/go-extract/config"
+    ...
+)
+
+...
+
+    ctx := context.Background()
+
+    // open archive
+    archive, _ := os.Open(...)
+
+    // process cli params
+    config := config.NewConfig(
+        config.WithMaxExtractionTime(cli.MaxExtractionTime),
+        config.WithMaxExtractionSize(cli.MaxExtractionSize),
+        config.WithMaxFiles(cli.MaxFiles),
+        config.WithForce(cli.Force),
+    )
+    extractOptions := []extract.ExtractorOption{
+        extract.WithConfig(config),
+    }
+
+    // extract archive
+    if err := extract.Unpack(ctx, archive, cli.Destination, extractOptions...); err != nil {
+        // handle error
+    }
+
+```
+
+## Use binary
+
+The libraray can also be used directly on the cli.
+
+### Installation
+
+```cli
+GOPRIVATE=github.com/hashicorp/go-extract go install github.com/NodyHub/fifi@latest
+```
+
+### Usage
+
+```cli
+extract -h
+Usage: extract <archive> [<destination>]
+
+Arguments:
+  <archive>          Path to csv or Epic issue id.
+  [<destination>]    Output directory
+
+Flags:
+  -h, --help                              Show context-sensitive help.
+  -f, --force                             Force extraction and overwrite if exist
+      --max-files=1000                    Maximum files that are extracted before stop
+      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes)
+      --max-extraction-time=60            Maximum time that an extraction should take (in seconds)
+  -v, --verbose                           Verbose logging.
+  -V, --version                           Print release version information.
+```
+
+## Feature collection
+
+- Filetypes
+  - [x] zip (/jar)
+  - [x] tar
+  - [x] gunzip
+  - [x] tar.gz
+  - [ ] bzip2
+  - [ ] 7zip
+  - [ ] rar
+  - [ ] deb
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
 - [x] context based cancleation
 - [x] option pattern for configuration
-- [x] options pattern for target
-- [x] byte stream as source
+- [x] `io.Reader` as source
 - [x] symlink inside archive
 - [x] symlink to outside is detected
 - [x] symlink with absolut path is detected
 - [x] file with path traversal is detected
 - [x] file with absolut path is detected
 - [x] filetype detection based on magic bytes
+- [x] windows support
 - [x] tests for gunzip
 - [x] function documentation
 - [x] check for windows
-- [ ] verify tests transfered from go-slug
-    - [x] dot-dot as file name
-    - [x] empty dir name
-    - [ ] FIFO in tar
+- [ ] PAX header extraction
 - [ ] Allow/deny symlinks in general
 - [ ] Allow/deny external directories!?
-
-
-
-
-## Intended filetypes
-
-- [x] zip (/jar)
-- [x] tar
-- [x] gunzip
-- [x] tar.gz
-
-## Future extensions
-
-- [ ] bzip2
-- [ ] 7zip
-- [ ] rar
-- [ ] deb
+- [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target
+
+## References
+
+- [SecureZip](https://pypi.org/project/SecureZip/)
+- [42zip](https://www.unforgettable.dk/)
