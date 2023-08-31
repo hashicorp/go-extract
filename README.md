@@ -67,8 +67,8 @@ extract -h
 Usage: extract <archive> [<destination>]
 
 Arguments:
-  <archive>          Path to csv or Epic issue id.
-  [<destination>]    Output directory
+  <archive>          Path to archive.
+  [<destination>]    Output directory/file
 
 Flags:
   -h, --help                              Show context-sensitive help.
