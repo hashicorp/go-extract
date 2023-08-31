@@ -32,10 +32,10 @@ import (
 
     // process cli params
     config := config.NewConfig(
-        config.WithMaxExtractionTime(cli.MaxExtractionTime),
-        config.WithMaxExtractionSize(cli.MaxExtractionSize),
-        config.WithMaxFiles(cli.MaxFiles),
-        config.WithForce(cli.Force),
+        config.WithMaxExtractionTime(60),             // 1 minute
+        config.WithMaxExtractionSize(1 << (10 * 3)),  // 1 Gb
+        config.WithMaxFiles(1000),                    // limit extraction to 1000 files
+        config.WithForce(false),                      // do not overwrite existing files
     )
     extractOptions := []extract.ExtractorOption{
         extract.WithConfig(config),
