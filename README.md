@@ -50,14 +50,24 @@ import (
 
 ```
 
-## Use binary
+## Cli Tool
 
-The libraray can also be used directly on the cli.
+The libraray can also be used directly on the cli `extract`.
 
 ### Installation
 
 ```cli
 GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract@latest
+```
+
+### Manual Build and Installation
+
+```cli
+git clone git@github.com:hashicorp/go-extract.git
+cd go-extract
+make
+make test
+make install
 ```
 
 ### Usage
