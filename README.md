@@ -42,7 +42,7 @@ import (
     }
 
     // extract archive
-    if err := extract.Unpack(ctx, archive, cli.Destination, extractOptions...); err != nil {
+    if err := extract.Unpack(ctx, archive, destination, extractOptions...); err != nil {
         // handle error
     }
 
