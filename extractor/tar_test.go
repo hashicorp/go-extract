@@ -2,11 +2,11 @@ package extractor
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -97,6 +97,12 @@ func TestTarUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{config.WithForce(true)},
 			expectError:    true,
 		},
+		{
+			name:           "malicous tar with FIFIO filetype",
+			inputGenerator: createTestTarWithFIFO,
+			opts:           []config.ConfigOption{config.WithForce(true)},
+			expectError:    true,
+		},
 	}
 
 	// run cases
@@ -144,6 +150,29 @@ func createTestTarNormal(dstDir string) string {
 
 	// Add file to tar
 	addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+func createTestTarWithFIFO(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithFIFO.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// create fifo and add
+	path := path.Join(dstDir, "testFIFO")
+	createTestFIFO(path)
+	addFifoToTarArchive(tarWriter, "fifo", path)
 
 	// close zip
 	tarWriter.Close()
@@ -324,25 +353,25 @@ func createTestTarFiveFiles(dstDir string) string {
 func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarEmptyNameDir.tar.gz")
-	f, _ := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 
-	// test is from https://github.com/hashicorp/go-slug/blob/7f973de24b87701dd63a6cf2d12c4afdf8565302/slug_test.go#L1057
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
 
-	gw := gzip.NewWriter(f)
-	tw := tar.NewWriter(gw)
-	tw.WriteHeader(&tar.Header{
-		Typeflag: tar.TypeDir,
-	})
-	tw.Close()
-	gw.Close()
-	f.Close()
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
 
-	if info, err := os.Stat(targetFile); err != nil {
-		if info.Size() == 0 {
-			panic("unable to create tar properly")
-		}
-	}
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
 
+	// Add file to tar
+	addFileToTarArchive(tarWriter, "", f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
 	return targetFile
 }
 
@@ -371,6 +400,29 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	if _, err := io.Copy(tarWriter, f1); err != nil {
 		panic(err)
 	}
+}
+
+// addFileToTarArchive is a helper function to generate test content
+func addFifoToTarArchive(tarWriter *tar.Writer, fileName string, fifoPath string) {
+	fileInfo, err := os.Lstat(fifoPath)
+	if err != nil {
+		panic(err)
+	}
+
+	// create a new dir/file header
+	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
+	if err != nil {
+		panic(err)
+	}
+
+	// adjust filename
+	header.Name = fileName
+
+	// write the header
+	if err := tarWriter.WriteHeader(header); err != nil {
+		panic(err)
+	}
+
 }
 
 // addLinkToTarArchive is a helper function to generate test content

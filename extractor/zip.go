@@ -200,7 +200,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		default: // catch all for unspported file modes
 
 			// drop error
-			return fmt.Errorf("unspported filemode: %s", hdr.Mode()&os.ModeType)
+			return fmt.Errorf("unspported filetype in archive.")
 
 		}
 	}

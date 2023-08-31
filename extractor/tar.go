@@ -197,7 +197,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 		default:
-			return fmt.Errorf("unspported filemode: %v", hdr.Typeflag)
+			return fmt.Errorf("unspported filetype in archive.")
 		}
 
 	}
