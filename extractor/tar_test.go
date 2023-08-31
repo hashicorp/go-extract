@@ -8,8 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
-	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -103,7 +101,7 @@ func TestTarUnpack(t *testing.T) {
 			name:           "malicous tar with FIFIO filetype",
 			inputGenerator: createTestTarWithFIFO,
 			opts:           []config.ConfigOption{config.WithForce(true)},
-			expectError:    true,
+			expectError:    false,
 		},
 	}
 
@@ -173,7 +171,7 @@ func createTestTarWithFIFO(dstDir string) string {
 
 	// create fifo and add
 	path := path.Join(dstDir, "testFIFO")
-	createTestFIFO(path)
+	createTestFile(path, "ignored anyway")
 	addFifoToTarArchive(tarWriter, "fifo", path)
 
 	// close zip
@@ -419,6 +417,7 @@ func addFifoToTarArchive(tarWriter *tar.Writer, fileName string, fifoPath string
 
 	// adjust filename
 	header.Name = fileName
+	header.Typeflag = tar.TypeFifo
 
 	// write the header
 	if err := tarWriter.WriteHeader(header); err != nil {
@@ -467,14 +466,4 @@ func createTar(filePath string) *tar.Writer {
 		panic(err)
 	}
 	return tar.NewWriter(f)
-}
-
-// createTestFIFO creates a fifo under path
-func createTestFIFO(path string) {
-	// create only on non-windows systems
-	if runtime.GOOS != "windows" {
-		if err := syscall.Mkfifo(path, 0640); err != nil {
-			panic(fmt.Errorf("%s: %s", runtime.GOOS, err))
-		}
-	}
 }
