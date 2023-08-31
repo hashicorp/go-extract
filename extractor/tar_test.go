@@ -101,7 +101,7 @@ func TestTarUnpack(t *testing.T) {
 			name:           "malicous tar with FIFIO filetype",
 			inputGenerator: createTestTarWithFIFO,
 			opts:           []config.ConfigOption{config.WithForce(true)},
-			expectError:    false,
+			expectError:    true,
 		},
 	}
 
