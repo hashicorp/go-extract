@@ -30,7 +30,7 @@ func NewZip(config *config.Config) *Zip {
 	const (
 		fileSuffix = ".zip"
 	)
-	target := target.NewOs(config)
+	target := target.NewOs()
 
 	magicBytes := [][]byte{
 		{0x50, 0x4B, 0x03, 0x04},
@@ -58,7 +58,6 @@ func (z *Zip) FileSuffix() string {
 // SetConfig sets config as configuration.
 func (z *Zip) SetConfig(config *config.Config) {
 	z.config = config
-	z.target.SetConfig(config)
 }
 
 // Offset returns the offset for the magic bytes.
@@ -150,7 +149,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		case os.ModeDir: // handle directory
 
 			// create dir
-			if err := z.target.CreateSafeDir(dst, archiveFile.Name); err != nil {
+			if err := z.target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
 				return err
 			}
 
@@ -166,7 +165,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 			// create link
-			if err := z.target.CreateSafeSymlink(dst, archiveFile.Name, linkTarget); err != nil {
+			if err := z.target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
 				return err
 			}
 
@@ -191,7 +190,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}()
 
 			// create the file
-			if err := z.target.CreateSafeFile(dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := z.target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				return err
 			}
 

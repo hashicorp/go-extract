@@ -47,7 +47,7 @@ func NewGunzip(config *config.Config) *Gunzip {
 	offset := 0
 
 	// setup extraction target
-	target := target.NewOs(config)
+	target := target.NewOs()
 
 	// instantiate
 	gunzip := Gunzip{
@@ -70,7 +70,6 @@ func (gz *Gunzip) FileSuffix() string {
 // SetConfig sets config as configuration.
 func (gz *Gunzip) SetConfig(config *config.Config) {
 	gz.config = config
-	gz.target.SetConfig(config)
 }
 
 // SetTarget sets target as a extraction destination
@@ -155,5 +154,5 @@ func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 	}
 
 	// Create file
-	return gz.target.CreateSafeFile(dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644)
+	return gz.target.CreateSafeFile(gz.config, dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644)
 }
