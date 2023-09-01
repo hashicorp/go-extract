@@ -29,13 +29,13 @@ func TestGunzipUnpack(t *testing.T) {
 		{
 			name:           "normal gunzip with file",
 			inputGenerator: createTestGunzipWithFile,
-			opts:           []config.ConfigOption{config.WithForce(true)},
+			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
 		{
 			name:           "gunzip with compressed txt",
 			inputGenerator: createTestGunzipWithText,
-			opts:           []config.ConfigOption{config.WithForce(true)},
+			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
 	}
@@ -62,7 +62,7 @@ func TestGunzipUnpack(t *testing.T) {
 			err = gunzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, outputFile))
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"time"
 
@@ -156,6 +155,19 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			continue
 		}
 
+		// check if file starts with absolut path
+		if start := target.GetStartOfAbsolutPath(hdr.Name); len(start) > 0 {
+
+			// continue on error?
+			if t.config.ContinueOnError {
+				t.config.Log.Printf("skip file with absolut path (%s)", hdr.Name)
+				continue
+			}
+
+			// return error
+			return fmt.Errorf("file with absolut path (%s)", hdr.Name)
+		}
+
 		// check for to many files in archive
 		fileCounter++
 
@@ -164,7 +176,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			return err
 		}
 
-		// check the file type
+		t.config.Log.Printf("extract %s", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it
@@ -174,7 +186,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 				// do not end on error
 				if t.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					t.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -196,7 +208,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 				// do not end on error
 				if t.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					t.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -211,7 +223,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 				// do not end on error
 				if t.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					t.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 

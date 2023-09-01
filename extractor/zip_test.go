@@ -106,7 +106,7 @@ func TestZipUnpack(t *testing.T) {
 			err = unzipper.Unpack(context.Background(), input, testDir)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})

@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"time"
 
@@ -145,16 +144,30 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		// get next file
 		hdr := archiveFile.FileHeader
 
+		// check if file starts with absolut path
+		if start := target.GetStartOfAbsolutPath(hdr.Name); len(start) > 0 {
+
+			// continue on error?
+			if z.config.ContinueOnError {
+				z.config.Log.Printf("skip file with absolut path (%s)", hdr.Name)
+				continue
+			}
+
+			// return error
+			return fmt.Errorf("file with absolut path (%s)", hdr.Name)
+		}
+
+		z.config.Log.Printf("extract %s", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
 
 			// create dir
-			if err := z.target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
+			if err := z.target.CreateSafeDir(z.config, dst, hdr.Name); err != nil {
 
 				// do not end on error
 				if z.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					z.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -174,11 +187,11 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 			// create link
-			if err := z.target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
+			if err := z.target.CreateSafeSymlink(z.config, dst, hdr.Name, linkTarget); err != nil {
 
 				// do not end on error
 				if z.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					z.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -207,11 +220,11 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}()
 
 			// create the file
-			if err := z.target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := z.target.CreateSafeFile(z.config, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
 
 				// do not end on error
 				if z.config.ContinueOnError {
-					log.Printf("extraction error: %s", err)
+					z.config.Log.Printf("extraction error: %s", err)
 					continue
 				}
 

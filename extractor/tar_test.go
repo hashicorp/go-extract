@@ -28,7 +28,7 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:           "unpack normal tar",
 			inputGenerator: createTestTarNormal,
-			opts:           []config.ConfigOption{},
+			opts:           []config.ConfigOption{config.WithVerbose(true)},
 			expectError:    false,
 		},
 		{
@@ -94,13 +94,19 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:           "malicous tar with .. as filename",
 			inputGenerator: createTestTarDotDotFilename,
-			opts:           []config.ConfigOption{config.WithForce(true)},
+			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    true,
 		},
 		{
 			name:           "malicous tar with FIFIO filetype",
 			inputGenerator: createTestTarWithFIFO,
-			opts:           []config.ConfigOption{config.WithForce(true)},
+			opts:           []config.ConfigOption{config.WithOverwrite(true)},
+			expectError:    true,
+		},
+		{
+			name:           "malicous tar with zip slip attack",
+			inputGenerator: createTestTarWithZipSlip,
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
 			expectError:    true,
 		},
 	}
@@ -110,7 +116,7 @@ func TestTarUnpack(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			testDir, err := os.MkdirTemp(os.TempDir(), fmt.Sprintf("test%d_*", i))
 			if err != nil {
 				t.Errorf(err.Error())
 			}
@@ -125,7 +131,7 @@ func TestTarUnpack(t *testing.T) {
 			err = untarer.Unpack(context.Background(), input, testDir)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})
@@ -149,7 +155,7 @@ func createTestTarNormal(dstDir string) string {
 	defer f1.Close()
 
 	// Add file to tar
-	addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
+	addFileToTarArchive(tarWriter, "test", f1)
 
 	// close zip
 	tarWriter.Close()
@@ -184,7 +190,7 @@ func createTestTarWithFIFO(dstDir string) string {
 // createTestTarDotDotFilename is a helper function to generate test content
 func createTestTarDotDotFilename(dstDir string) string {
 
-	targetFile := filepath.Join(dstDir, "TarNormal.tar")
+	targetFile := filepath.Join(dstDir, "TarDotDot.tar")
 
 	// create a temporary dir for files in tar archive
 	tmpDir := target.CreateTmpDir()
@@ -221,6 +227,30 @@ func createTestTarWithSymlink(dstDir string) string {
 
 	// add symlink
 	addLinkToTarArchive(tarWriter, "testLink", "testTarget")
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+// createTestTarWithSymlink is a helper function to generate test content
+func createTestTarWithZipSlip(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithZipSlip.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add symlinks
+	addLinkToTarArchive(tarWriter, "sub/to-parent", "../")
+	addLinkToTarArchive(tarWriter, "sub/to-parent/one-above", "../")
+	addLinkToTarArchive(tarWriter, "sub/to-parent/one-above/two-above", "../")
 
 	// close zip
 	tarWriter.Close()
