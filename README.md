@@ -32,11 +32,16 @@ import (
 
     // prepare config
     config := config.NewConfig(
-        config.WithMaxExtractionTime(60),             // 1 minute
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // 1 Gb
-        config.WithMaxFiles(1000),                    // limit extraction to 1000 files
-        config.WithForce(false),                      // do not overwrite existing files
+        config.WithContinueOnError(false),            // fail on error
+        config.WithDenySymlinks(false),               // allow symlink creation
+        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
+        config.WithOverwrite(false),                  // dont replace existing files
+        config.WithMaxExtractionTime(60),             // stop after 1 minute
+        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb
+        config.WithMaxFiles(1000),                    // only 1k files maximum
+        config.WithVerbose(false),                    // dont show details
     )
+
     extractOptions := []extract.ExtractorOption{
         extract.WithConfig(config),
     }
