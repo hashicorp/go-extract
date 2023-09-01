@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -121,12 +122,14 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
 // unpack checks ctx for cancelation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
+	// prepare safty vars
 	var fileCounter int64
-
-	tr := tar.NewReader(src)
-
 	var extractionSize uint64
 
+	// open tar
+	tr := tar.NewReader(src)
+
+	// walk through tar
 	for {
 
 		// check if context is cancled
@@ -168,6 +171,14 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		case tar.TypeDir:
 			// handle directory
 			if err := t.target.CreateSafeDir(t.config, dst, hdr.Name); err != nil {
+
+				// do not end on error
+				if t.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 			continue
@@ -181,11 +192,15 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 				return err
 			}
 
-			if err := t.config.CheckExtractionSize(hdr.Size); err != nil {
-				return err
-			}
-
 			if err := t.target.CreateSafeFile(t.config, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+
+				// do not end on error
+				if t.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 
@@ -193,6 +208,14 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		case tar.TypeSymlink:
 			// create link
 			if err := t.target.CreateSafeSymlink(t.config, dst, hdr.Name, hdr.Linkname); err != nil {
+
+				// do not end on error
+				if t.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 
@@ -150,6 +151,14 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 			// create dir
 			if err := z.target.CreateSafeDir(z.config, dst, archiveFile.Name); err != nil {
+
+				// do not end on error
+				if z.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 
@@ -166,6 +175,14 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 			// create link
 			if err := z.target.CreateSafeSymlink(z.config, dst, archiveFile.Name, linkTarget); err != nil {
+
+				// do not end on error
+				if z.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 
@@ -191,6 +208,14 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 			// create the file
 			if err := z.target.CreateSafeFile(z.config, dst, archiveFile.Name, fileInArchive, archiveFile.Mode()); err != nil {
+
+				// do not end on error
+				if z.config.ContinueOnError {
+					log.Printf("extraction error: %s", err)
+					continue
+				}
+
+				// end extraction
 				return err
 			}
 
