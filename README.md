@@ -83,14 +83,17 @@ Usage: extract <archive> [<destination>]
 
 Arguments:
   <archive>          Path to archive.
-  [<destination>]    Output directory/file
+  [<destination>]    Output directory/file.
 
 Flags:
   -h, --help                              Show context-sensitive help.
-  -f, --force                             Force extraction and overwrite if exist
-      --max-files=1000                    Maximum files that are extracted before stop
-      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes)
-      --max-extraction-time=60            Maximum time that an extraction should take (in seconds)
+  -C, --continue-on-error                 Continue extraction on error.
+  -D, --deny-symlinks                     Deny symlink extraction.
+  -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
+  -O, --overwrite                         Overwrite if exist.
+      --max-files=1000                    Maximum files that are extracted before stop.
+      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes).
+      --max-extraction-time=60            Maximum time that an extraction should take (in seconds).
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```
