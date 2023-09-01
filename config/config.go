@@ -2,6 +2,9 @@ package config
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"os"
 )
 
 // ConfigOption is a function pointer to implement the option pattern
@@ -20,35 +23,49 @@ type Config struct {
 	// Maximum time in seconds that an extraction should need to finish
 	MaxExtractionTime int64
 
-	// Define if files should be overwritten in the Destination
-	Force bool
+	// Define if files should be overwritten in the destination
+	Overwrite bool
 
 	// DenySymlinks offers the option to disable the extraction of symlinks
 	DenySymlinks bool
 
 	// ContinueOnError decides if the extraction should be continued even if an error occoured
 	ContinueOnError bool
+
+	// FollowSymlinks follow symlinks to directories during extraction
+	FollowSymlinks bool
+
+	// Verbose log extraction to stderr
+	Verbose bool
+
+	// Logstream for extraction
+	Log *log.Logger
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
 // default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
-		maxFiles          = 1000
+		continueOnError   = false
+		denySymlinks      = false
+		followSymlinks    = false
+		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
-		force             = false
-		denySymlinks      = false
-		continueOnError   = false
+		overwrite         = false
+		verbose           = false
 	)
 
 	config := &Config{
+		ContinueOnError:   continueOnError,
+		DenySymlinks:      denySymlinks,
+		FollowSymlinks:    followSymlinks,
+		Overwrite:         overwrite,
+		Log:               log.New(io.Discard, "", 0),
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
 		MaxExtractionTime: maxExtractionTime,
-		Force:             force,
-		DenySymlinks:      denySymlinks,
-		ContinueOnError:   continueOnError,
+		Verbose:           verbose,
 	}
 
 	// Loop through each option
@@ -81,10 +98,10 @@ func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	}
 }
 
-// WithForce options pattern function to set force in the config
-func WithForce(enable bool) ConfigOption {
+// WithOverwrite options pattern function to set overwrite in the config
+func WithOverwrite(enable bool) ConfigOption {
 	return func(c *Config) {
-		c.Force = enable
+		c.Overwrite = enable
 	}
 }
 
@@ -99,6 +116,23 @@ func WithDenySymlinks(deny bool) ConfigOption {
 func WithContinueOnError(yes bool) ConfigOption {
 	return func(c *Config) {
 		c.ContinueOnError = yes
+	}
+}
+
+// WithFollowSymlinks options pattern function to follow symlinks to  directories during extraction
+func WithFollowSymlinks(follow bool) ConfigOption {
+	return func(c *Config) {
+		c.FollowSymlinks = follow
+	}
+}
+
+// WithVerbose options pattern function to get details on extraction
+func WithVerbose(verbose bool) ConfigOption {
+	return func(c *Config) {
+		c.Verbose = verbose
+		if verbose {
+			c.Log.SetOutput(os.Stderr)
+		}
 	}
 }
 
