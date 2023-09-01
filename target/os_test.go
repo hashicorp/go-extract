@@ -283,7 +283,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})
@@ -387,7 +387,7 @@ func TestCreateSafeFile(t *testing.T) {
 			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})
@@ -430,7 +430,7 @@ func TestOverwriteFile(t *testing.T) {
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0644,
 			},
-			config:      config.NewConfig(config.WithForce(true)), // allow overwrite
+			config:      config.NewConfig(config.WithOverwrite(true)), // allow overwrite
 			expectError: false,
 		},
 	}
@@ -455,7 +455,7 @@ func TestOverwriteFile(t *testing.T) {
 			err2 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err1 != nil || err2 != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%v", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})
