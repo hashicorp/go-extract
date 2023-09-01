@@ -64,7 +64,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	// switch to destination
 	oldLocation, err := os.Getwd()
 	if err != nil {
-		return err
+		oldLocation = ""
 	}
 	defer os.Chdir(oldLocation)
 
@@ -109,7 +109,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 	// switch to destination
 	oldLocation, err := os.Getwd()
 	if err != nil {
-		return err
+		oldLocation = ""
 	}
 	defer os.Chdir(oldLocation)
 
@@ -195,7 +195,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	// switch to destination
 	oldLocation, err := os.Getwd()
 	if err != nil {
-		return err
+		oldLocation = ""
 	}
 	defer os.Chdir(oldLocation)
 
