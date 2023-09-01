@@ -15,11 +15,13 @@ import (
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
 	Archive           string `arg:"" name:"archive" help:"Path to archive." type:"file"`
-	Force             bool   `short:"f" help:"Force extraction and overwrite if exist"`
-	MaxFiles          int64  `optional:"" default:"1000" help:"Maximum files that are extracted before stop"`
-	MaxExtractionSize int64  `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)"`
-	MaxExtractionTime int64  `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)"`
-	Destination       string `arg:"" name:"destination" default:"." help:"Output directory/file"`
+	ContinueOnError   bool   `short:"C" help:"Continue extraction on error."`
+	Force             bool   `short:"f" help:"Force extraction and overwrite if exist."`
+	DenySymlinks      bool   `short:"D" help:"Deny symlink extraction."`
+	MaxFiles          int64  `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
+	MaxExtractionSize int64  `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
+	MaxExtractionTime int64  `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
+	Destination       string `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	Verbose           bool   `short:"v" optional:"" help:"Verbose logging."`
 	Version           bool   `short:"V" optional:"" help:"Print release version information."`
 }
@@ -49,6 +51,7 @@ func Run(version, commit, date string) {
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithForce(cli.Force),
+		config.WithDenySymlinks(cli.DenySymlinks),
 	)
 	extractOptions := []extract.ExtractorOption{
 		extract.WithConfig(config),
