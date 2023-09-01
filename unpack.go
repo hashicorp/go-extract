@@ -30,7 +30,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, opts ...ExtractorOpt
 		opt(&ex)
 	}
 
-	// return ex.Unpack(ctx, bytes.NewReader(archive), dst)
+	// perform extraction with identified reader
 	return ex.Unpack(ctx, bytes.NewReader(archiveData), dst)
 }
 
