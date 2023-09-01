@@ -22,6 +22,12 @@ type Config struct {
 
 	// Define if files should be overwritten in the Destination
 	Force bool
+
+	// DenySymlinks offers the option to disable the extraction of symlinks
+	DenySymlinks bool
+
+	// ContinueOnError decides if the extraction should be continued even if an error occoured
+	ContinueOnError bool
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -32,6 +38,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
 		force             = false
+		denySymlinks      = false
+		continueOnError   = false
 	)
 
 	config := &Config{
@@ -39,6 +47,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		MaxExtractionSize: maxExtractionSize,
 		MaxExtractionTime: maxExtractionTime,
 		Force:             force,
+		DenySymlinks:      denySymlinks,
+		ContinueOnError:   continueOnError,
 	}
 
 	// Loop through each option
@@ -75,6 +85,20 @@ func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 func WithForce(enable bool) ConfigOption {
 	return func(c *Config) {
 		c.Force = enable
+	}
+}
+
+// WithDenySymlinks options pattern function to deny symlink extraction
+func WithDenySymlinks(deny bool) ConfigOption {
+	return func(c *Config) {
+		c.DenySymlinks = deny
+	}
+}
+
+// WithContinueOnError options pattern function to continue on error during extraction
+func WithContinueOnError(yes bool) ConfigOption {
+	return func(c *Config) {
+		c.ContinueOnError = yes
 	}
 }
 
