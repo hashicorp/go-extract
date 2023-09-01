@@ -229,6 +229,7 @@ func createTestTar(dstDir string) string {
 
 // addFileToTarArchive is a helper function
 func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
+
 	fileInfo, err := os.Lstat(f1.Name())
 	if err != nil {
 		panic(err)
@@ -292,7 +293,7 @@ func TestUnpack(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			testDir, err := os.MkdirTemp(os.TempDir(), "fooo*")
 			if err != nil {
 				panic(err)
 			}
@@ -313,7 +314,7 @@ func TestUnpack(t *testing.T) {
 				testDir,
 				WithConfig(
 					config.NewConfig(
-						config.WithForce(true),
+						config.WithOverwrite(true),
 					),
 				),
 			)
@@ -321,7 +322,7 @@ func TestUnpack(t *testing.T) {
 
 			// success if both are nil and no engine found
 			if want != got {
-				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %v", i, tc.name, want, err)
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
 			}
 
 		})
