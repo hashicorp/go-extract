@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
@@ -16,8 +17,9 @@ import (
 type CLI struct {
 	Archive           string `arg:"" name:"archive" help:"Path to archive." type:"file"`
 	ContinueOnError   bool   `short:"C" help:"Continue extraction on error."`
-	Force             bool   `short:"f" help:"Force extraction and overwrite if exist."`
 	DenySymlinks      bool   `short:"D" help:"Deny symlink extraction."`
+	FollowSymlinks    bool   `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
+	Overwrite         bool   `short:"O" help:"Overwrite if exist."`
 	MaxFiles          int64  `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
 	MaxExtractionSize int64  `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
 	MaxExtractionTime int64  `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
@@ -41,17 +43,20 @@ func Run(version, commit, date string) {
 
 	// check if version information is requested
 	if cli.Version {
-		fmt.Printf("sat (%s), commit %s, built at %s\n", version, commit, date)
+		fmt.Printf("%s (%s), commit %s, built at %s\n", filepath.Base(os.Args[0]), version, commit, date)
 		return
 	}
 
 	// process cli params
 	config := config.NewConfig(
+		config.WithContinueOnError(cli.ContinueOnError),
+		config.WithDenySymlinks(cli.DenySymlinks),
+		config.WithFollowSymlinks(cli.FollowSymlinks),
+		config.WithOverwrite(cli.Overwrite),
 		config.WithMaxExtractionTime(cli.MaxExtractionTime),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
-		config.WithForce(cli.Force),
-		config.WithDenySymlinks(cli.DenySymlinks),
+		config.WithVerbose(cli.Verbose),
 	)
 	extractOptions := []extract.ExtractorOption{
 		extract.WithConfig(config),
