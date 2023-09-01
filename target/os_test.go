@@ -174,7 +174,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "legit link name with path with taversal",
+			name: "legit link name with path with traversal",
 			input: struct {
 				name   string
 				target string
@@ -182,7 +182,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "malicious link name with path taversal",
+			name: "malicious link name with path traversal",
 			input: struct {
 				name   string
 				target string
@@ -190,7 +190,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "malicious link name with more complex path taversal",
+			name: "malicious link name with more complex path traversal",
 			input: struct {
 				name   string
 				target string
@@ -214,7 +214,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "legit link target with path with taversal",
+			name: "legit link target with path with traversal",
 			input: struct {
 				name   string
 				target string
@@ -222,7 +222,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "malicious link target with path taversal",
+			name: "malicious link target with path traversal",
 			input: struct {
 				name   string
 				target string
@@ -239,7 +239,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 		},
 
 		{
-			name: "malicious link target with more complex path taversal",
+			name: "malicious link target with more complex path traversal",
 			input: struct {
 				name   string
 				target string
@@ -280,8 +280,6 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
-
-			err = nil
 			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
