@@ -120,7 +120,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// go to extraction destination
 	if err := os.Chdir(dstBase); err != nil {
-		return err
+		return fmt.Errorf("cannot extract in directory (%s)", dstBase)
 	}
 
 	// check if a name is provided
