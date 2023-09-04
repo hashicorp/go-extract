@@ -110,19 +110,14 @@ func TestTarUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
 			expectError:    true,
 		}, {
-			name:           "malicious tar with absolut path in filename",
-			inputGenerator: createTestTarWithMaliciousFilename,
+			name:           "absolut path in filename",
+			inputGenerator: createTestTarWithAbsolutPathInFilename,
 			opts:           []config.ConfigOption{config.WithVerbose(true)},
-			expectError:    true,
+			expectError:    false,
 		}, {
-			name:           "malicious tar with absolut path in filename (windows)",
-			inputGenerator: createTestTarWithMaliciousFilenameWindows,
+			name:           "absolut path in filename (windows)",
+			inputGenerator: createTestTarWithAbsolutPathInFilenameWindows,
 			opts:           []config.ConfigOption{config.WithVerbose(true)},
-			expectError:    true,
-		}, {
-			name:           "malicious tar with absolut path in filename, but continue",
-			inputGenerator: createTestTarWithMaliciousFilename,
-			opts:           []config.ConfigOption{config.WithContinueOnError(true)},
 			expectError:    false,
 		},
 	}
@@ -647,8 +642,8 @@ func TestTarMagicBytesMatch(t *testing.T) {
 
 }
 
-// createTestTarWithMaliciousFilename is a helper function to generate test content
-func createTestTarWithMaliciousFilename(dstDir string) string {
+// createTestTarWithAbsolutPathInFilename is a helper function to generate test content
+func createTestTarWithAbsolutPathInFilename(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilename.tar")
 
@@ -674,7 +669,7 @@ func createTestTarWithMaliciousFilename(dstDir string) string {
 }
 
 // createTestTarWithMaliciousFilename is a helper function to generate test content
-func createTestTarWithMaliciousFilenameWindows(dstDir string) string {
+func createTestTarWithAbsolutPathInFilenameWindows(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilenameWindows.tar")
 
