@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -87,9 +88,43 @@ func (gz *Gzip) MagicBytes() [][]byte {
 	return gz.magicBytes
 }
 
+// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
+
+	// start extraction without timer
+	if g.config.MaxExtractionTime == -1 {
+		return g.unpack(ctx, src, dst)
+	}
+
+	// prepare timeout
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(g.config.MaxExtractionTime)*time.Second)
+	defer cancel()
+
+	exChan := make(chan error, 1)
+	go func() {
+		// extract files in tmpDir
+		if err := g.unpack(ctx, src, dst); err != nil {
+			exChan <- err
+		}
+		exChan <- nil
+	}()
+
+	// start extraction in on thread
+	select {
+	case err := <-exChan:
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return fmt.Errorf("maximum extraction time exceeded")
+	}
+
+	return nil
+}
+
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
-func (gz *Gzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
+func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// open reader
 	uncompressedStream, err := gzip.NewReader(src)
@@ -122,7 +157,8 @@ func (gz *Gzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 				if ctx.Err() != nil {
 					return nil
 				}
-
+			} else {
+				return fmt.Errorf("maximum extraction size exceeded")
 			}
 		}
 

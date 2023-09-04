@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,6 +38,24 @@ func TestGzipUnpack(t *testing.T) {
 			inputGenerator: createTestGzipWithText,
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
+		},
+		{
+			name:           "gzip with limited extraction size",
+			inputGenerator: createTestGzipWithMoreContent,
+			opts:           []config.ConfigOption{config.WithMaxExtractionSize(512)},
+			expectError:    true,
+		},
+		{
+			name:           "gzip with unlimited extraction size",
+			inputGenerator: createTestGzipWithMoreContent,
+			opts:           []config.ConfigOption{config.WithMaxExtractionSize(-1)},
+			expectError:    false,
+		},
+		{
+			name:           "gzip with extraction time exceeded",
+			inputGenerator: createTestGzipWithMoreContent,
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
+			expectError:    true,
 		},
 	}
 
@@ -122,6 +141,33 @@ func createTestGzipWithText(dstDir string) string {
 	// example text
 	var bytesBuffer bytes.Buffer
 	bytesBuffer.Write([]byte("some random content"))
+
+	// create Gzip file
+	createGzip(targetFile, &bytesBuffer)
+
+	// return path to zip
+	return targetFile
+}
+
+func RandStringBytes(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+// createTestGzipWithMoreContent creates a test gzip file in dstDir for testing
+func createTestGzipWithMoreContent(dstDir string) string {
+
+	// define target
+	targetFile := filepath.Join(dstDir, "GzipWithMoreContent.gz")
+
+	// example text
+	var bytesBuffer bytes.Buffer
+	bytesBuffer.Write([]byte(RandStringBytes(1 << (10 * 2)))) // Generate 1 Mb text
 
 	// create Gzip file
 	createGzip(targetFile, &bytesBuffer)
