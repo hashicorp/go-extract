@@ -483,3 +483,59 @@ func TestCreateTempDir(t *testing.T) {
 		t.Errorf("creation of temp directory failed")
 	}
 }
+
+func TestSecurityCheckPath(t *testing.T) {
+	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+	if err := syscall.Chdir(testDir); err != nil {
+		t.Errorf(err.Error())
+	}
+
+	cases := []struct {
+		name        string
+		basePath    string
+		newDir      string
+		config      *config.Config
+		expectError bool
+	}{
+		{
+			name:        "legit directory name",
+			basePath:    ".",
+			newDir:      "test",
+			config:      config.NewConfig(),
+			expectError: false,
+		},
+		{
+			name:        "traversal",
+			basePath:    ".",
+			newDir:      "../test",
+			config:      config.NewConfig(),
+			expectError: true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			// create testing directory
+			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+			defer os.RemoveAll(testDir)
+
+			// perform actual test
+			want := tc.expectError
+			err = securityCheckPath(tc.config, tc.basePath, tc.newDir)
+			got := err != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+
+}
