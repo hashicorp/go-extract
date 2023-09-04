@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -312,7 +313,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0,
+				mode:   644,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
@@ -369,17 +370,27 @@ func TestCreateSafeFile(t *testing.T) {
 		},
 	}
 
+	dir, _ := os.Getwd()
+	log.Printf("testing-base-dir: %s", dir)
+
 	// run cases
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
+			dir, _ := os.Getwd()
+			log.Printf("test-start-dir: %s", dir)
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
 			if err != nil {
 				t.Errorf(err.Error())
 			}
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			defer func() {
+				log.Printf("clean tmp: %s", testDir)
+				if err := os.RemoveAll(testDir); err != nil {
+					t.Errorf("mimimi: %s", err)
+				}
+			}()
 
 			// perform actual tests
 			target := &Os{}
