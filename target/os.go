@@ -26,15 +26,28 @@ func NewOs() *Os {
 	return os
 }
 
-// checkForSymlinkInPath checks if path contains a symlink
-func checkForSymlinkInPath(dstBase string, path string) error {
+func securityCheckPath(config *config.Config, dstBase string, targetDirectory string) error {
 
-	// iterate over each sub-directory and check that
-	dirs := strings.Split(path, string(os.PathSeparator))
-	for i := 0; i < len(dirs); i++ {
-		subDirs := filepath.Join(dirs[0 : i+1]...)
-		if isSymlink(filepath.Join(dstBase, subDirs)) {
-			return fmt.Errorf(fmt.Sprintf("symlink in path (%s)", subDirs))
+	// clean the target
+	targetDirectory = filepath.Clean(targetDirectory)
+
+	// check for escape out of dstBase
+	if strings.HasPrefix(targetDirectory, "..") {
+		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
+	}
+
+	// check for symlink in path
+	targetPathElements := strings.Split(targetDirectory, string(os.PathSeparator))
+	for i := 0; i < len(targetPathElements); i++ {
+		subDirs := filepath.Join(targetPathElements[0 : i+1]...)
+		checkDir := filepath.Join(dstBase, subDirs)
+		if isSymlink(checkDir) {
+			if config.FollowSymlinks {
+				config.Log.Printf("warning: following symlink (%s)", filepath.Dir(checkDir))
+			} else {
+				return fmt.Errorf(fmt.Sprintf("symlink in path (%s)", subDirs))
+			}
+
 		}
 	}
 
@@ -68,46 +81,17 @@ func isSymlink(path string) bool {
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
-	// check if file starts with absolut path
-	if start := GetStartOfAbsolutPath(newDir); len(start) > 0 {
-
-		// continue on error?
-		if config.ContinueOnError {
-			config.Log.Printf("skip file with absolut path (%s)", newDir)
-			return nil
-		}
-
-		// return error
-		return fmt.Errorf("file with absolut path (%s)", newDir)
-	}
-
-	// clean the directories
-	newDir = filepath.Clean(newDir)
-
-	// check that the new directory is within base
-	if strings.HasPrefix(newDir, "..") {
-		return fmt.Errorf("path traversal detected (%s)", newDir)
-	}
-
-	// check if base directory is a symlink
-	if err := checkForSymlinkInPath(dstBase, filepath.Dir(newDir)); err != nil {
-
-		// allow following sym links
-		if config.FollowSymlinks {
-			config.Log.Printf("warning: following symlink (%s)", filepath.Dir(newDir))
-		} else {
-			return err
-		}
-	}
-
-	finalDirectoryPath := filepath.Join(dstBase, newDir)
-
-	// check if directory already exist, then skip
-	if _, err := os.Stat(finalDirectoryPath); !os.IsNotExist(err) {
+	// no action needed
+	if newDir == "." {
 		return nil
 	}
 
+	if err := securityCheckPath(config, dstBase, newDir); err != nil {
+		return err
+	}
+
 	// create dirs
+	finalDirectoryPath := filepath.Join(dstBase, newDir)
 	if err := os.MkdirAll(finalDirectoryPath, os.ModePerm); err != nil {
 		return err
 	}
@@ -124,41 +108,14 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 		return fmt.Errorf("cannot create file without name")
 	}
 
-	// check if file starts with absolut path
-	if start := GetStartOfAbsolutPath(newFileName); len(start) > 0 {
-
-		// continue on error?
-		if config.ContinueOnError {
-			config.Log.Printf("skip file with absolut path (%s)", newFileName)
-			return nil
-		}
-
-		// return error
-		return fmt.Errorf("file with absolut path (%s)", newFileName)
-	}
-
-	// clean filename
-	newFileName = filepath.Clean(newFileName)
-
-	// check if base directory is a symlink
-	if err := checkForSymlinkInPath(dstBase, filepath.Dir(newFileName)); err != nil {
-		// allow following sym links
-		if config.FollowSymlinks {
-			config.Log.Printf("warning: following symlink (%s)", filepath.Dir(newFileName))
-		} else {
-			return err
-		}
-	}
-
-	// create target dir && check for path traversal
+	// create target dir && check for path traversal // zipslip
 	if err := o.CreateSafeDir(config, dstBase, filepath.Dir(newFileName)); err != nil {
 		return err
 	}
 
+	// Check for file existence//overwrite
 	targetFile := filepath.Join(dstBase, newFileName)
-
-	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(targetFile); err == nil {
+	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
 		if !config.Overwrite {
 			return fmt.Errorf("file already exists (%s)", newFileName)
 		}
@@ -222,19 +179,6 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		return fmt.Errorf("cannot create symlink without name")
 	}
 
-	// check if file starts with absolut path
-	if start := GetStartOfAbsolutPath(newLinkName); len(start) > 0 {
-
-		// continue on error?
-		if config.ContinueOnError {
-			config.Log.Printf("skip file with absolut path (%s)", newLinkName)
-			return nil
-		}
-
-		// return error
-		return fmt.Errorf("file with absolut path (%s)", newLinkName)
-	}
-
 	// Check if link target is absolut path
 	if start := GetStartOfAbsolutPath(linkTarget); len(start) > 0 {
 
@@ -252,24 +196,14 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	newLinkName = filepath.Clean(newLinkName)
 	newLinkDirectory := filepath.Dir(newLinkName)
 
-	// check link target for traversal
-	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
-	if strings.HasPrefix(linkTargetCleaned, "..") {
-		return fmt.Errorf("symlink path traversal detected (%s)", linkTargetCleaned)
-	}
-
-	// check if base directory is a symlink
-	if err := checkForSymlinkInPath(dstBase, newLinkDirectory); err != nil {
-		// allow following sym links
-		if config.FollowSymlinks {
-			config.Log.Printf("Warning: following symlink (%s)", newLinkDirectory)
-		} else {
-			return err
-		}
-	}
-
 	// create target dir && check for traversal in file name
 	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory); err != nil {
+		return err
+	}
+
+	// check link target for traversal
+	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
+	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
 		return err
 	}
 
@@ -282,6 +216,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		}
 
 		// delete existing link
+		config.Log.Printf("overwrite symlink (%s)", newLinkName)
 		if err := os.Remove(targetFile); err != nil {
 			return err
 		}
