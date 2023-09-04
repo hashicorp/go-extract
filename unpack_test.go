@@ -353,6 +353,13 @@ func TestMatchesMagicBytes(t *testing.T) {
 			offset:      1,
 			expectMatch: false,
 		},
+		{
+			name:        "to few data to match",
+			data:        []byte{0x00},
+			magicBytes:  []byte{0x02, 0x03},
+			offset:      1,
+			expectMatch: false,
+		},
 	}
 
 	// run cases
