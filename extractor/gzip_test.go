@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -19,41 +18,47 @@ import (
 // TestZipUnpack test with various testcases the implementation of zip.Unpack
 func TestGzipUnpack(t *testing.T) {
 
-	type TestfileGenerator func(string) string
+	type TestfileGenerator func(string) io.Reader
 
 	cases := []struct {
 		name           string
 		inputGenerator TestfileGenerator
+		outputFileName string
 		opts           []config.ConfigOption
 		expectError    bool
 	}{
 		{
 			name:           "normal gzip with file",
 			inputGenerator: createTestGzipWithFile,
+			outputFileName: "test-gziped-file",
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
 		{
 			name:           "gzip with compressed txt",
 			inputGenerator: createTestGzipWithText,
+			outputFileName: "",
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
 		{
 			name:           "gzip with limited extraction size",
 			inputGenerator: createTestGzipWithMoreContent,
+			outputFileName: "test-gziped-file",
 			opts:           []config.ConfigOption{config.WithMaxExtractionSize(512)},
 			expectError:    true,
 		},
 		{
 			name:           "gzip with unlimited extraction size",
 			inputGenerator: createTestGzipWithMoreContent,
+			outputFileName: "test-gziped-file",
 			opts:           []config.ConfigOption{config.WithMaxExtractionSize(-1)},
 			expectError:    false,
 		},
 		{
 			name:           "gzip with extraction time exceeded",
 			inputGenerator: createTestGzipWithMoreContent,
+			outputFileName: "test-gziped-file",
 			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
 			expectError:    true,
 		},
@@ -74,11 +79,9 @@ func TestGzipUnpack(t *testing.T) {
 			gzipper := NewGzip(config.NewConfig(tc.opts...))
 
 			// perform actual tests
-			inputFile := tc.inputGenerator(testDir)
-			outputFile := strings.TrimSuffix(filepath.Base(inputFile), ".gz")
-			input, _ := os.Open(inputFile)
+			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, outputFile))
+			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, tc.outputFileName))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -112,7 +115,7 @@ func createGzip(dstFile string, input io.Reader) {
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestGzipWithFile(dstDir string) string {
+func createTestGzipWithFile(dstDir string) io.Reader {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
@@ -128,25 +131,25 @@ func createTestGzipWithFile(dstDir string) string {
 	// create Gzip file
 	createGzip(targetFile, f1)
 
-	// return path to zip
-	return targetFile
+	// return reader
+	file, err := os.Open(targetFile)
+	if err != nil {
+		panic(err)
+	}
+	return file
 }
 
 // createTestGzipWithText creates a test gzip file in dstDir for testing
-func createTestGzipWithText(dstDir string) string {
+func createTestGzipWithText(dstDir string) io.Reader {
 
-	// define target
-	targetFile := filepath.Join(dstDir, "GzipWithText.gz")
+	content := "some random content"
+	// Initialize gzip
+	buf := &bytes.Buffer{}
+	gzWriter := gzip.NewWriter(buf)
+	gzWriter.Write([]byte(content))
+	gzWriter.Close()
 
-	// example text
-	var bytesBuffer bytes.Buffer
-	bytesBuffer.Write([]byte("some random content"))
-
-	// create Gzip file
-	createGzip(targetFile, &bytesBuffer)
-
-	// return path to zip
-	return targetFile
+	return buf
 }
 
 func RandStringBytes(n int) string {
@@ -160,7 +163,7 @@ func RandStringBytes(n int) string {
 }
 
 // createTestGzipWithMoreContent creates a test gzip file in dstDir for testing
-func createTestGzipWithMoreContent(dstDir string) string {
+func createTestGzipWithMoreContent(dstDir string) io.Reader {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithMoreContent.gz")
@@ -172,8 +175,12 @@ func createTestGzipWithMoreContent(dstDir string) string {
 	// create Gzip file
 	createGzip(targetFile, &bytesBuffer)
 
-	// return path to zip
-	return targetFile
+	// return reader
+	file, err := os.Open(targetFile)
+	if err != nil {
+		panic(err)
+	}
+	return file
 }
 
 // TestGzipSuffix implements a test
