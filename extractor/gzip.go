@@ -178,7 +178,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string) error {
 	// determine name for decompressed content
 	name := "gunziped-content"
 	if dst != "." {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir != 0 {
+		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
 			name = filepath.Base(dst)
 			dst = filepath.Dir(dst)
 		}

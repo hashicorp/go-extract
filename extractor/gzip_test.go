@@ -62,6 +62,13 @@ func TestGzipUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
 			expectError:    true,
 		},
+		{
+			name:           "tar gzip",
+			inputGenerator: createTestTarGzipWithFile,
+			outputFileName: "",
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1)},
+			expectError:    false,
+		},
 	}
 
 	// run cases
@@ -81,7 +88,7 @@ func TestGzipUnpack(t *testing.T) {
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, tc.outputFileName))
+			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -258,4 +265,34 @@ func TestGzipMagicBytes(t *testing.T) {
 			}
 		}
 	})
+}
+
+// createTestGzipWithFile creates a test gzip file in dstDir for testing
+func createTestTarGzipWithFile(dstDir string) io.Reader {
+
+	// define target
+	targetFile := filepath.Join(dstDir, "GzipWithTarGz.tar.gz")
+
+	// create a temporary dir for files in zip archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// get test tar
+	tarFile := createTestTarNormal(tmpDir)
+
+	tarReader, err := os.Open(tarFile)
+	if err != nil {
+		panic(err)
+	}
+	defer tarReader.Close()
+
+	// create Gzip file
+	createGzip(targetFile, tarReader)
+
+	// return reader
+	file, err := os.Open(targetFile)
+	if err != nil {
+		panic(err)
+	}
+	return file
 }
