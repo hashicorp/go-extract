@@ -24,7 +24,7 @@ type Extractor interface {
 	SetConfig(config *config.Config)
 
 	// SetTarget sets target as a target in an extraction engine.
-	SetTarget(target *target.Target)
+	SetTarget(target target.Target)
 
 	// MagicBytes returns magic bytes that are used to identify the filetype.
 	MagicBytes() [][]byte
@@ -41,7 +41,7 @@ func WithConfig(config *config.Config) ExtractorOption {
 }
 
 // WithTarget sets target as target in an Extractor
-func WithTarget(target *target.Target) ExtractorOption {
+func WithTarget(target target.Target) ExtractorOption {
 	return func(e *Extractor) {
 		(*e).SetTarget(target)
 	}

@@ -16,8 +16,8 @@ import (
 
 // reference https://socketloop.com/tutorials/golang-gunzip-file
 
-// Gunzip is a struct type that holds all information to perform an gunzip decompression
-type Gunzip struct {
+// Gzip is a struct type that holds all information to perform an gzip decompression
+type Gzip struct {
 
 	// config holds ther configuration for the extractor
 	config *config.Config
@@ -35,8 +35,8 @@ type Gunzip struct {
 	offset int
 }
 
-// NewZip returns a new Gunzip object with config as configuration.
-func NewGunzip(config *config.Config) *Gunzip {
+// NewGzip returns a new Gzip object with config as configuration.
+func NewGzip(config *config.Config) *Gzip {
 	// defaults
 	const (
 		fileSuffix = ".gz"
@@ -50,7 +50,7 @@ func NewGunzip(config *config.Config) *Gunzip {
 	target := target.NewOs()
 
 	// instantiate
-	gunzip := Gunzip{
+	gzip := Gzip{
 		fileSuffix: fileSuffix,
 		config:     config,
 		target:     target,
@@ -59,42 +59,42 @@ func NewGunzip(config *config.Config) *Gunzip {
 	}
 
 	// return the modified house instance
-	return &gunzip
+	return &gzip
 }
 
 // FileSuffix returns the common file suffix of gzip archive type.
-func (gz *Gunzip) FileSuffix() string {
+func (gz *Gzip) FileSuffix() string {
 	return gz.fileSuffix
 }
 
 // SetConfig sets config as configuration.
-func (gz *Gunzip) SetConfig(config *config.Config) {
+func (gz *Gzip) SetConfig(config *config.Config) {
 	gz.config = config
 }
 
 // SetTarget sets target as a extraction destination
-func (gz *Gunzip) SetTarget(target *target.Target) {
-	gz.target = *target
+func (gz *Gzip) SetTarget(target target.Target) {
+	gz.target = target
 }
 
 // Offset returns the offset for the magic bytes.
-func (gz *Gunzip) Offset() int {
+func (gz *Gzip) Offset() int {
 	return gz.offset
 }
 
 // MagicBytes returns the magic bytes that identifies gzip files.
-func (gz *Gunzip) MagicBytes() [][]byte {
+func (gz *Gzip) MagicBytes() [][]byte {
 	return gz.magicBytes
 }
 
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
-func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
+func (gz *Gzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// open reader
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
-		return fmt.Errorf("cannot decompress gunzip")
+		return fmt.Errorf("cannot decompress gzip")
 	}
 
 	// size check
@@ -129,7 +129,7 @@ func (gz *Gunzip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 	} else {
 		_, err = bytesBuffer.ReadFrom(uncompressedStream)
 		if err != nil {
-			return fmt.Errorf("cannot read decompressed gunzip")
+			return fmt.Errorf("cannot read decompressed gzip")
 		}
 	}
 

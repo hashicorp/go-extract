@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -496,4 +497,140 @@ func createTar(filePath string) *tar.Writer {
 		panic(err)
 	}
 	return tar.NewWriter(f)
+}
+
+// TestTarSuffix implements a test
+func TestTarSuffix(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		untar := NewTar(config.NewConfig())
+		want := ".tar"
+		got := untar.FileSuffix()
+		if got != want {
+			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
+		}
+	})
+}
+
+// TestTarOffset implements a test
+func TestTarOffset(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		untar := NewTar(config.NewConfig())
+		want := 257
+		got := untar.Offset()
+		if got != want {
+			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
+		}
+	})
+}
+
+// TestTarSetConfig implements a test
+func TestTarSetConfig(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		untar := NewTar(config.NewConfig())
+		newConfig := config.NewConfig()
+		untar.SetConfig(newConfig)
+
+		// verify
+		want := newConfig
+		got := untar.config
+		if got != want {
+			t.Errorf("Config not adjusted!")
+		}
+	})
+}
+
+// TestTarSetTarget implements a test
+func TestTarSetTarget(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		untar := NewTar(config.NewConfig())
+		newTarget := target.NewOs()
+		untar.SetTarget(newTarget)
+
+		// verify
+		want := newTarget
+		got := untar.target
+		if got != want {
+			t.Errorf("Target not adjusted!")
+		}
+	})
+}
+
+// TestTarMagicBytes implements a test
+func TestTarMagicBytes(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		untar := NewTar(config.NewConfig())
+		want := [][]byte{
+			{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
+			{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
+		}
+		got := untar.magicBytes
+		for idx := range got {
+			for idy := range got[idx] {
+				if got[idx][idy] != want[idx][idy] {
+					t.Errorf("Magic byte missmatche!")
+				}
+			}
+		}
+	})
+}
+
+// TestTarMagicBytes implements a test
+func TestTarMagicBytesMatch(t *testing.T) {
+
+	type TestfileGenerator func(string) string
+
+	cases := []struct {
+		name        string
+		input       []byte
+		expectMatch bool
+	}{
+		{
+			name:        "normal tar header",
+			input:       []byte{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
+			expectMatch: true,
+		},
+		{
+			name:        "empty tar header",
+			input:       []byte{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
+			expectMatch: true,
+		},
+		{
+			name:        "tar header missmatch",
+			input:       []byte{0xaa, 0xbb, 0xcc, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
+			expectMatch: false,
+		},
+		{
+			name:        "too short tar header",
+			input:       []byte{0xFF},
+			expectMatch: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+
+			untar := NewTar(config.NewConfig())
+
+			// prepare testdata
+			byteBuffer := &bytes.Buffer{}
+			for i := 0; i < untar.Offset(); i++ {
+				byteBuffer.WriteByte(0x00)
+			}
+			byteBuffer.Write(tc.input)
+
+			// perform test
+			want := tc.expectMatch
+			got := untar.MagicBytesMatch(byteBuffer.Bytes())
+
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+
+		})
+	}
+
 }

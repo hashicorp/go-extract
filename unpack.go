@@ -41,7 +41,7 @@ func findExtractor(data []byte) Extractor {
 	config := config.NewConfig()
 
 	// Prepare available extractors
-	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config), extractor.NewGunzip(config)}
+	extractors := []Extractor{extractor.NewTar(config), extractor.NewZip(config), extractor.NewGzip(config)}
 
 	// find extractor with longest suffix match
 	for _, ex := range extractors {

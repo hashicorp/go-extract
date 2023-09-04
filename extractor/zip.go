@@ -104,8 +104,8 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
 }
 
 // SetTarget sets target as a extraction destination
-func (z *Zip) SetTarget(target *target.Target) {
-	z.target = *target
+func (z *Zip) SetTarget(target target.Target) {
+	z.target = target
 }
 
 // unpack checks ctx for cancelation, while it reads a zip file from src and extracts the contents to dst.

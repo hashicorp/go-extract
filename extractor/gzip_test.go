@@ -16,7 +16,7 @@ import (
 )
 
 // TestZipUnpack test with various testcases the implementation of zip.Unpack
-func TestGunzipUnpack(t *testing.T) {
+func TestGzipUnpack(t *testing.T) {
 
 	type TestfileGenerator func(string) string
 
@@ -27,14 +27,14 @@ func TestGunzipUnpack(t *testing.T) {
 		expectError    bool
 	}{
 		{
-			name:           "normal gunzip with file",
-			inputGenerator: createTestGunzipWithFile,
+			name:           "normal gzip with file",
+			inputGenerator: createTestGzipWithFile,
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
 		{
-			name:           "gunzip with compressed txt",
-			inputGenerator: createTestGunzipWithText,
+			name:           "gzip with compressed txt",
+			inputGenerator: createTestGzipWithText,
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
 		},
@@ -52,14 +52,14 @@ func TestGunzipUnpack(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			gunzipper := NewGunzip(config.NewConfig(tc.opts...))
+			gzipper := NewGzip(config.NewConfig(tc.opts...))
 
 			// perform actual tests
 			inputFile := tc.inputGenerator(testDir)
 			outputFile := strings.TrimSuffix(filepath.Base(inputFile), ".gz")
 			input, _ := os.Open(inputFile)
 			want := tc.expectError
-			err = gunzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, outputFile))
+			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s/%s", testDir, outputFile))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -92,11 +92,11 @@ func createGzip(dstFile string, input io.Reader) {
 	gzipWriter.Flush()
 }
 
-// createTestGunzipWithFile creates a test gzip file in dstDir for testing
-func createTestGunzipWithFile(dstDir string) string {
+// createTestGzipWithFile creates a test gzip file in dstDir for testing
+func createTestGzipWithFile(dstDir string) string {
 
 	// define target
-	targetFile := filepath.Join(dstDir, "GunzipWithFile.gz")
+	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := target.CreateTmpDir()
@@ -113,11 +113,11 @@ func createTestGunzipWithFile(dstDir string) string {
 	return targetFile
 }
 
-// createTestGunzipWithText creates a test gzip file in dstDir for testing
-func createTestGunzipWithText(dstDir string) string {
+// createTestGzipWithText creates a test gzip file in dstDir for testing
+func createTestGzipWithText(dstDir string) string {
 
 	// define target
-	targetFile := filepath.Join(dstDir, "GunzipWithText.gz")
+	targetFile := filepath.Join(dstDir, "GzipWithText.gz")
 
 	// example text
 	var bytesBuffer bytes.Buffer
@@ -128,4 +128,81 @@ func createTestGunzipWithText(dstDir string) string {
 
 	// return path to zip
 	return targetFile
+}
+
+// TestGzipSuffix implements a test
+func TestGzipSuffix(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		gzipper := NewGzip(config.NewConfig())
+		want := ".gz"
+		got := gzipper.FileSuffix()
+		if got != want {
+			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
+		}
+	})
+}
+
+// TestGzipOffset implements a test
+func TestGzipOffset(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		gzipper := NewGzip(config.NewConfig())
+		want := 0
+		got := gzipper.Offset()
+		if got != want {
+			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
+		}
+	})
+}
+
+// TestGzipSetConfig implements a test
+func TestGzipSetConfig(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		gzipper := NewGzip(config.NewConfig())
+		newConfig := config.NewConfig()
+		gzipper.SetConfig(newConfig)
+
+		// verify
+		want := newConfig
+		got := gzipper.config
+		if got != want {
+			t.Errorf("Config not adjusted!")
+		}
+	})
+}
+
+// TestGzipSetTarget implements a test
+func TestGzipSetTarget(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		gzipper := NewGzip(config.NewConfig())
+		newTarget := target.NewOs()
+		gzipper.SetTarget(newTarget)
+
+		// verify
+		want := newTarget
+		got := gzipper.target
+		if got != want {
+			t.Errorf("Target not adjusted!")
+		}
+	})
+}
+
+// TestGzipMagicBytes implements a test
+func TestGzipMagicBytes(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		gzipper := NewGzip(config.NewConfig())
+		want := [][]byte{
+			{0x1f, 0x8b},
+		}
+		got := gzipper.magicBytes
+		for idx := range got {
+			for idy := range got[idx] {
+				if got[idx][idy] != want[idx][idy] {
+					t.Errorf("Magic byte missmatche!")
+				}
+			}
+		}
+	})
 }

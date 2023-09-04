@@ -359,3 +359,80 @@ func createTestFile(path string, content string) *os.File {
 	}
 	return newFile
 }
+
+// TestZipSuffix implements a test
+func TestZipSuffix(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		unzip := NewZip(config.NewConfig())
+		want := ".zip"
+		got := unzip.FileSuffix()
+		if got != want {
+			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
+		}
+	})
+}
+
+// TestZipOffset implements a test
+func TestZipOffset(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		unzip := NewZip(config.NewConfig())
+		want := 0
+		got := unzip.Offset()
+		if got != want {
+			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
+		}
+	})
+}
+
+// TestZipSetConfig implements a test
+func TestZipSetConfig(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		unzip := NewZip(config.NewConfig())
+		newConfig := config.NewConfig()
+		unzip.SetConfig(newConfig)
+
+		// verify
+		want := newConfig
+		got := unzip.config
+		if got != want {
+			t.Errorf("Config not adjusted!")
+		}
+	})
+}
+
+// TestZipSetTarget implements a test
+func TestZipSetTarget(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		unzip := NewZip(config.NewConfig())
+		newTarget := target.NewOs()
+		unzip.SetTarget(newTarget)
+
+		// verify
+		want := newTarget
+		got := unzip.target
+		if got != want {
+			t.Errorf("Target not adjusted!")
+		}
+	})
+}
+
+// TestZipMagicBytes implements a test
+func TestZipMagicBytes(t *testing.T) {
+	t.Run("tc 0", func(t *testing.T) {
+		// perform test
+		untar := NewZip(config.NewConfig())
+		want := [][]byte{
+			{0x50, 0x4B, 0x03, 0x04},
+		}
+		got := untar.magicBytes
+		for idx := range got {
+			for idy := range got[idx] {
+				if got[idx][idy] != want[idx][idy] {
+					t.Errorf("Magic byte missmatche!")
+				}
+			}
+		}
+	})
+}

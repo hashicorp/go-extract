@@ -38,9 +38,9 @@ func TestFindExtractor(t *testing.T) {
 			expected: extractor.NewTar(config.NewConfig()),
 		},
 		{
-			name:     "get gunzip extractor from file",
-			fkt:      createTestGunzipWithFile,
-			expected: extractor.NewGunzip(config.NewConfig()),
+			name:     "get gzip extractor from file",
+			fkt:      createTestGzipWithFile,
+			expected: extractor.NewGzip(config.NewConfig()),
 		},
 		{
 			name:     "get nil extractor fot textfile",
@@ -129,11 +129,11 @@ func createGzip(dstFile string, input io.Reader) {
 	gzipWriter.Flush()
 }
 
-// createTestGunzipWithFile creates a test gzip file in dstDir for testing
-func createTestGunzipWithFile(dstDir string) string {
+// createTestGzipWithFile creates a test gzip file in dstDir for testing
+func createTestGzipWithFile(dstDir string) string {
 
 	// define target
-	targetFile := filepath.Join(dstDir, "GunzipWithFile.gz")
+	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := target.CreateTmpDir()
@@ -277,8 +277,8 @@ func TestUnpack(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "get gunzip extractor from file",
-			fkt:         createTestGunzipWithFile,
+			name:        "get gzip extractor from file",
+			fkt:         createTestGzipWithFile,
 			expectError: false,
 		},
 		{

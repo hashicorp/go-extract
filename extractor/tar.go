@@ -70,8 +70,8 @@ func (t *Tar) SetConfig(config *config.Config) {
 }
 
 // SetTarget sets target as target for the extraction
-func (t *Tar) SetTarget(target *target.Target) {
-	t.target = *target
+func (t *Tar) SetTarget(target target.Target) {
+	t.target = target
 }
 
 // Offset returns the offset for the magic bytes.

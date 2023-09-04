@@ -103,7 +103,7 @@ Flags:
 - Filetypes
   - [x] zip (/jar)
   - [x] tar
-  - [x] gunzip
+  - [x] gzip
   - [x] tar.gz
   - [ ] bzip2
   - [ ] 7zip
@@ -122,7 +122,7 @@ Flags:
 - [x] file with absolut path is detected
 - [x] filetype detection based on magic bytes
 - [x] windows support
-- [x] tests for gunzip
+- [x] tests for gzip
 - [x] function documentation
 - [x] check for windows
 - [ ] PAX header extraction
