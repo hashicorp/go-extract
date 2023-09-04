@@ -46,8 +46,8 @@ func TestCheckMaxFiles(t *testing.T) {
 	}
 }
 
-// TestCheckFileSize  implements test cases
-func TestCheckFileSize(t *testing.T) {
+// TestCheckExtractionSize implements test cases
+func TestCheckExtractionSize(t *testing.T) {
 
 	// prepare testcases
 	cases := []struct {
@@ -81,6 +81,234 @@ func TestCheckFileSize(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
 			got := tc.config.CheckExtractionSize(tc.input) != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithOverwrite implements test cases
+func TestCheckWithOverwrite(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect bool
+	}{
+		{
+			name:   "Overwrite enabled",
+			config: NewConfig(WithOverwrite(true)), // enable overwrite
+			expect: true,
+		},
+		{
+			name:   "Overwrite disabled",
+			config: NewConfig(WithOverwrite(false)), // disable overwrite
+			expect: false,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.Overwrite
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithMaxExtractionTime implements test cases
+func TestCheckWithMaxExtractionTime(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect int64
+	}{
+		{
+			name:   "Check for 5 second timeout",
+			config: NewConfig(WithMaxExtractionTime(5)), // enable overwrite
+			expect: 5,
+		},
+		{
+			name:   "Check disabled timeout",
+			config: NewConfig(WithMaxExtractionTime(-1)), // disable overwrite
+			expect: -1,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: 60,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.MaxExtractionTime
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithOverwrite implements test cases
+func TestCheckWithDenySymlinks(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect bool
+	}{
+		{
+			name:   "Allow symlinks",
+			config: NewConfig(WithDenySymlinks(false)), // enable overwrite
+			expect: false,
+		},
+		{
+			name:   "Deny symlinks",
+			config: NewConfig(WithDenySymlinks(true)), // disable overwrite
+			expect: true,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.DenySymlinks
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithOverwrite implements test cases
+func TestCheckWithContinueOnError(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect bool
+	}{
+		{
+			name:   "Do continue on error",
+			config: NewConfig(WithContinueOnError(true)), // enable overwrite
+			expect: true,
+		},
+		{
+			name:   "Dont continue on error",
+			config: NewConfig(WithContinueOnError(false)), // disable overwrite
+			expect: false,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.ContinueOnError
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithFollowSymlinks implements test cases
+func TestCheckWithFollowSymlinks(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect bool
+	}{
+		{
+			name:   "Dont follow symlinks",
+			config: NewConfig(WithFollowSymlinks(false)),
+			expect: false,
+		},
+		{
+			name:   "Follow symlinks",
+			config: NewConfig(WithFollowSymlinks(true)),
+			expect: true,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.FollowSymlinks
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+}
+
+// TestCheckWithFollowSymlinks implements test cases
+func TestCheckWithVerbose(t *testing.T) {
+
+	// prepare testcases
+	cases := []struct {
+		name   string
+		config *Config
+		expect bool
+	}{
+		{
+			name:   "Not verbose",
+			config: NewConfig(WithVerbose(false)),
+			expect: false,
+		},
+		{
+			name:   "Be verbose",
+			config: NewConfig(WithVerbose(true)),
+			expect: true,
+		},
+		{
+			name:   "Default is disabled",
+			config: NewConfig(), // check default value
+			expect: false,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expect
+			got := tc.config.Verbose
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
