@@ -75,6 +75,19 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 		return err
 	}
 
+	// check if file starts with absolut path
+	if start := GetStartOfAbsolutPath(newDir); len(start) > 0 {
+
+		// continue on error?
+		if config.ContinueOnError {
+			config.Log.Printf("skip file with absolut path (%s)", newDir)
+			return nil
+		}
+
+		// return error
+		return fmt.Errorf("file with absolut path (%s)", newDir)
+	}
+
 	// clean the directories
 	newDir = filepath.Clean(newDir)
 
@@ -126,6 +139,19 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 	// check if a name is provided
 	if len(newFileName) == 0 {
 		return fmt.Errorf("cannot create file without name")
+	}
+
+	// check if file starts with absolut path
+	if start := GetStartOfAbsolutPath(newFileName); len(start) > 0 {
+
+		// continue on error?
+		if config.ContinueOnError {
+			config.Log.Printf("skip file with absolut path (%s)", newFileName)
+			return nil
+		}
+
+		// return error
+		return fmt.Errorf("file with absolut path (%s)", newFileName)
 	}
 
 	// clean filename
@@ -222,8 +248,29 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		return fmt.Errorf("cannot create symlink without name")
 	}
 
+	// check if file starts with absolut path
+	if start := GetStartOfAbsolutPath(newLinkName); len(start) > 0 {
+
+		// continue on error?
+		if config.ContinueOnError {
+			config.Log.Printf("skip file with absolut path (%s)", newLinkName)
+			return nil
+		}
+
+		// return error
+		return fmt.Errorf("file with absolut path (%s)", newLinkName)
+	}
+
 	// Check if link target is absolut path
 	if start := GetStartOfAbsolutPath(linkTarget); len(start) > 0 {
+
+		// continue on error?
+		if config.ContinueOnError {
+			config.Log.Printf("skip link target with absolut path (%s)", linkTarget)
+			return nil
+		}
+
+		// return error
 		return fmt.Errorf("symlink with absolut path as target (%s)", linkTarget)
 	}
 

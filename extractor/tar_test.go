@@ -109,6 +109,21 @@ func TestTarUnpack(t *testing.T) {
 			inputGenerator: createTestTarWithZipSlip,
 			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
 			expectError:    true,
+		}, {
+			name:           "malicious tar with absolut path in filename",
+			inputGenerator: createTestTarWithMaliciousFilename,
+			opts:           []config.ConfigOption{config.WithVerbose(true)},
+			expectError:    true,
+		}, {
+			name:           "malicious tar with absolut path in filename (windows)",
+			inputGenerator: createTestTarWithMaliciousFilenameWindows,
+			opts:           []config.ConfigOption{config.WithVerbose(true)},
+			expectError:    true,
+		}, {
+			name:           "malicious tar with absolut path in filename, but continue",
+			inputGenerator: createTestTarWithMaliciousFilename,
+			opts:           []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError:    false,
 		},
 	}
 
@@ -633,4 +648,56 @@ func TestTarMagicBytesMatch(t *testing.T) {
 		})
 	}
 
+}
+
+// createTestTarWithMaliciousFilename is a helper function to generate test content
+func createTestTarWithMaliciousFilename(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilename.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// Add file to tar
+	addFileToTarArchive(tarWriter, "/absolut-path", f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+// createTestTarWithMaliciousFilename is a helper function to generate test content
+func createTestTarWithMaliciousFilenameWindows(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilenameWindows.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// prepare testfile for be added to tar
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// Add file to tar
+	addFileToTarArchive(tarWriter, "c:\\absolut-path", f1)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
 }
