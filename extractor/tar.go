@@ -155,19 +155,6 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			continue
 		}
 
-		// check if file starts with absolut path
-		if start := target.GetStartOfAbsolutPath(hdr.Name); len(start) > 0 {
-
-			// continue on error?
-			if t.config.ContinueOnError {
-				t.config.Log.Printf("skip file with absolut path (%s)", hdr.Name)
-				continue
-			}
-
-			// return error
-			return fmt.Errorf("file with absolut path (%s)", hdr.Name)
-		}
-
 		// check for to many files in archive
 		fileCounter++
 

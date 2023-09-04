@@ -153,8 +153,12 @@ func createTestGzipWithText(dstDir string) io.Reader {
 	// Initialize gzip
 	buf := &bytes.Buffer{}
 	gzWriter := gzip.NewWriter(buf)
-	gzWriter.Write([]byte(content))
-	gzWriter.Close()
+	if _, err := gzWriter.Write([]byte(content)); err != nil {
+		panic(err)
+	}
+	if err := gzWriter.Close(); err != nil {
+		panic(err)
+	}
 
 	return buf
 }

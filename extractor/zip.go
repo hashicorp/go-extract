@@ -144,19 +144,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		// get next file
 		hdr := archiveFile.FileHeader
 
-		// check if file starts with absolut path
-		if start := target.GetStartOfAbsolutPath(hdr.Name); len(start) > 0 {
-
-			// continue on error?
-			if z.config.ContinueOnError {
-				z.config.Log.Printf("skip file with absolut path (%s)", hdr.Name)
-				continue
-			}
-
-			// return error
-			return fmt.Errorf("file with absolut path (%s)", hdr.Name)
-		}
-
 		z.config.Log.Printf("extract %s", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 

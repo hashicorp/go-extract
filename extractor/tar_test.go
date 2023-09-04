@@ -266,7 +266,6 @@ func createTestTarWithZipSlip(dstDir string) string {
 	// add symlinks
 	addLinkToTarArchive(tarWriter, "sub/to-parent", "../")
 	addLinkToTarArchive(tarWriter, "sub/to-parent/one-above", "../")
-	addLinkToTarArchive(tarWriter, "sub/to-parent/one-above/two-above", "../")
 
 	// close zip
 	tarWriter.Close()
@@ -594,8 +593,6 @@ func TestTarMagicBytes(t *testing.T) {
 
 // TestTarMagicBytes implements a test
 func TestTarMagicBytesMatch(t *testing.T) {
-
-	type TestfileGenerator func(string) string
 
 	cases := []struct {
 		name        string

@@ -84,6 +84,24 @@ func TestZipUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{},
 			expectError:    true,
 		},
+		{
+			name:           "malicous zip with zip slip attack",
+			inputGenerator: createTestZipWithZipSlip,
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
+			expectError:    true,
+		},
+		{
+			name:           "malicous zip with zip slip attack, but continue without error",
+			inputGenerator: createTestZipWithZipSlip,
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(true)},
+			expectError:    false,
+		},
+		{
+			name:           "malicous zip with zip slip attack, but follow sublinks",
+			inputGenerator: createTestZipWithZipSlip,
+			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithFollowSymlinks(true)},
+			expectError:    false,
+		},
 	}
 
 	// run cases
@@ -221,9 +239,7 @@ func createTestZipWithSymlink(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToZipArchive(zipWriter, "legitLinkName", "legitLinkTarget"); err != nil {
-		panic(err)
-	}
+	addLinkToZipArchive(zipWriter, "legitLinkName", "legitLinkTarget")
 
 	// close zip
 	zipWriter.Close()
@@ -241,9 +257,7 @@ func createTestZipWithSymlinkPathTraversalName(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToZipArchive(zipWriter, "../malicousLink", "nirvana"); err != nil {
-		panic(err)
-	}
+	addLinkToZipArchive(zipWriter, "../malicousLink", "nirvana")
 
 	// close zip
 	zipWriter.Close()
@@ -261,9 +275,7 @@ func createTestZipWithSymlinkAbsolutPath(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToZipArchive(zipWriter, "maliciousLink", "/etc/passwd"); err != nil {
-		panic(err)
-	}
+	addLinkToZipArchive(zipWriter, "maliciousLink", "/etc/passwd")
 
 	// close zip
 	zipWriter.Close()
@@ -281,9 +293,7 @@ func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	// add link to archive
-	if err := addLinkToZipArchive(zipWriter, "maliciousLink", "../malicousLinkTarget"); err != nil {
-		panic(err)
-	}
+	addLinkToZipArchive(zipWriter, "maliciousLink", "../malicousLinkTarget")
 
 	// close zip
 	zipWriter.Close()
@@ -293,7 +303,7 @@ func createTestZipWithSymlinkTargetPathTraversal(dstDir string) string {
 }
 
 // addLinkToZipArchive writes symlink linkName to linkTarget into zipWriter
-func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget string) error {
+func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget string) {
 
 	// create a temporary dir for files in zip archive
 	tmpDir := target.CreateTmpDir()
@@ -328,12 +338,9 @@ func addLinkToZipArchive(zipWriter *zip.Writer, linkName string, linkTarget stri
 	}
 
 	// Write symlink's target to writer - file's body for symlinks is the symlink target.
-	_, err = writer.Write([]byte(linkTarget))
-	if err != nil {
-		return err
+	if _, err := writer.Write([]byte(linkTarget)); err != nil {
+		panic(err)
 	}
-
-	return nil
 }
 
 // createZip creates a new zip file in filePath
@@ -435,4 +442,27 @@ func TestZipMagicBytes(t *testing.T) {
 			}
 		}
 	})
+}
+
+// createTestTarWithSymlink is a helper function to generate test content
+func createTestZipWithZipSlip(dstDir string) string {
+
+	zipFile := filepath.Join(dstDir, "ZipWithZipSlip.tar")
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	zipWriter := createZip(zipFile)
+
+	// add symlinks
+	addLinkToZipArchive(zipWriter, "sub/to-parent", "../")
+	addLinkToZipArchive(zipWriter, "sub/to-parent/one-above", "../")
+
+	// close zip
+	zipWriter.Close()
+
+	// return path to zip
+	return zipFile
 }
