@@ -15,36 +15,36 @@ import (
 
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
-	Archive           string `arg:"" name:"archive" help:"Path to archive." type:"file"`
-	ContinueOnError   bool   `short:"C" help:"Continue extraction on error."`
-	DenySymlinks      bool   `short:"D" help:"Deny symlink extraction."`
-	FollowSymlinks    bool   `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
-	Overwrite         bool   `short:"O" help:"Overwrite if exist."`
-	MaxFiles          int64  `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
-	MaxExtractionSize int64  `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
-	MaxExtractionTime int64  `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
-	Destination       string `arg:"" name:"destination" default:"." help:"Output directory/file."`
-	Verbose           bool   `short:"v" optional:"" help:"Verbose logging."`
-	Version           bool   `short:"V" optional:"" help:"Print release version information."`
+	Archive           string           `arg:"" name:"archive" help:"Path to archive." type:"file"`
+	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
+	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
+	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
+	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
+	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
+	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
+	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
+	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
+	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
+	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
 
 // Run the entrypoint into go-extract as a cli tool
 func Run(version, commit, date string) {
 	ctx := context.Background()
 	var cli CLI
-	kong.Parse(&cli)
+	kong.Parse(&cli,
+		kong.Description("A secure extraction utility"),
+		kong.UsageOnError(),
+		kong.Vars{
+			"version": fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
+		},
+	)
 
 	// Check for verbose output
 	if cli.Verbose {
 		log.SetOutput(os.Stderr)
 	} else {
 		log.SetOutput(io.Discard)
-	}
-
-	// check if version information is requested
-	if cli.Version {
-		fmt.Printf("%s (%s), commit %s, built at %s\n", filepath.Base(os.Args[0]), version, commit, date)
-		return
 	}
 
 	// process cli params
