@@ -132,6 +132,8 @@ func WithVerbose(verbose bool) ConfigOption {
 		c.Verbose = verbose
 		if verbose {
 			c.Log.SetOutput(os.Stderr)
+		} else {
+			c.Log.SetOutput(io.Discard)
 		}
 	}
 }
