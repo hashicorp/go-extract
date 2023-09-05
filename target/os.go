@@ -86,6 +86,12 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 		return nil
 	}
 
+	// Check if newDir starts with an absolut path, if so -> remove
+	if start := GetStartOfAbsolutPath(newDir); len(start) > 0 {
+		config.Log.Printf("remove absolut path prefix  (%s)", newDir)
+		newDir = strings.TrimPrefix(newDir, start)
+	}
+
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
 		return err
 	}
