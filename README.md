@@ -62,7 +62,7 @@ The libraray can also be used directly on the cli `extract`.
 ### Installation
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract@latest
+GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/extract@latest
 ```
 
 ### Manual Build and Installation
