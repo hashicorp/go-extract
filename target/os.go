@@ -114,6 +114,12 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 		return fmt.Errorf("cannot create file without name")
 	}
 
+	// Check if newFileName starts with an absolut path, if so -> remove
+	if start := GetStartOfAbsolutPath(newFileName); len(start) > 0 {
+		config.Log.Printf("remove absolut path prefix  (%s)", newFileName)
+		newFileName = strings.TrimPrefix(newFileName, start)
+	}
+
 	// create target dir && check for path traversal // zipslip
 	if err := o.CreateSafeDir(config, dstBase, filepath.Dir(newFileName)); err != nil {
 		return err
