@@ -668,7 +668,7 @@ func createTestTarWithAbsolutPathInFilename(dstDir string) string {
 	return targetFile
 }
 
-// createTestTarWithMaliciousFilename is a helper function to generate test content
+// createTestTarWithAbsolutPathInFilenameWindows is a helper function to generate test content
 func createTestTarWithAbsolutPathInFilenameWindows(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilenameWindows.tar")
