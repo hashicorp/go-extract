@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -538,4 +539,34 @@ func TestSecurityCheckPath(t *testing.T) {
 		})
 	}
 
+}
+
+func TestGetStartOfAbsolutPath(t *testing.T) {
+	cases := []struct {
+		path string
+	}{
+		{
+			path: "test",
+		}, {
+			path: "/test",
+		}, {
+			path: "//test",
+		}, {
+			path: "/c:\\/test",
+		}, {
+			path: "/c:\\/d:\\test",
+		}, {
+			path: "a:\\/c:\\/test",
+		},
+	}
+
+	// perform tests and expect always "test" as a result
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			// create testing directory
+			if start := GetStartOfAbsolutPath(tc.path); strings.TrimPrefix(tc.path, start) != "test" {
+				t.Errorf("test case %d failed: %s != test", i, strings.TrimPrefix(tc.path, start))
+			}
+		})
+	}
 }
