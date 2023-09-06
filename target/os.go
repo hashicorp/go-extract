@@ -255,12 +255,12 @@ func GetStartOfAbsolutPath(path string) string {
 
 	// check absolut path for link target on unix
 	if strings.HasPrefix(path, "/") {
-		return "/"
+		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutPath(path[1:]))
 	}
 
 	// check absolut path for link target on windows
 	if p := []rune(path); len(p) > 2 && p[1] == rune(':') {
-		return path[0:3]
+		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutPath(path[3:]))
 	}
 
 	return ""
