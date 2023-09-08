@@ -106,6 +106,13 @@ func isSymlink(path string) bool {
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
+	// check if dst exist
+	if len(dstBase) > 0 {
+		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
+			return fmt.Errorf("destination does not exist (%s)", dstBase)
+		}
+	}
+
 	// no action needed
 	if newDir == "." {
 		return nil
