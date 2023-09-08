@@ -36,18 +36,43 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
 	}
 
-	// check for symlink in path
+	// check each dir in path
 	targetPathElements := strings.Split(targetDirectory, string(os.PathSeparator))
 	for i := 0; i < len(targetPathElements); i++ {
+
+		// assamble path
 		subDirs := filepath.Join(targetPathElements[0 : i+1]...)
 		checkDir := filepath.Join(dstBase, subDirs)
+
+		// check if its a propper path
+		if len(checkDir) == 0 {
+			continue
+		}
+
+		if checkDir == "." {
+			continue
+		}
+
+		// perform check if its a propper dir
+		if _, err := os.Lstat(checkDir); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("invalid path")
+			}
+
+			// get out of the loop, bc/ dont check pathes
+			// for symlinks that does not exist
+			if os.IsNotExist(err) {
+				break
+			}
+		}
+
+		// check for symlink
 		if isSymlink(checkDir) {
 			if config.FollowSymlinks {
-				config.Log.Printf("warning: following symlink (%s)", filepath.Dir(checkDir))
+				config.Log.Printf("warning: following symlink (%s)", subDirs)
 			} else {
 				return fmt.Errorf(fmt.Sprintf("symlink in path (%s)", subDirs))
 			}
-
 		}
 	}
 
@@ -88,7 +113,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 	// Check if newDir starts with an absolut path, if so -> remove
 	if start := GetStartOfAbsolutPath(newDir); len(start) > 0 {
-		config.Log.Printf("remove absolut path prefix  (%s)", newDir)
+		config.Log.Printf("remove absolut path prefix (%s)", start)
 		newDir = strings.TrimPrefix(newDir, start)
 	}
 
@@ -116,7 +141,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// Check if newFileName starts with an absolut path, if so -> remove
 	if start := GetStartOfAbsolutPath(newFileName); len(start) > 0 {
-		config.Log.Printf("remove absolut path prefix  (%s)", newFileName)
+		config.Log.Printf("remove absolut path prefix (%s)", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
