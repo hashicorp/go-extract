@@ -110,7 +110,6 @@ func (z *Zip) SetTarget(target target.Target) {
 
 // unpack checks ctx for cancelation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
-
 	// convert io.Reader to io.ReaderAt
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
@@ -202,9 +201,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			if err != nil {
 				return err
 			}
-			defer func() {
-				fileInArchive.Close()
-			}()
 
 			// create the file
 			if err := z.target.CreateSafeFile(z.config, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
@@ -212,16 +208,18 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 				// do not end on error
 				if z.config.ContinueOnError {
 					z.config.Log.Printf("extraction error: %s", err)
+					fileInArchive.Close()
 					continue
 				}
 
 				// end extraction
+				fileInArchive.Close()
 				return err
 			}
 
 			// next item
+			fileInArchive.Close()
 			continue
-
 		default: // catch all for unspported file modes
 			return fmt.Errorf("unsupported filetype in archive")
 		}
@@ -233,7 +231,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 // readLinkTargetFromZip extracts the symlink destination for symlinkFile
 func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
-
 	// read content to determine symlink destination
 	rc, err := symlinkFile.Open()
 	if err != nil {
