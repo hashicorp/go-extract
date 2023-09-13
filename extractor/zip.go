@@ -138,7 +138,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 		// check if context is cancled
 		if ctx.Err() != nil {
-			return nil
+			return ctx.Err()
 		}
 
 		// get next file
