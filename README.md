@@ -81,8 +81,10 @@ make install
 extract -h
 Usage: extract <archive> [<destination>]
 
+A secure extraction utility
+
 Arguments:
-  <archive>          Path to archive.
+  <archive>          Path to archive. ("-" for STDIN)
   [<destination>]    Output directory/file.
 
 Flags:
