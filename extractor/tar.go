@@ -130,10 +130,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// walk through tar
 	for {
-
 		// check if context is cancled
 		if ctx.Err() != nil {
-			return nil
+			return ctx.Err()
 		}
 
 		// get next file
