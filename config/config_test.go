@@ -126,44 +126,6 @@ func TestCheckWithOverwrite(t *testing.T) {
 	}
 }
 
-// TestCheckWithMaxExtractionTime implements test cases
-func TestCheckWithMaxExtractionTime(t *testing.T) {
-
-	// prepare testcases
-	cases := []struct {
-		name   string
-		config *Config
-		expect int64
-	}{
-		{
-			name:   "Check for 5 second timeout",
-			config: NewConfig(WithMaxExtractionTime(5)), // enable overwrite
-			expect: 5,
-		},
-		{
-			name:   "Check disabled timeout",
-			config: NewConfig(WithMaxExtractionTime(-1)), // disable overwrite
-			expect: -1,
-		},
-		{
-			name:   "Default is disabled",
-			config: NewConfig(), // check default value
-			expect: 60,
-		},
-	}
-
-	// run cases
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			want := tc.expect
-			got := tc.config.MaxExtractionTime
-			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
-			}
-		})
-	}
-}
-
 // TestCheckWithOverwrite implements test cases
 func TestCheckWithDenySymlinks(t *testing.T) {
 

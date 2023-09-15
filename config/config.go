@@ -20,9 +20,6 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	MaxExtractionSize int64
 
-	// Maximum time in seconds that an extraction should need to finish
-	MaxExtractionTime int64
-
 	// Define if files should be overwritten in the destination
 	Overwrite bool
 
@@ -64,7 +61,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 		Log:               log.New(io.Discard, "", 0),
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
-		MaxExtractionTime: maxExtractionTime,
 		Verbose:           verbose,
 	}
 
@@ -81,13 +77,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxFiles = maxFiles
-	}
-}
-
-// WithMaxExtractionTime options pattern function to set WithMaxExtractionTime in the config
-func WithMaxExtractionTime(maxExtractionTime int64) ConfigOption {
-	return func(c *Config) {
-		c.MaxExtractionTime = maxExtractionTime
 	}
 }
 

@@ -18,90 +18,63 @@ import (
 
 // TestFindExtractor implements test cases
 func TestFindExtractor(t *testing.T) {
-
-	type TestfileGenerator func(string) string
-
 	// test cases
 	cases := []struct {
-		name     string
-		fkt      TestfileGenerator
-		expected Extractor
+		name           string
+		createTestFile func(string) string
+		expected       Extractor
 	}{
 		{
-			name:     "get zip extractor from file",
-			fkt:      createTestZip,
-			expected: extractor.NewZip(config.NewConfig()),
+			name:           "get zip extractor from file",
+			createTestFile: createTestZip,
+			expected:       extractor.NewZip(),
 		},
 		{
-			name:     "get tar extractor from file",
-			fkt:      createTestTar,
-			expected: extractor.NewTar(config.NewConfig()),
+			name:           "get tar extractor from file",
+			createTestFile: createTestTar,
+			expected:       extractor.NewTar(),
 		},
 		{
-			name:     "get gzip extractor from file",
-			fkt:      createTestGzipWithFile,
-			expected: extractor.NewGzip(config.NewConfig()),
+			name:           "get gzip extractor from file",
+			createTestFile: createTestGzipWithFile,
+			expected:       extractor.NewGzip(),
 		},
 		{
-			name:     "get nil extractor fot textfile",
-			fkt:      createTestNonArchive,
-			expected: nil,
+			name:           "get nil extractor fot textfile",
+			createTestFile: createTestNonArchive,
+			expected:       nil,
 		},
 	}
 
+	// create testing directory
+	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+
 	// run cases
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-
-			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
-
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			// prepare vars
-			var failed bool
 			want := tc.expected
 
 			// perform actual tests
-			f, err := os.Open(tc.fkt(testDir))
+			f, err := os.Open(tc.createTestFile(testDir))
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 			input, err := io.ReadAll(f)
-
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 			got := findExtractor(input)
 
 			// success if both are nil and no engine found
-			if want == got {
-				return
+			if fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
+				t.Fatalf("expected: %v\ngot: %v", want, got)
 			}
-
-			// check if engine detection failed
-			if got == nil {
-				failed = true
-			}
-
-			// if not failed yet, compare identified suffixes
-			if !failed {
-				if got.FileSuffix() != want.FileSuffix() {
-					failed = true
-				}
-			}
-
-			// // debugging
-			// f2, _ := os.Open(tc.fkt(testDir))
-			// got.Unpack(context.Background(), f2, testDir)
-
-			if failed {
-				t.Errorf("test case %d failed: %s\nexpected: %v\ngot: %v", i, tc.name, want, got)
-			}
-
 		})
 	}
 }
@@ -257,41 +230,36 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 
 // TestUnpack is a test function
 func TestUnpack(t *testing.T) {
-
-	type TestfileGenerator func(string) string
-
-	// test cases
 	cases := []struct {
 		name        string
-		fkt         TestfileGenerator
+		fn          func(string) string
 		expectError bool
 	}{
 		{
 			name:        "get zip extractor from file",
-			fkt:         createTestZip,
+			fn:          createTestZip,
 			expectError: false,
 		},
 		{
 			name:        "get tar extractor from file",
-			fkt:         createTestTar,
+			fn:          createTestTar,
 			expectError: false,
 		},
 		{
 			name:        "get gzip extractor from file",
-			fkt:         createTestGzipWithFile,
+			fn:          createTestGzipWithFile,
 			expectError: false,
 		},
 		{
 			name:        "get nil extractor fot textfile",
-			fkt:         createTestNonArchive,
+			fn:          createTestNonArchive,
 			expectError: true,
 		},
 	}
 
 	// run cases
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-
+		t.Run(tc.name, func(t *testing.T) {
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), "fooo*")
 			if err != nil {
@@ -304,7 +272,7 @@ func TestUnpack(t *testing.T) {
 			want := tc.expectError
 
 			// perform actual tests
-			archive, err := os.Open(tc.fkt(testDir))
+			archive, err := os.Open(tc.fn(testDir))
 			if err != nil {
 				panic(err)
 			}
@@ -312,10 +280,9 @@ func TestUnpack(t *testing.T) {
 				context.Background(),
 				archive,
 				testDir,
-				WithConfig(
-					config.NewConfig(
-						config.WithOverwrite(true),
-					),
+				target.NewOs(),
+				config.NewConfig(
+					config.WithOverwrite(true),
 				),
 			)
 			got := err != nil
@@ -324,14 +291,11 @@ func TestUnpack(t *testing.T) {
 			if want != got {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
 			}
-
 		})
 	}
 }
 
 func TestMatchesMagicBytes(t *testing.T) {
-
-	// test cases
 	cases := []struct {
 		name        string
 		data        []byte
@@ -364,7 +328,7 @@ func TestMatchesMagicBytes(t *testing.T) {
 
 	// run cases
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
 			expected := tc.expectMatch
@@ -374,7 +338,6 @@ func TestMatchesMagicBytes(t *testing.T) {
 			if got != expected {
 				t.Errorf("test case %d failed: %s!", i, tc.name)
 			}
-
 		})
 	}
 }

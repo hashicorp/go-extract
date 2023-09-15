@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -15,101 +14,29 @@ import (
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
-// Zip is implements the Extractor interface to extract zip archives.
-type Zip struct {
-	config     *config.Config
-	fileSuffix string
-	target     target.Target
-	magicBytes [][]byte
-	offset     int
+var MagicBytesZIP = [][]byte{
+	{0x50, 0x4B, 0x03, 0x04},
 }
 
+// Zip is implements the Extractor interface to extract zip archives.
+type Zip struct{}
+
 // NewZip returns a new zip object with config as configuration.
-func NewZip(config *config.Config) *Zip {
-	// defaults
-	const (
-		fileSuffix = ".zip"
-	)
-	target := target.NewOs()
-
-	magicBytes := [][]byte{
-		{0x50, 0x4B, 0x03, 0x04},
-	}
-	offset := 0
-
+func NewZip() *Zip {
 	// instantiate
-	zip := Zip{
-		fileSuffix: fileSuffix,
-		config:     config,
-		target:     target,
-		magicBytes: magicBytes,
-		offset:     offset,
-	}
+	zip := Zip{}
 
 	// return
 	return &zip
 }
 
-// FileSuffix returns the common file suffix of zip archive type.
-func (z *Zip) FileSuffix() string {
-	return z.fileSuffix
-}
-
-// SetConfig sets config as configuration.
-func (z *Zip) SetConfig(config *config.Config) {
-	z.config = config
-}
-
-// Offset returns the offset for the magic bytes.
-func (z *Zip) Offset() int {
-	return z.offset
-}
-
-// MagicBytes returns the magic bytes that identifies zip files.
-func (z *Zip) MagicBytes() [][]byte {
-	return z.magicBytes
-}
-
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
-func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string) error {
-
-	// start extraction without timer
-	if z.config.MaxExtractionTime == -1 {
-		return z.unpack(ctx, src, dst)
-	}
-
-	// prepare timeout
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(z.config.MaxExtractionTime)*time.Second)
-	defer cancel()
-
-	exChan := make(chan error, 1)
-	go func() {
-		if err := z.unpack(ctx, src, dst); err != nil {
-			exChan <- err
-		}
-		exChan <- nil
-	}()
-
-	// start extraction in on thread
-	select {
-	case err := <-exChan:
-		if err != nil {
-			return err
-		}
-	case <-ctx.Done():
-		return fmt.Errorf("maximum extraction time exceeded")
-	}
-
-	return nil
-}
-
-// SetTarget sets target as a extraction destination
-func (z *Zip) SetTarget(target target.Target) {
-	z.target = target
+func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+	return z.unpack(ctx, src, dst, t, c)
 }
 
 // unpack checks ctx for cancelation, while it reads a zip file from src and extracts the contents to dst.
-func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
+func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 	// convert io.Reader to io.ReaderAt
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
@@ -125,7 +52,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 	}
 
 	// check for to many files in archive
-	if err := z.config.CheckMaxFiles(int64(len(zipReader.File))); err != nil {
+	if err := c.CheckMaxFiles(int64(len(zipReader.File))); err != nil {
 		return err
 	}
 
@@ -143,17 +70,17 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 		// get next file
 		hdr := archiveFile.FileHeader
 
-		z.config.Log.Printf("extract %s", hdr.Name)
+		c.Log.Printf("extract %s", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
 
 			// create dir
-			if err := z.target.CreateSafeDir(z.config, dst, hdr.Name); err != nil {
+			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
 
 				// do not end on error
-				if z.config.ContinueOnError {
-					z.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -173,11 +100,11 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 			// create link
-			if err := z.target.CreateSafeSymlink(z.config, dst, hdr.Name, linkTarget); err != nil {
+			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
 
 				// do not end on error
-				if z.config.ContinueOnError {
-					z.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -192,7 +119,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 			// check for file size
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
-			if err := z.config.CheckExtractionSize(int64(extractionSize)); err != nil {
+			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
 				return err
 			}
 
@@ -203,11 +130,11 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 			// create the file
-			if err := z.target.CreateSafeFile(z.config, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
 
 				// do not end on error
-				if z.config.ContinueOnError {
-					z.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					fileInArchive.Close()
 					continue
 				}
