@@ -219,7 +219,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 		default:
-			return fmt.Errorf("unspported filetype in archive.")
+			return fmt.Errorf("unspported filetype in archive")
 		}
 
 	}
