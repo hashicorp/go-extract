@@ -27,7 +27,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, opts ...ExtractorOpt
 
 	// apply extract options
 	for _, opt := range opts {
-		opt(&ex)
+		opt(ex)
 	}
 
 	// perform extraction with identified reader
