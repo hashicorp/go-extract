@@ -106,7 +106,7 @@ func TestZipUnpack(t *testing.T) {
 
 	// run cases
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
