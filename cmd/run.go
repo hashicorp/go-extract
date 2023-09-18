@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
-	Archive           string           `arg:"" name:"archive" help:"Path to archive." type:"file"`
+	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existingfile"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -63,9 +64,14 @@ func Run(version, commit, date string) {
 	}
 
 	// open archive
-	archive, err := os.Open(cli.Archive)
-	if err != nil {
-		panic(err)
+	var archive io.Reader
+	if cli.Archive == "-" {
+		archive = bufio.NewReader(os.Stdin)
+	} else {
+		var err error
+		if archive, err = os.Open(cli.Archive); err != nil {
+			panic(err)
+		}
 	}
 
 	// extract archive
