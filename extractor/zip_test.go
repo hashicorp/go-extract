@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -27,6 +28,12 @@ func TestZipUnpack(t *testing.T) {
 		{
 			name:           "normal zip",
 			inputGenerator: createTestZipNormal,
+			opts:           []config.ConfigOption{},
+			expectError:    false,
+		},
+		{
+			name:           "windows zip",
+			inputGenerator: createTestZipWindows,
 			opts:           []config.ConfigOption{},
 			expectError:    false,
 		},
@@ -149,6 +156,122 @@ func createTestZipNormal(dstDir string) string {
 
 	// write file into zip
 	w1, err := zipWriter.Create("test")
+	if err != nil {
+		panic(err)
+	}
+	if _, err := io.Copy(w1, f1); err != nil {
+		panic(err)
+	}
+
+	// close zip
+	zipWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+// createTestZipWindows creates a test zip with windows file pathes file in dstDir for testing
+func createTestZipWindows(dstDir string) string {
+
+	targetFile := filepath.Join(dstDir, "ZipWindows.zip")
+
+	// create a temporary dir for files in zip archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	zipWriter := createZip(targetFile)
+
+	// prepare testfile for be added to zip
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// write file into zip
+	w1, err := zipWriter.Create(`exampledir\foo\bar\test`)
+	if err != nil {
+		panic(err)
+	}
+	if _, err := io.Copy(w1, f1); err != nil {
+		panic(err)
+	}
+
+	// close zip
+	zipWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+// TestZipUnpackIllegalNames test with various testcases the implementation of zip.Unpack
+func TestZipUnpackIllegalNames(t *testing.T) {
+
+	// from: https://go.googlesource.com/go/+/refs/tags/go1.19.1/src/path/filepath/path_windows.go#19
+	// from: https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
+	// removed `/` and `\` from tests, bc/ the zip lib cannot create directories as testfile
+	var reservedNames []string
+	var forbiddenCharacters []string
+
+	if runtime.GOOS == "windows" {
+		reservedNames = []string{
+			"CON", "PRN", "AUX", "NUL",
+			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+		}
+		forbiddenCharacters = []string{`<`, `>`, `:`, `"`, `|`, `?`, `*`}
+		for i := 0; i <= 31; i++ {
+			fmt.Println(string(byte(i)))
+			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
+		}
+	} else {
+		forbiddenCharacters = []string{"\x00"}
+	}
+
+	// test reserved names and forbidden chars
+	unzipper := NewZip(config.NewConfig())
+	for i, name := range append(reservedNames, forbiddenCharacters...) {
+		t.Run(fmt.Sprintf("test %d %x", i, name), func(t *testing.T) {
+
+			// create testing directory
+			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+			if err != nil {
+				t.Errorf(err.Error())
+			}
+			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+			defer os.RemoveAll(testDir)
+
+			// perform actual tests
+			tFile := createTestZipWithCompressedFilename(testDir, name)
+			input, _ := os.Open(tFile)
+			// perform test
+			err = unzipper.Unpack(context.Background(), input, testDir)
+			if err == nil {
+				t.Errorf("test case %d failed: test %s\n%s", i, name, err)
+			}
+
+		})
+
+	}
+}
+
+// createTestZipWithCompressedFilename creates a test zip with compressedFilename as name in the archive in dstDir for testing
+func createTestZipWithCompressedFilename(dstDir, compressedFilename string) string {
+
+	targetFile := filepath.Join(dstDir, "ZipWithCompressedFilename.zip")
+
+	// create a temporary dir for files in zip archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+	zipWriter := createZip(targetFile)
+
+	// prepare testfile for be added to zip
+	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	defer f1.Close()
+
+	// write files with illegal names into zip
+
+	w1, err := zipWriter.Create(compressedFilename)
 	if err != nil {
 		panic(err)
 	}
