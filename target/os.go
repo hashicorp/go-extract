@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/hashicorp/go-extract/config"
@@ -103,8 +104,36 @@ func isSymlink(path string) bool {
 	return false
 }
 
+// normalizePath ensurs that that path is separated by os.PathSeparator
+func normalizePath(path string) string {
+
+	// prepare agnostic
+	targetPathSeparator := string(os.PathSeparator)
+	var wrongPathSeparator string
+	if runtime.GOOS == "windows" {
+		wrongPathSeparator = "/"
+	} else {
+		wrongPathSeparator = "\\"
+	}
+
+	// count
+	targetCnt := strings.Count(path, targetPathSeparator)
+	wrongCnt := strings.Count(path, wrongPathSeparator)
+
+	// optinal: adjust
+	if wrongCnt > targetCnt {
+		log.Printf("detected wrong filepath separator: %s", path)
+		return strings.Replace(path, wrongPathSeparator, targetPathSeparator, -1)
+	}
+
+	return path
+}
+
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+
+	// unify path
+	newDir = normalizePath(newDir)
 
 	// check if dst exist
 	if len(dstBase) > 0 {
@@ -140,6 +169,9 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 // CreateSafeFile creates newFileName in dstBase with content from reader and file
 // headers as provided in mode
 func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
+
+	// unify path
+	newFileName = normalizePath(newFileName)
 
 	// check if a name is provided
 	if len(newFileName) == 0 {
@@ -211,6 +243,9 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 // CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
 func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
+
+	// unify path
+	newLinkName = normalizePath(newLinkName)
 
 	// check if symlink extraction is denied
 	if config.DenySymlinks {
