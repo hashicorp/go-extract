@@ -132,7 +132,7 @@ func normalizePath(path string) string {
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
-	// unify path
+	// normalize path
 	newDir = normalizePath(newDir)
 
 	// check if dst exist
@@ -170,7 +170,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 // headers as provided in mode
 func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
 
-	// unify path
+	// normalize path
 	newFileName = normalizePath(newFileName)
 
 	// check if a name is provided
@@ -244,7 +244,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 // CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
 func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
-	// unify path
+	// normalize path
 	newLinkName = normalizePath(newLinkName)
 
 	// check if symlink extraction is denied
