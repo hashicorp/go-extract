@@ -126,13 +126,21 @@ func TestCreateSafeDir(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
+			// create a sub dir for path traversal testing
+			testDir = fmt.Sprintf("%s%sbase", testDir, string(os.PathSeparator))
+			if err := os.Mkdir(testDir, os.ModePerm); err != nil {
+				t.Errorf(err.Error())
+			}
+
 			target := &Os{}
 
 			// perform actual test
 			want := tc.expectError
-			got := target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir) != nil
+			// err = target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir)
+			err = target.CreateSafeDir(config.NewConfig(), fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
+			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 		})
 	}

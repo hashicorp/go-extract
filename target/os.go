@@ -33,7 +33,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	targetDirectory = filepath.Clean(targetDirectory)
 
 	// check for escape out of dstBase
-	if strings.HasPrefix(targetDirectory, "..") {
+	if !filepath.IsLocal(targetDirectory) {
 		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
 	}
 
@@ -72,7 +72,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 			if config.FollowSymlinks {
 				config.Log.Printf("warning: following symlink (%s)", subDirs)
 			} else {
-				return fmt.Errorf(fmt.Sprintf("symlink in path (%s)", subDirs))
+				return fmt.Errorf(fmt.Sprintf("symlink in path (%s) %s", subDirs, checkDir))
 			}
 		}
 	}
@@ -122,7 +122,7 @@ func normalizePath(path string) string {
 
 	// optinal: adjust
 	if wrongCnt > targetCnt {
-		log.Printf("detected wrong filepath separator: %s", path)
+		log.Printf("replace path separator '%s' with '%s'", wrongPathSeparator, targetPathSeparator)
 		return strings.Replace(path, wrongPathSeparator, targetPathSeparator, -1)
 	}
 
