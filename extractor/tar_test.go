@@ -2,7 +2,6 @@ package extractor
 
 import (
 	"archive/tar"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -17,114 +16,112 @@ import (
 
 // TestTarUnpack implements test cases
 func TestTarUnpack(t *testing.T) {
-
-	type TestfileGenerator func(string) string
-
 	cases := []struct {
-		name           string
-		inputGenerator TestfileGenerator
-		opts           []config.ConfigOption
-		expectError    bool
+		name              string
+		testFileGenerator func(string) string
+		opts              []config.ConfigOption
+		expectError       bool
 	}{
 		{
-			name:           "unpack normal tar",
-			inputGenerator: createTestTarNormal,
-			opts:           []config.ConfigOption{config.WithVerbose(true)},
-			expectError:    false,
+			name:              "unpack normal tar",
+			testFileGenerator: createTestTarNormal,
+			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			expectError:       false,
 		},
 		{
-			name:           "unpack normal tar with 5 files",
-			inputGenerator: createTestTarFiveFiles,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
+			name:              "unpack normal tar with 5 files",
+			testFileGenerator: createTestTarFiveFiles,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
 		},
 		{
-			name:           "unpack normal tar with 5 files, but file limit",
-			inputGenerator: createTestTarFiveFiles,
-			opts:           []config.ConfigOption{config.WithMaxFiles(4)},
-			expectError:    true,
+			name:              "unpack normal tar with 5 files, but file limit",
+			testFileGenerator: createTestTarFiveFiles,
+			opts:              []config.ConfigOption{config.WithMaxFiles(4)},
+			expectError:       true,
+		},
+		// TODO: use context for timeout
+		// {
+		// 	name:           "unpack normal tar, but extraction time exceeded",
+		// 	inputGenerator: createTestTarNormal,
+		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
+		// 	expectError:    true,
+		// },
+		{
+			name:              "unpack normal tar, but extraction size exceeded",
+			testFileGenerator: createTestTarNormal,
+			opts:              []config.ConfigOption{config.WithMaxExtractionSize(1)},
+			expectError:       true,
 		},
 		{
-			name:           "unpack normal tar, but extraction time exceeded",
-			inputGenerator: createTestTarNormal,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-			expectError:    true,
+			name:              "unpack malicious tar, with traversal",
+			testFileGenerator: createTestTarWithPathTraversalInFile,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "unpack normal tar, but extraction size exceeded",
-			inputGenerator: createTestTarNormal,
-			opts:           []config.ConfigOption{config.WithMaxExtractionSize(1)},
-			expectError:    true,
+			name:              "unpack normal tar with symlink",
+			testFileGenerator: createTestTarWithSymlink,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
 		},
 		{
-			name:           "unpack malicious tar, with traversal",
-			inputGenerator: createTestTarWithPathTraversalInFile,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "unpack normal tar with traversal symlink",
+			testFileGenerator: createTestTarWithPathTraversalSymlink,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "unpack normal tar with symlink",
-			inputGenerator: createTestTarWithSymlink,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
+			name:              "unpack normal tar with absolut path in symlink",
+			testFileGenerator: createTestTarWithAbsolutPathSymlink,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "unpack normal tar with traversal symlink",
-			inputGenerator: createTestTarWithPathTraversalSymlink,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous tar with symlink name path traversal",
+			testFileGenerator: createTestTarWithTraversalInSymlinkName,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "unpack normal tar with absolut path in symlink",
-			inputGenerator: createTestTarWithAbsolutPathSymlink,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous tar.gz with empty name for a dir",
+			testFileGenerator: createTestTarGzWithEmptyNameDirectory,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "malicous tar with symlink name path traversal",
-			inputGenerator: createTestTarWithTraversalInSymlinkName,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous tar with .. as filename",
+			testFileGenerator: createTestTarDotDotFilename,
+			opts:              []config.ConfigOption{config.WithOverwrite(true)},
+			expectError:       true,
 		},
 		{
-			name:           "malicous tar.gz with empty name for a dir",
-			inputGenerator: createTestTarGzWithEmptyNameDirectory,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous tar with FIFIO filetype",
+			testFileGenerator: createTestTarWithFIFO,
+			opts:              []config.ConfigOption{config.WithOverwrite(true)},
+			expectError:       true,
 		},
 		{
-			name:           "malicous tar with .. as filename",
-			inputGenerator: createTestTarDotDotFilename,
-			opts:           []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:    true,
-		},
-		{
-			name:           "malicous tar with FIFIO filetype",
-			inputGenerator: createTestTarWithFIFO,
-			opts:           []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:    true,
-		},
-		{
-			name:           "malicous tar with zip slip attack",
-			inputGenerator: createTestTarWithZipSlip,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
-			expectError:    true,
+			name:              "malicous tar with zip slip attack",
+			testFileGenerator: createTestTarWithZipSlip,
+			opts:              []config.ConfigOption{config.WithContinueOnError(false)},
+			expectError:       true,
 		}, {
-			name:           "absolut path in filename",
-			inputGenerator: createTestTarWithAbsolutPathInFilename,
-			opts:           []config.ConfigOption{config.WithVerbose(true)},
-			expectError:    false,
+			name:              "absolut path in filename",
+			testFileGenerator: createTestTarWithAbsolutPathInFilename,
+			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			expectError:       false,
 		}, {
-			name:           "absolut path in filename (windows)",
-			inputGenerator: createTestTarWithAbsolutPathInFilenameWindows,
-			opts:           []config.ConfigOption{config.WithVerbose(true)},
-			expectError:    false,
+			name:              "absolut path in filename (windows)",
+			testFileGenerator: createTestTarWithAbsolutPathInFilenameWindows,
+			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			expectError:       false,
 		},
 	}
 
 	// run cases
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), fmt.Sprintf("test%d_*", i))
@@ -134,12 +131,12 @@ func TestTarUnpack(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			untarer := NewTar(config.NewConfig(tc.opts...))
+			untarer := NewTar()
 
 			// perform actual tests
-			input, _ := os.Open(tc.inputGenerator(testDir))
+			input, _ := os.Open(tc.testFileGenerator(testDir))
 			want := tc.expectError
-			err = untarer.Unpack(context.Background(), input, testDir)
+			err = untarer.Unpack(context.Background(), input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -506,140 +503,6 @@ func createTar(filePath string) *tar.Writer {
 		panic(err)
 	}
 	return tar.NewWriter(f)
-}
-
-// TestTarSuffix implements a test
-func TestTarSuffix(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		untar := NewTar(config.NewConfig())
-		want := ".tar"
-		got := untar.FileSuffix()
-		if got != want {
-			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
-		}
-	})
-}
-
-// TestTarOffset implements a test
-func TestTarOffset(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		untar := NewTar(config.NewConfig())
-		want := 257
-		got := untar.Offset()
-		if got != want {
-			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
-		}
-	})
-}
-
-// TestTarSetConfig implements a test
-func TestTarSetConfig(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		untar := NewTar(config.NewConfig())
-		newConfig := config.NewConfig()
-		untar.SetConfig(newConfig)
-
-		// verify
-		want := newConfig
-		got := untar.config
-		if got != want {
-			t.Errorf("Config not adjusted!")
-		}
-	})
-}
-
-// TestTarSetTarget implements a test
-func TestTarSetTarget(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		untar := NewTar(config.NewConfig())
-		newTarget := target.NewOs()
-		untar.SetTarget(newTarget)
-
-		// verify
-		want := newTarget
-		got := untar.target
-		if got != want {
-			t.Errorf("Target not adjusted!")
-		}
-	})
-}
-
-// TestTarMagicBytes implements a test
-func TestTarMagicBytes(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		untar := NewTar(config.NewConfig())
-		want := [][]byte{
-			{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
-			{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
-		}
-		got := untar.magicBytes
-		for idx := range got {
-			for idy := range got[idx] {
-				if got[idx][idy] != want[idx][idy] {
-					t.Errorf("Magic byte missmatche!")
-				}
-			}
-		}
-	})
-}
-
-// TestTarMagicBytes implements a test
-func TestTarMagicBytesMatch(t *testing.T) {
-
-	cases := []struct {
-		name        string
-		input       []byte
-		expectMatch bool
-	}{
-		{
-			name:        "normal tar header",
-			input:       []byte{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
-			expectMatch: true,
-		},
-		{
-			name:        "empty tar header",
-			input:       []byte{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
-			expectMatch: true,
-		},
-		{
-			name:        "tar header missmatch",
-			input:       []byte{0xaa, 0xbb, 0xcc, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
-			expectMatch: false,
-		},
-		{
-			name:        "too short tar header",
-			input:       []byte{0xFF},
-			expectMatch: false,
-		},
-	}
-
-	// run cases
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-
-			untar := NewTar(config.NewConfig())
-
-			// prepare testdata
-			byteBuffer := &bytes.Buffer{}
-			for i := 0; i < untar.Offset(); i++ {
-				byteBuffer.WriteByte(0x00)
-			}
-			byteBuffer.Write(tc.input)
-
-			// perform test
-			want := tc.expectMatch
-			got := untar.MagicBytesMatch(byteBuffer.Bytes())
-
-			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
-			}
-
-		})
-	}
-
 }
 
 // createTestTarWithAbsolutPathInFilename is a helper function to generate test content
