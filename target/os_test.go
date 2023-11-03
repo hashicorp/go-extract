@@ -136,7 +136,6 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			// err = target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir)
 			err = target.CreateSafeDir(config.NewConfig(), fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
 			got := err != nil
 			if got != want {
