@@ -8,10 +8,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -54,14 +56,10 @@ func Run(version, commit, date string) {
 		config.WithDenySymlinks(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithOverwrite(cli.Overwrite),
-		config.WithMaxExtractionTime(cli.MaxExtractionTime),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithVerbose(cli.Verbose),
 	)
-	extractOptions := []extract.ExtractorOption{
-		extract.WithConfig(config),
-	}
 
 	// open archive
 	var archive io.Reader
@@ -74,8 +72,14 @@ func Run(version, commit, date string) {
 		}
 	}
 
+	if cli.MaxExtractionTime > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(cli.MaxExtractionTime))
+		defer cancel()
+	}
+
 	// extract archive
-	if err := extract.Unpack(ctx, archive, cli.Destination, extractOptions...); err != nil {
+	if err := extract.Unpack(ctx, archive, cli.Destination, target.NewOs(), config); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}

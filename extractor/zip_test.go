@@ -16,86 +16,90 @@ import (
 
 // TestZipUnpack test with various testcases the implementation of zip.Unpack
 func TestZipUnpack(t *testing.T) {
-
-	type TestfileGenerator func(string) string
-
 	cases := []struct {
-		name           string
-		inputGenerator TestfileGenerator
-		opts           []config.ConfigOption
-		expectError    bool
+		name              string
+		testFileGenerator func(string) string
+		opts              []config.ConfigOption
+		expectError       bool
 	}{
 		{
-			name:           "normal zip",
-			inputGenerator: createTestZipNormal,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
+			name:              "normal zip",
+			testFileGenerator: createTestZipNormal,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
 		},
 		{
-			name:           "normal zip with 5 files, but extraction limit",
-			inputGenerator: createTestZipNormalFiveFiles,
-			opts:           []config.ConfigOption{config.WithMaxFiles(1)},
-			expectError:    true,
+			name:              "normal zip with 5 files",
+			testFileGenerator: createTestZipNormalFiveFiles,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
 		},
 		{
-			name:           "normal zip, but extraction time exceeded",
-			inputGenerator: createTestZipNormalFiveFiles,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-			expectError:    true,
+			name:              "normal zip with 5 files, but extraction limit",
+			testFileGenerator: createTestZipNormalFiveFiles,
+			opts:              []config.ConfigOption{config.WithMaxFiles(1)},
+			expectError:       true,
+		},
+		// TODO: use context for timeout
+		// {
+		// 	name:           "normal zip, but extraction time exceeded",
+		// 	inputGenerator: createTestZipNormalFiveFiles,
+		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
+		// 	expectError:    true,
+		// },
+		{
+			name:              "normal zip, but limited extraction size of 1 byte",
+			testFileGenerator: createTestZipNormal,
+			opts:              []config.ConfigOption{config.WithMaxExtractionSize(1)},
+			expectError:       true,
 		},
 		{
-			name:           "normal zip, but limited extraction size of 1 byte",
-			inputGenerator: createTestZipNormal,
-			opts:           []config.ConfigOption{config.WithMaxExtractionSize(1)},
-			expectError:    true,
+			name:              "malicious zip with path traversal",
+			testFileGenerator: createTestZipPathtraversal,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "malicious zip with path traversal",
-			inputGenerator: createTestZipPathtraversal,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "normal zip with symlink",
+			testFileGenerator: createTestZipWithSymlink,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
 		},
 		{
-			name:           "normal zip with symlink",
-			inputGenerator: createTestZipWithSymlink,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
+			name:              "malicous zip with symlink target containing path traversal",
+			testFileGenerator: createTestZipWithSymlinkTargetPathTraversal,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "malicous zip with symlink target containing path traversal",
-			inputGenerator: createTestZipWithSymlinkTargetPathTraversal,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous zip with symlink target refering absolut path",
+			testFileGenerator: createTestZipWithSymlinkAbsolutPath,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "malicous zip with symlink target refering absolut path",
-			inputGenerator: createTestZipWithSymlinkAbsolutPath,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous zip with symlink name path traversal",
+			testFileGenerator: createTestZipWithSymlinkPathTraversalName,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
 		},
 		{
-			name:           "malicous zip with symlink name path traversal",
-			inputGenerator: createTestZipWithSymlinkPathTraversalName,
-			opts:           []config.ConfigOption{},
-			expectError:    true,
+			name:              "malicous zip with zip slip attack",
+			testFileGenerator: createTestZipWithZipSlip,
+			opts:              []config.ConfigOption{config.WithContinueOnError(false)},
+			expectError:       true,
 		},
 		{
-			name:           "malicous zip with zip slip attack",
-			inputGenerator: createTestZipWithZipSlip,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(false)},
-			expectError:    true,
+			name:              "malicous zip with zip slip attack, but continue without error",
+			testFileGenerator: createTestZipWithZipSlip,
+			opts:              []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError:       false,
 		},
 		{
-			name:           "malicous zip with zip slip attack, but continue without error",
-			inputGenerator: createTestZipWithZipSlip,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithContinueOnError(true)},
-			expectError:    false,
-		},
-		{
-			name:           "malicous zip with zip slip attack, but follow sublinks",
-			inputGenerator: createTestZipWithZipSlip,
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1), config.WithFollowSymlinks(true)},
-			expectError:    false,
+			name:              "malicous zip with zip slip attack, but follow sublinks",
+			testFileGenerator: createTestZipWithZipSlip,
+			opts:              []config.ConfigOption{config.WithFollowSymlinks(true)},
+			expectError:       false,
 		},
 	}
 
@@ -111,12 +115,12 @@ func TestZipUnpack(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			unzipper := NewZip(config.NewConfig(tc.opts...))
+			unzipper := NewZip()
 
 			// perform actual tests
-			input, _ := os.Open(tc.inputGenerator(testDir))
+			input, _ := os.Open(tc.testFileGenerator(testDir))
 			want := tc.expectError
-			err = unzipper.Unpack(context.Background(), input, testDir)
+			err = unzipper.Unpack(context.Background(), input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -476,83 +480,6 @@ func createTestFile(path string, content string) *os.File {
 		panic(err)
 	}
 	return newFile
-}
-
-// TestZipSuffix implements a test
-func TestZipSuffix(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		unzip := NewZip(config.NewConfig())
-		want := ".zip"
-		got := unzip.FileSuffix()
-		if got != want {
-			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
-		}
-	})
-}
-
-// TestZipOffset implements a test
-func TestZipOffset(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		unzip := NewZip(config.NewConfig())
-		want := 0
-		got := unzip.Offset()
-		if got != want {
-			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
-		}
-	})
-}
-
-// TestZipSetConfig implements a test
-func TestZipSetConfig(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		unzip := NewZip(config.NewConfig())
-		newConfig := config.NewConfig()
-		unzip.SetConfig(newConfig)
-
-		// verify
-		want := newConfig
-		got := unzip.config
-		if got != want {
-			t.Errorf("Config not adjusted!")
-		}
-	})
-}
-
-// TestZipSetTarget implements a test
-func TestZipSetTarget(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		unzip := NewZip(config.NewConfig())
-		newTarget := target.NewOs()
-		unzip.SetTarget(newTarget)
-
-		// verify
-		want := newTarget
-		got := unzip.target
-		if got != want {
-			t.Errorf("Target not adjusted!")
-		}
-	})
-}
-
-// TestZipMagicBytes implements a test
-func TestZipMagicBytes(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		untar := NewZip(config.NewConfig())
-		want := [][]byte{
-			{0x50, 0x4B, 0x03, 0x04},
-		}
-		got := untar.magicBytes
-		for idx := range got {
-			for idy := range got[idx] {
-				if got[idx][idy] != want[idx][idy] {
-					t.Errorf("Magic byte missmatche!")
-				}
-			}
-		}
-	})
 }
 
 // createTestTarWithSymlink is a helper function to generate test content

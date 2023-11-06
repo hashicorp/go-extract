@@ -55,25 +55,26 @@ func TestGzipUnpack(t *testing.T) {
 			opts:           []config.ConfigOption{config.WithMaxExtractionSize(-1)},
 			expectError:    false,
 		},
-		{
-			name:           "gzip with extraction time exceeded",
-			inputGenerator: createTestGzipWithMoreContent,
-			outputFileName: "test-gziped-file",
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-			expectError:    true,
-		},
+		// TODO: use context for timeout
+		// {
+		// 	name:           "gzip with extraction time exceeded",
+		// 	inputGenerator: createTestGzipWithMoreContent,
+		// 	outputFileName: "test-gziped-file",
+		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
+		// 	expectError:    true,
+		// },
 		{
 			name:           "tar gzip",
 			inputGenerator: createTestTarGzipWithFile,
 			outputFileName: "",
-			opts:           []config.ConfigOption{config.WithMaxExtractionTime(-1)},
+			opts:           []config.ConfigOption{},
 			expectError:    false,
 		},
 	}
 
 	// run cases
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
 			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
@@ -83,12 +84,12 @@ func TestGzipUnpack(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			gzipper := NewGzip(config.NewConfig(tc.opts...))
+			gzipper := NewGzip()
 
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName))
+			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -192,83 +193,6 @@ func createTestGzipWithMoreContent(dstDir string) io.Reader {
 		panic(err)
 	}
 	return file
-}
-
-// TestGzipSuffix implements a test
-func TestGzipSuffix(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		gzipper := NewGzip(config.NewConfig())
-		want := ".gz"
-		got := gzipper.FileSuffix()
-		if got != want {
-			t.Errorf("Unexpected filesuffix! want: %s, got :%s", want, got)
-		}
-	})
-}
-
-// TestGzipOffset implements a test
-func TestGzipOffset(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		gzipper := NewGzip(config.NewConfig())
-		want := 0
-		got := gzipper.Offset()
-		if got != want {
-			t.Errorf("Unexpected offset! want: %d, got :%d", want, got)
-		}
-	})
-}
-
-// TestGzipSetConfig implements a test
-func TestGzipSetConfig(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		gzipper := NewGzip(config.NewConfig())
-		newConfig := config.NewConfig()
-		gzipper.SetConfig(newConfig)
-
-		// verify
-		want := newConfig
-		got := gzipper.config
-		if got != want {
-			t.Errorf("Config not adjusted!")
-		}
-	})
-}
-
-// TestGzipSetTarget implements a test
-func TestGzipSetTarget(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		gzipper := NewGzip(config.NewConfig())
-		newTarget := target.NewOs()
-		gzipper.SetTarget(newTarget)
-
-		// verify
-		want := newTarget
-		got := gzipper.target
-		if got != want {
-			t.Errorf("Target not adjusted!")
-		}
-	})
-}
-
-// TestGzipMagicBytes implements a test
-func TestGzipMagicBytes(t *testing.T) {
-	t.Run("tc 0", func(t *testing.T) {
-		// perform test
-		gzipper := NewGzip(config.NewConfig())
-		want := [][]byte{
-			{0x1f, 0x8b},
-		}
-		got := gzipper.magicBytes
-		for idx := range got {
-			for idy := range got[idx] {
-				if got[idx][idy] != want[idx][idy] {
-					t.Errorf("Magic byte missmatche!")
-				}
-			}
-		}
-	})
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing

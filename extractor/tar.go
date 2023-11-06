@@ -6,120 +6,45 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
 )
 
+const OffsetTar = 257
+
+var MagicBytesTar = [][]byte{
+	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
+	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
+}
+
 // Tar holds information that are needed for tar extraction.
 type Tar struct {
-
-	// config is the provided configuration for the extraction process
-	config *config.Config
-
-	// fileSuffix is the common file suffix for tar archives
-	fileSuffix string
-
 	// target is the target of the extraction
 	target target.Target
-
-	// magicBytes contains slices of byte that are used to identify tar archives
-	magicBytes [][]byte
-
-	// ofset is the offset before the magicBytes
-	offset int
 }
 
 // NewTar creates a new untar object with config as configuration
-func NewTar(config *config.Config) *Tar {
-	// defaults
-	const (
-		fileSuffix = ".tar"
-	)
-	magicBytes := [][]byte{
-		{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
-		{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
-	}
-	offset := 257
-
+func NewTar() *Tar {
 	// configure target
 	target := target.NewOs()
 
 	// instantiate
 	tar := Tar{
-		fileSuffix: fileSuffix,
-		config:     config,
-		target:     target,
-		magicBytes: magicBytes,
-		offset:     offset,
+		target: target,
 	}
 
 	// return the modified house instance
 	return &tar
 }
 
-// FileSuffix returns the common file suffix of tar archive type.
-func (t *Tar) FileSuffix() string {
-	return t.fileSuffix
-}
-
-// SetConfig sets config as configuration.
-func (t *Tar) SetConfig(config *config.Config) {
-	t.config = config
-}
-
-// SetTarget sets target as target for the extraction
-func (t *Tar) SetTarget(target target.Target) {
-	t.target = target
-}
-
-// Offset returns the offset for the magic bytes.
-func (t *Tar) Offset() int {
-	return t.offset
-}
-
-// MagicBytes returns the magic bytes that identifies tar files.
-func (t *Tar) MagicBytes() [][]byte {
-	return t.magicBytes
-}
-
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string) error {
-
-	// start extraction without timer
-	if t.config.MaxExtractionTime == -1 {
-		return t.unpack(ctx, src, dst)
-	}
-
-	// prepare timeout
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.MaxExtractionTime)*time.Second)
-	defer cancel()
-
-	exChan := make(chan error, 1)
-	go func() {
-		// extract files in tmpDir
-		if err := t.unpack(ctx, src, dst); err != nil {
-			exChan <- err
-		}
-		exChan <- nil
-	}()
-
-	// start extraction in on thread
-	select {
-	case err := <-exChan:
-		if err != nil {
-			return err
-		}
-	case <-ctx.Done():
-		return fmt.Errorf("maximum extraction time exceeded")
-	}
-
-	return nil
+func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
+	return t.unpack(ctx, src, dst, target, c)
 }
 
 // unpack checks ctx for cancelation, while it reads a tar file from src and extracts the contents to dst.
-func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
+func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
 	// prepare safty vars
 	var fileCounter int64
@@ -130,10 +55,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 	// walk through tar
 	for {
-
 		// check if context is cancled
 		if ctx.Err() != nil {
-			return nil
+			return ctx.Err()
 		}
 
 		// get next file
@@ -159,21 +83,21 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		fileCounter++
 
 		// check if size is exceeded
-		if err := t.config.CheckMaxFiles(fileCounter); err != nil {
+		if err := c.CheckMaxFiles(fileCounter); err != nil {
 			return err
 		}
 
-		t.config.Log.Printf("extract %s", hdr.Name)
+		c.Log.Printf("extract %s", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
 			// handle directory
-			if err := t.target.CreateSafeDir(t.config, dst, hdr.Name); err != nil {
+			if err := t.target.CreateSafeDir(c, dst, hdr.Name); err != nil {
 
 				// do not end on error
-				if t.config.ContinueOnError {
-					t.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -187,15 +111,15 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 
 			// check extraction size
 			extractionSize = extractionSize + uint64(hdr.Size)
-			if err := t.config.CheckExtractionSize(int64(extractionSize)); err != nil {
+			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
 				return err
 			}
 
-			if err := t.target.CreateSafeFile(t.config, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+			if err := t.target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
 				// do not end on error
-				if t.config.ContinueOnError {
-					t.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -206,11 +130,11 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 		// its a symlink !!
 		case tar.TypeSymlink:
 			// create link
-			if err := t.target.CreateSafeSymlink(t.config, dst, hdr.Name, hdr.Linkname); err != nil {
+			if err := t.target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
 				// do not end on error
-				if t.config.ContinueOnError {
-					t.config.Log.Printf("extraction error: %s", err)
+				if c.ContinueOnError {
+					c.Log.Printf("extraction error: %s", err)
 					continue
 				}
 
@@ -219,38 +143,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string) error {
 			}
 
 		default:
-			return fmt.Errorf("unspported filetype in archive.")
+			return fmt.Errorf("unsupported filetype in archive")
 		}
-
 	}
-}
-
-// MagicBytesMatch cheks if data matches the magic bytes for tar
-func (t *Tar) MagicBytesMatch(data []byte) bool {
-
-	// check all possible magic bytes for extract engine
-	for _, magicBytes := range t.magicBytes {
-
-		// skip if data is smaler als tar header
-		if t.offset+len(magicBytes) > len(data) {
-			continue
-		}
-
-		// compare magic bytes with readed bytes
-		var missMatch bool
-		for idx, fileByte := range data[t.offset : t.offset+len(magicBytes)] {
-			if fileByte != magicBytes[idx] {
-				missMatch = true
-				break
-			}
-		}
-
-		// if no missmatch, successfull identified engine!
-		if !missMatch {
-			return true
-		}
-
-	}
-
-	return false
 }
