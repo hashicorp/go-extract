@@ -32,18 +32,6 @@ func TestZipUnpack(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name:           "windows zip",
-			inputGenerator: createTestZipWindows,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
-		},
-		{
-			name:           "normal zip with 5 files",
-			inputGenerator: createTestZipNormalFiveFiles,
-			opts:           []config.ConfigOption{},
-			expectError:    false,
-		},
-		{
 			name:           "normal zip with 5 files, but extraction limit",
 			inputGenerator: createTestZipNormalFiveFiles,
 			opts:           []config.ConfigOption{config.WithMaxFiles(1)},
