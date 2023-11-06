@@ -29,6 +29,17 @@ func TestZipUnpack(t *testing.T) {
 			expectError:       false,
 		},
 		{
+			name:              "windows zip",
+			testFileGenerator: createTestZipWindows,
+			opts:              []config.ConfigOption{},
+			expectError:       false,
+		},
+		{
+			name:              "normal zip with 5 files",
+			testFileGenerator: createTestZipNormalFiveFiles,
+			opts:              []config.ConfigOption{},
+			expectError:       false},
+		{
 			name:              "normal zip with 5 files",
 			testFileGenerator: createTestZipNormalFiveFiles,
 			opts:              []config.ConfigOption{},
@@ -219,7 +230,8 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 	}
 
 	// test reserved names and forbidden chars
-	unzipper := NewZip(config.NewConfig())
+	unzipper := NewZip()
+	unzipTarget := target.NewOs()
 	for i, name := range append(reservedNames, forbiddenCharacters...) {
 		t.Run(fmt.Sprintf("test %d %x", i, name), func(t *testing.T) {
 
@@ -235,7 +247,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 			tFile := createTestZipWithCompressedFilename(testDir, name)
 			input, _ := os.Open(tFile)
 			// perform test
-			err = unzipper.Unpack(context.Background(), input, testDir)
+			err = unzipper.Unpack(context.Background(), input, testDir, unzipTarget, config.NewConfig())
 			if err == nil {
 				t.Errorf("test case %d failed: test %s\n%s", i, name, err)
 			}
