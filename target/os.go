@@ -104,7 +104,7 @@ func isSymlink(path string) bool {
 	return false
 }
 
-// normalizePath ensurs that that path is separated by os.PathSeparator
+// normalizePath ensures that that path is separated by os.PathSeparator
 func normalizePath(path string) string {
 
 	// prepare agnostic
