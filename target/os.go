@@ -120,7 +120,7 @@ func normalizePath(path string) string {
 	targetCnt := strings.Count(path, targetPathSeparator)
 	wrongCnt := strings.Count(path, wrongPathSeparator)
 
-	// optinal: adjust
+	// optional: adjust
 	if wrongCnt > targetCnt {
 		log.Printf("replace path separator '%s' with '%s'", wrongPathSeparator, targetPathSeparator)
 		return strings.Replace(path, wrongPathSeparator, targetPathSeparator, -1)
