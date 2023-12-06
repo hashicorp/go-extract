@@ -74,7 +74,7 @@ func Run(version, commit, date string) {
 
 	if cli.MaxExtractionTime > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(cli.MaxExtractionTime))
+		ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(cli.MaxExtractionTime)))
 		defer cancel()
 	}
 
