@@ -257,8 +257,9 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 	}
 }
 
-// createTestZipWithCompressedFilename creates a test zip with compressedFilename as name in the archive in dstDir for testing
-func createTestZipWithCompressedFilename(dstDir, compressedFilename string) string {
+// createTestZipWithCompressedFilename creates a test zip wihth the name 'ZipWithCompressedFilename.zip' in
+// dstDir with filenameInsideTheArchive as name for the file inside the archive.
+func createTestZipWithCompressedFilename(dstDir, filenameInsideTheArchive string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipWithCompressedFilename.zip")
 
@@ -275,7 +276,7 @@ func createTestZipWithCompressedFilename(dstDir, compressedFilename string) stri
 
 	// write files with illegal names into zip
 
-	w1, err := zipWriter.Create(compressedFilename)
+	w1, err := zipWriter.Create(filenameInsideTheArchive)
 	if err != nil {
 		panic(err)
 	}
