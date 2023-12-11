@@ -18,7 +18,7 @@ import (
 
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
-	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existingfile"`
+	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`

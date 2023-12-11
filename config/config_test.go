@@ -7,7 +7,7 @@ import (
 
 // TestCheckMaxFiles implements test cases
 func TestCheckMaxFiles(t *testing.T) {
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name        string
 		input       int64
@@ -49,7 +49,7 @@ func TestCheckMaxFiles(t *testing.T) {
 // TestCheckExtractionSize implements test cases
 func TestCheckExtractionSize(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name        string
 		input       int64
@@ -69,7 +69,7 @@ func TestCheckExtractionSize(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "disable filzes check",
+			name:        "disable file size check",
 			input:       5 << (10 * 1),                        // 5kb
 			config:      NewConfig(WithMaxExtractionSize(-1)), // 1kb
 			expectError: false,
@@ -91,7 +91,7 @@ func TestCheckExtractionSize(t *testing.T) {
 // TestCheckWithOverwrite implements test cases
 func TestCheckWithOverwrite(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name   string
 		config *Config
@@ -129,7 +129,7 @@ func TestCheckWithOverwrite(t *testing.T) {
 // TestCheckWithOverwrite implements test cases
 func TestCheckWithDenySymlinks(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name   string
 		config *Config
@@ -167,7 +167,7 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 // TestCheckWithOverwrite implements test cases
 func TestCheckWithContinueOnError(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name   string
 		config *Config
@@ -179,7 +179,7 @@ func TestCheckWithContinueOnError(t *testing.T) {
 			expect: true,
 		},
 		{
-			name:   "Dont continue on error",
+			name:   "Don't continue on error",
 			config: NewConfig(WithContinueOnError(false)), // disable overwrite
 			expect: false,
 		},
@@ -205,14 +205,14 @@ func TestCheckWithContinueOnError(t *testing.T) {
 // TestCheckWithFollowSymlinks implements test cases
 func TestCheckWithFollowSymlinks(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name   string
 		config *Config
 		expect bool
 	}{
 		{
-			name:   "Dont follow symlinks",
+			name:   "Don't follow symlinks",
 			config: NewConfig(WithFollowSymlinks(false)),
 			expect: false,
 		},
@@ -243,7 +243,7 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 // TestCheckWithFollowSymlinks implements test cases
 func TestCheckWithVerbose(t *testing.T) {
 
-	// prepare testcases
+	// prepare test cases
 	cases := []struct {
 		name   string
 		config *Config

@@ -15,14 +15,14 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// TestZipUnpack test with various testcases the implementation of zip.Unpack
+// TestZipUnpack test with various test cases the implementation of zip.Unpack
 func TestGzipUnpack(t *testing.T) {
 
-	type TestfileGenerator func(string) io.Reader
+	type TestFileGenerator func(string) io.Reader
 
 	cases := []struct {
 		name           string
-		inputGenerator TestfileGenerator
+		inputGenerator TestFileGenerator
 		outputFileName string
 		opts           []config.ConfigOption
 		expectError    bool
@@ -84,12 +84,12 @@ func TestGzipUnpack(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			gzipper := NewGzip()
+			gziper := NewGzip()
 
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = gzipper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOs(), config.NewConfig(tc.opts...))
+			err = gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -101,15 +101,15 @@ func TestGzipUnpack(t *testing.T) {
 
 // createGzip creates a gzip archive at dstFile with contents from input
 func createGzip(dstFile string, input io.Reader) {
-	// Create a new gzipped file
-	gzippedFile, err := os.Create(dstFile)
+	// Create a new gziped file
+	gzipedFile, err := os.Create(dstFile)
 	if err != nil {
 		panic(err)
 	}
-	defer gzippedFile.Close()
+	defer gzipedFile.Close()
 
 	// Create a new gzip writer
-	gzipWriter := gzip.NewWriter(gzippedFile)
+	gzipWriter := gzip.NewWriter(gzipedFile)
 	defer gzipWriter.Close()
 
 	// Copy the contents of the original file to the gzip writer
@@ -132,7 +132,7 @@ func createTestGzipWithFile(dstDir string) io.Reader {
 	tmpDir := target.CreateTmpDir()
 	defer os.RemoveAll(tmpDir)
 
-	// prepare testfile for be added to zip
+	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 

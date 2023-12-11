@@ -72,48 +72,48 @@ func TestTarUnpack(t *testing.T) {
 			expectError:       true,
 		},
 		{
-			name:              "unpack normal tar with absolut path in symlink",
-			testFileGenerator: createTestTarWithAbsolutPathSymlink,
+			name:              "unpack normal tar with absolute path in symlink",
+			testFileGenerator: createTestTarWithAbsolutePathSymlink,
 			opts:              []config.ConfigOption{},
 			expectError:       true,
 		},
 		{
-			name:              "malicous tar with symlink name path traversal",
+			name:              "malicious tar with symlink name path traversal",
 			testFileGenerator: createTestTarWithTraversalInSymlinkName,
 			opts:              []config.ConfigOption{},
 			expectError:       true,
 		},
 		{
-			name:              "malicous tar.gz with empty name for a dir",
+			name:              "malicious tar.gz with empty name for a dir",
 			testFileGenerator: createTestTarGzWithEmptyNameDirectory,
 			opts:              []config.ConfigOption{},
 			expectError:       true,
 		},
 		{
-			name:              "malicous tar with .. as filename",
+			name:              "malicious tar with .. as filename",
 			testFileGenerator: createTestTarDotDotFilename,
 			opts:              []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:       true,
 		},
 		{
-			name:              "malicous tar with FIFIO filetype",
+			name:              "malicious tar with FIFO filetype",
 			testFileGenerator: createTestTarWithFIFO,
 			opts:              []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:       true,
 		},
 		{
-			name:              "malicous tar with zip slip attack",
+			name:              "malicious tar with zip slip attack",
 			testFileGenerator: createTestTarWithZipSlip,
 			opts:              []config.ConfigOption{config.WithContinueOnError(false)},
 			expectError:       true,
 		}, {
-			name:              "absolut path in filename",
-			testFileGenerator: createTestTarWithAbsolutPathInFilename,
+			name:              "absolute path in filename",
+			testFileGenerator: createTestTarWithAbsolutePathInFilename,
 			opts:              []config.ConfigOption{config.WithVerbose(true)},
 			expectError:       false,
 		}, {
-			name:              "absolut path in filename (windows)",
-			testFileGenerator: createTestTarWithAbsolutPathInFilenameWindows,
+			name:              "absolute path in filename (windows)",
+			testFileGenerator: createTestTarWithAbsolutePathInFilenameWindows,
 			opts:              []config.ConfigOption{config.WithVerbose(true)},
 			expectError:       false,
 		},
@@ -158,7 +158,7 @@ func createTestTarNormal(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -207,7 +207,7 @@ func createTestTarDotDotFilename(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -310,10 +310,10 @@ func createTestTarWithPathTraversalSymlink(dstDir string) string {
 	return targetFile
 }
 
-// createTestTarWithAbsolutPathSymlink is a helper function to generate test content
-func createTestTarWithAbsolutPathSymlink(dstDir string) string {
+// createTestTarWithAbsolutePathSymlink is a helper function to generate test content
+func createTestTarWithAbsolutePathSymlink(dstDir string) string {
 
-	targetFile := filepath.Join(dstDir, "TarWithAbsolutPathSymlink.tar")
+	targetFile := filepath.Join(dstDir, "TarWithAbsolutePathSymlink.tar")
 
 	// create a temporary dir for files in tar archive
 	tmpDir := target.CreateTmpDir()
@@ -344,7 +344,7 @@ func createTestTarWithPathTraversalInFile(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -372,7 +372,7 @@ func createTestTarFiveFiles(dstDir string) string {
 
 	for i := 0; i < 5; i++ {
 
-		// prepare testfile for be added to tar
+		// prepare test-file for be added to tar
 		f1 := createTestFile(filepath.Join(tmpDir, fmt.Sprintf("test%d", i)), "foobar content")
 		defer f1.Close()
 
@@ -398,7 +398,7 @@ func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -470,7 +470,7 @@ func addLinkToTarArchive(tarWriter *tar.Writer, fileName string, linkTarget stri
 	defer os.RemoveAll(tmpDir)
 
 	// create dummy link to get data structure
-	dummyLink := filepath.Join(tmpDir, "dummylink")
+	dummyLink := filepath.Join(tmpDir, "dummy-link")
 	if err := os.Symlink("nirvana", dummyLink); err != nil {
 		panic(err)
 	}
@@ -505,8 +505,8 @@ func createTar(filePath string) *tar.Writer {
 	return tar.NewWriter(f)
 }
 
-// createTestTarWithAbsolutPathInFilename is a helper function to generate test content
-func createTestTarWithAbsolutPathInFilename(dstDir string) string {
+// createTestTarWithAbsolutePathInFilename is a helper function to generate test content
+func createTestTarWithAbsolutePathInFilename(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilename.tar")
 
@@ -517,12 +517,12 @@ func createTestTarWithAbsolutPathInFilename(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	// Add file to tar
-	addFileToTarArchive(tarWriter, "/absolut-path", f1)
+	addFileToTarArchive(tarWriter, "/absolute-path", f1)
 
 	// close zip
 	tarWriter.Close()
@@ -531,8 +531,8 @@ func createTestTarWithAbsolutPathInFilename(dstDir string) string {
 	return targetFile
 }
 
-// createTestTarWithAbsolutPathInFilenameWindows is a helper function to generate test content
-func createTestTarWithAbsolutPathInFilenameWindows(dstDir string) string {
+// createTestTarWithAbsolutePathInFilenameWindows is a helper function to generate test content
+func createTestTarWithAbsolutePathInFilenameWindows(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilenameWindows.tar")
 
@@ -543,12 +543,12 @@ func createTestTarWithAbsolutPathInFilenameWindows(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare testfile for be added to tar
+	// prepare test-file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	// Add file to tar
-	addFileToTarArchive(tarWriter, "c:\\absolut-path", f1)
+	addFileToTarArchive(tarWriter, "c:\\absolute-path", f1)
 
 	// close zip
 	tarWriter.Close()

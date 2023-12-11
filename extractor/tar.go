@@ -43,10 +43,10 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 	return t.unpack(ctx, src, dst, target, c)
 }
 
-// unpack checks ctx for cancelation, while it reads a tar file from src and extracts the contents to dst.
+// unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
-	// prepare safty vars
+	// prepare safety vars
 	var fileCounter int64
 	var extractionSize uint64
 
@@ -55,7 +55,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 	// walk through tar
 	for {
-		// check if context is cancled
+		// check if context is canceled
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

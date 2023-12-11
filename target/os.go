@@ -40,11 +40,11 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	targetPathElements := strings.Split(targetDirectory, "/")
 	for i := 0; i < len(targetPathElements); i++ {
 
-		// assamble path
+		// assemble path
 		subDirs := filepath.Join(targetPathElements[0 : i+1]...)
 		checkDir := filepath.Join(dstBase, subDirs)
 
-		// check if its a propper path
+		// check if its a proper path
 		if len(checkDir) == 0 {
 			continue
 		}
@@ -53,13 +53,13 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 			continue
 		}
 
-		// perform check if its a propper dir
+		// perform check if its a proper dir
 		if _, err := os.Lstat(checkDir); err != nil {
 			if !os.IsNotExist(err) {
 				return fmt.Errorf("invalid path")
 			}
 
-			// get out of the loop, bc/ dont check pathes
+			// get out of the loop, bc/ don't check paths
 			// for symlinks that does not exist
 			if os.IsNotExist(err) {
 				break
@@ -87,7 +87,7 @@ func isSymlink(path string) bool {
 		return false
 	}
 
-	// dont check cwd
+	// don't check cwd
 	if path == "." {
 		return false
 	}
@@ -118,9 +118,9 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 		return nil
 	}
 
-	// Check if newDir starts with an absolut path, if so -> remove
-	if start := GetStartOfAbsolutPath(newDir); len(start) > 0 {
-		config.Log.Printf("remove absolut path prefix (%s)", start)
+	// Check if newDir starts with an absolute path, if so -> remove
+	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
+		config.Log.Printf("remove absolute path prefix (%s)", start)
 		newDir = strings.TrimPrefix(newDir, start)
 	}
 
@@ -146,13 +146,13 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 		return fmt.Errorf("cannot create file without name")
 	}
 
-	// Check if newFileName starts with an absolut path, if so -> remove
-	if start := GetStartOfAbsolutPath(newFileName); len(start) > 0 {
-		config.Log.Printf("remove absolut path prefix (%s)", start)
+	// Check if newFileName starts with an absolute path, if so -> remove
+	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
+		config.Log.Printf("remove absolute path prefix (%s)", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
-	// create target dir && check for path traversal // zipslip
+	// create target dir && check for path traversal // zip-slip
 	if err := o.CreateSafeDir(config, dstBase, filepath.Dir(newFileName)); err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 		}
 	}
 
-	// finaly copy the data
+	// finally copy the data
 	var sumRead int64
 	p := make([]byte, 1024)
 	var bytesBuffer bytes.Buffer
@@ -223,17 +223,17 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		return fmt.Errorf("cannot create symlink without name")
 	}
 
-	// Check if link target is absolut path
-	if start := GetStartOfAbsolutPath(linkTarget); len(start) > 0 {
+	// Check if link target is absolute path
+	if start := GetStartOfAbsolutePath(linkTarget); len(start) > 0 {
 
 		// continue on error?
 		if config.ContinueOnError {
-			config.Log.Printf("skip link target with absolut path (%s)", linkTarget)
+			config.Log.Printf("skip link target with absolute path (%s)", linkTarget)
 			return nil
 		}
 
 		// return error
-		return fmt.Errorf("symlink with absolut path as target (%s)", linkTarget)
+		return fmt.Errorf("symlink with absolute path as target (%s)", linkTarget)
 	}
 
 	// clean filename
@@ -283,21 +283,21 @@ func CreateTmpDir() string {
 	return tmpDir
 }
 
-func GetStartOfAbsolutPath(path string) string {
+func GetStartOfAbsolutePath(path string) string {
 
-	// check absolut path for link target on unix
+	// check absolute path for link target on unix
 	if strings.HasPrefix(path, "/") {
-		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutPath(path[1:]))
+		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutePath(path[1:]))
 	}
 
-	// check absolut path for link target on unix
+	// check absolute path for link target on unix
 	if strings.HasPrefix(path, `\`) {
-		return fmt.Sprintf("%s%s", `\`, GetStartOfAbsolutPath(path[1:]))
+		return fmt.Sprintf("%s%s", `\`, GetStartOfAbsolutePath(path[1:]))
 	}
 
-	// check absolut path for link target on windows
+	// check absolute path for link target on windows
 	if p := []rune(path); len(p) > 2 && p[1] == rune(':') {
-		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutPath(path[3:]))
+		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutePath(path[3:]))
 	}
 
 	return ""
