@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// TestZipUnpack test with various test-cases the implementation of zip.Unpack
+// TestZipUnpack test with various test cases the implementation of zip.Unpack
 func TestZipUnpack(t *testing.T) {
 	cases := []struct {
 		name              string
@@ -153,7 +153,7 @@ func createTestZipNormal(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// prepare test-file for be added to zip
+	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -185,7 +185,7 @@ func createTestZipWindows(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// prepare test-file that will be added to the zip
+	// prepare test file that will be added to the zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -210,7 +210,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 
 	// from: https://go.googlesource.com/go/+/refs/tags/go1.19.1/src/path/filepath/path_windows.go#19
 	// from: https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
-	// removed `/` and `\` from tests, bc/ the zip lib cannot create directories as test-file
+	// removed `/` and `\` from tests, bc/ the zip lib cannot create directories as test file
 	var reservedNames []string
 	var forbiddenCharacters []string
 
@@ -270,7 +270,7 @@ func createTestZipWithCompressedFilename(dstDir, filenameInsideTheArchive string
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// prepare test-file for be added to zip
+	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -301,7 +301,7 @@ func createTestZipPathTraversal(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// prepare test-file for be added to zip
+	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -334,7 +334,7 @@ func createTestZipNormalFiveFiles(dstDir string) string {
 	zipWriter := createZip(targetFile)
 
 	for i := 0; i < 5; i++ {
-		// prepare test-file for be added to zip
+		// prepare test file for be added to zip
 		fName := fmt.Sprintf("test%d", i)
 		f1 := createTestFile(filepath.Join(tmpDir, fName), "foobar content")
 		defer f1.Close()

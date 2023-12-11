@@ -158,7 +158,7 @@ func createTestTarNormal(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -207,7 +207,7 @@ func createTestTarDotDotFilename(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -344,7 +344,7 @@ func createTestTarWithPathTraversalInFile(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -372,7 +372,7 @@ func createTestTarFiveFiles(dstDir string) string {
 
 	for i := 0; i < 5; i++ {
 
-		// prepare test-file for be added to tar
+		// prepare test file for be added to tar
 		f1 := createTestFile(filepath.Join(tmpDir, fmt.Sprintf("test%d", i)), "foobar content")
 		defer f1.Close()
 
@@ -398,7 +398,7 @@ func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -517,7 +517,7 @@ func createTestTarWithAbsolutePathInFilename(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -543,7 +543,7 @@ func createTestTarWithAbsolutePathInFilenameWindows(dstDir string) string {
 	// prepare generated zip+writer
 	tarWriter := createTar(targetFile)
 
-	// prepare test-file for be added to tar
+	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 

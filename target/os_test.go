@@ -299,7 +299,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 	}
 }
 
-// TestCreateSafeFile implements test-cases
+// TestCreateSafeFile implements test cases
 func TestCreateSafeFile(t *testing.T) {
 
 	// test cases
