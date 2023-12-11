@@ -173,7 +173,7 @@ func createTestZipNormal(dstDir string) string {
 	return targetFile
 }
 
-// createTestZipWindows creates a test zip with windows file pathes file in dstDir for testing
+// createTestZipWindows creates a test zip with windows-style file paths file in dstDir for testing
 func createTestZipWindows(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "ZipWindows.zip")
@@ -185,7 +185,7 @@ func createTestZipWindows(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// prepare testfile for be added to zip
+	// prepare testfile that will be added to the zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
@@ -205,7 +205,7 @@ func createTestZipWindows(dstDir string) string {
 	return targetFile
 }
 
-// TestZipUnpackIllegalNames test with various testcases the implementation of zip.Unpack
+// TestZipUnpackIllegalNames tests, with various cases, the implementation of zip.Unpack
 func TestZipUnpackIllegalNames(t *testing.T) {
 
 	// from: https://go.googlesource.com/go/+/refs/tags/go1.19.1/src/path/filepath/path_windows.go#19
@@ -257,7 +257,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 	}
 }
 
-// createTestZipWithCompressedFilename creates a test zip wihth the name 'ZipWithCompressedFilename.zip' in
+// createTestZipWithCompressedFilename creates a test zip with the name 'ZipWithCompressedFilename.zip' in
 // dstDir with filenameInsideTheArchive as name for the file inside the archive.
 func createTestZipWithCompressedFilename(dstDir, filenameInsideTheArchive string) string {
 
@@ -274,7 +274,6 @@ func createTestZipWithCompressedFilename(dstDir, filenameInsideTheArchive string
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
-	// write files with illegal names into zip
 
 	w1, err := zipWriter.Create(filenameInsideTheArchive)
 	if err != nil {
