@@ -18,7 +18,7 @@ import (
 
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
-	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existingfile"`
+	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -74,7 +74,7 @@ func Run(version, commit, date string) {
 
 	if cli.MaxExtractionTime > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(cli.MaxExtractionTime))
+		ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(cli.MaxExtractionTime)))
 		defer cancel()
 	}
 

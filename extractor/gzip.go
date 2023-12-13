@@ -56,7 +56,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 				return err
 			}
 
-			// cothing read
+			// clothing read
 			if n == 0 {
 				break
 			}
@@ -66,7 +66,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 				bytesBuffer.Write(buf[:n])
 				readBytes = readBytes + int64(n)
 
-				// check if context is cancled
+				// check if context is canceled
 				if ctx.Err() != nil {
 					return nil
 				}
@@ -99,7 +99,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 		}
 	}
 
-	// check if context is cancled
+	// check if context is canceled
 	if ctx.Err() != nil {
 		return nil
 	}

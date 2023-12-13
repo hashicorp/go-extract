@@ -47,7 +47,7 @@ func TestCreateSafeDir(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "legit directory path with taversal",
+			name:        "legit directory path with traversal",
 			basePath:    ".",
 			newDir:      "test/foo/../bar",
 			expectError: false,
@@ -84,7 +84,7 @@ func TestCreateSafeDir(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "base with traversal, legit directory path with taversal",
+			name:        "base with traversal, legit directory path with traversal",
 			basePath:    "..",
 			newDir:      "test/foo/../bar",
 			expectError: false,
@@ -108,7 +108,7 @@ func TestCreateSafeDir(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "absolut path and traversal",
+			name:        "absolute path and traversal",
 			basePath:    "/tmp/foo",
 			newDir:      "./test/../foo/../../outside",
 			expectError: true,
@@ -126,13 +126,20 @@ func TestCreateSafeDir(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
+			// create a sub dir for path traversal testing
+			testDir = fmt.Sprintf("%s%sbase", testDir, string(os.PathSeparator))
+			if err := os.Mkdir(testDir, os.ModePerm); err != nil {
+				t.Errorf(err.Error())
+			}
+
 			target := &Os{}
 
 			// perform actual test
 			want := tc.expectError
-			got := target.CreateSafeDir(config.NewConfig(), tc.basePath, tc.newDir) != nil
+			err = target.CreateSafeDir(config.NewConfig(), fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
+			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 		})
 	}
@@ -208,7 +215,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "legit link target in subdir",
+			name: "legit link target in sub-dir",
 			input: struct {
 				name   string
 				target string
@@ -249,7 +256,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolut path linux",
+			name: "malicious link target with absolute path linux",
 			input: struct {
 				name   string
 				target string
@@ -257,7 +264,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolut path windows",
+			name: "malicious link target with absolute path windows",
 			input: struct {
 				name   string
 				target string
@@ -292,7 +299,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 	}
 }
 
-// TestCreateSafeFile implements testcases
+// TestCreateSafeFile implements test cases
 func TestCreateSafeFile(t *testing.T) {
 
 	// test cases
@@ -425,7 +432,7 @@ func TestOverwriteFile(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "normal behaviour does not allow overwrite",
+			name: "normal behaviors does not allow overwrite",
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
@@ -541,7 +548,7 @@ func TestSecurityCheckPath(t *testing.T) {
 
 }
 
-func TestGetStartOfAbsolutPath(t *testing.T) {
+func TestGetStartOfAbsolutePath(t *testing.T) {
 	cases := []struct {
 		path string
 	}{
@@ -563,7 +570,7 @@ func TestGetStartOfAbsolutPath(t *testing.T) {
 	// perform tests and expect always "test" as a result
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			if start := GetStartOfAbsolutPath(tc.path); strings.TrimPrefix(tc.path, start) != "test" {
+			if start := GetStartOfAbsolutePath(tc.path); strings.TrimPrefix(tc.path, start) != "test" {
 				t.Errorf("test case %d failed: %s != test", i, strings.TrimPrefix(tc.path, start))
 			}
 		})

@@ -26,7 +26,7 @@ type Config struct {
 	// DenySymlinks offers the option to disable the extraction of symlinks
 	DenySymlinks bool
 
-	// ContinueOnError decides if the extraction should be continued even if an error occoured
+	// ContinueOnError decides if the extraction should be continued even if an error occurred
 	ContinueOnError bool
 
 	// FollowSymlinks follow symlinks to directories during extraction
@@ -35,7 +35,7 @@ type Config struct {
 	// Verbose log extraction to stderr
 	Verbose bool
 
-	// Logstream for extraction
+	// Log stream for extraction
 	Log *log.Logger
 }
 
@@ -73,14 +73,15 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
-// WithMaxFiles options pattern function to set maxFiles in the config
+// WithMaxFiles options pattern function to set maxFiles in the config (-1 to disable check)
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxFiles = maxFiles
 	}
 }
 
-// WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the config
+// WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the
+// config (-1 to disable check)
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxExtractionSize = maxExtractionSize

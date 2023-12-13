@@ -35,7 +35,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	return z.unpack(ctx, src, dst, t, c)
 }
 
-// unpack checks ctx for cancelation, while it reads a zip file from src and extracts the contents to dst.
+// unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 	// convert io.Reader to io.ReaderAt
 	buff := bytes.NewBuffer([]byte{})
@@ -56,13 +56,13 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		return err
 	}
 
-	// summarize filesizes
+	// summarize file-sizes
 	var extractionSize uint64
 
 	// walk over archive
 	for _, archiveFile := range zipReader.File {
 
-		// check if context is cancled
+		// check if context is canceled
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -147,7 +147,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// next item
 			fileInArchive.Close()
 			continue
-		default: // catch all for unspported file modes
+		default: // catch all for unsupported file modes
 			return fmt.Errorf("unsupported filetype in archive")
 		}
 	}
