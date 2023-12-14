@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,9 +24,9 @@ type CLI struct {
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
 	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
-	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
-	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
-	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
+	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
+	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
+	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
 	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
@@ -44,10 +45,9 @@ func Run(version, commit, date string) {
 	)
 
 	// Check for verbose output
+	logLevel := slog.LevelInfo
 	if cli.Verbose {
-		log.SetOutput(os.Stderr)
-	} else {
-		log.SetOutput(io.Discard)
+		logLevel = slog.LevelDebug
 	}
 
 	// process cli params
@@ -55,10 +55,10 @@ func Run(version, commit, date string) {
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithDenySymlinks(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
-		config.WithOverwrite(cli.Overwrite),
+		config.WithLogLevel(logLevel),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
-		config.WithVerbose(cli.Verbose),
+		config.WithOverwrite(cli.Overwrite),
 	)
 
 	// open archive

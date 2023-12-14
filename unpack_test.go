@@ -112,7 +112,7 @@ func createTestGzipWithFile(dstDir string) string {
 	tmpDir := target.CreateTmpDir()
 	defer os.RemoveAll(tmpDir)
 
-	// prepare testfile for be added to zip
+	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 

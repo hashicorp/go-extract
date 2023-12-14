@@ -69,7 +69,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 		// check for symlink
 		if isSymlink(checkDir) {
 			if config.FollowSymlinks {
-				config.Log.Printf("warning: following symlink (%s)", subDirs)
+				config.Log.Debug("warning: following symlink", "sub-dir", subDirs)
 			} else {
 				return fmt.Errorf(fmt.Sprintf("symlink in path (%s) %s", subDirs, checkDir))
 			}
@@ -120,7 +120,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 	// Check if newDir starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
-		config.Log.Printf("remove absolute path prefix (%s)", start)
+		config.Log.Debug("remove absolute path prefix", "prefix", start)
 		newDir = strings.TrimPrefix(newDir, start)
 	}
 
@@ -148,7 +148,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// Check if newFileName starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		config.Log.Printf("remove absolute path prefix (%s)", start)
+		config.Log.Debug("remove absolute path prefix", "prefix", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
@@ -214,7 +214,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 	// check if symlink extraction is denied
 	if config.DenySymlinks {
-		config.Log.Printf("skipped symlink extraction: %s -> %s", newLinkName, linkTarget)
+		config.Log.Debug("skipped symlink extraction", newLinkName, linkTarget)
 		return nil
 	}
 
@@ -228,7 +228,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 		// continue on error?
 		if config.ContinueOnError {
-			config.Log.Printf("skip link target with absolute path (%s)", linkTarget)
+			config.Log.Debug("skip link target with absolute path", "link target", linkTarget)
 			return nil
 		}
 
@@ -260,7 +260,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		}
 
 		// delete existing link
-		config.Log.Printf("overwrite symlink (%s)", newLinkName)
+		config.Log.Debug("overwrite symlink", "name", newLinkName)
 		if err := os.Remove(targetFile); err != nil {
 			return err
 		}

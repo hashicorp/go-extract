@@ -2,8 +2,7 @@ package config
 
 import (
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"os"
 )
 
@@ -36,7 +35,10 @@ type Config struct {
 	Verbose bool
 
 	// Log stream for extraction
-	Log *log.Logger
+	Log *slog.Logger
+
+	// LogLevel is the log level for the logger
+	LogLevel slog.LevelVar
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -46,6 +48,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		continueOnError   = false
 		denySymlinks      = false
 		followSymlinks    = false
+		logLevel          = slog.LevelInfo
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
@@ -53,16 +56,22 @@ func NewConfig(opts ...ConfigOption) *Config {
 		verbose           = false
 	)
 
+	// setup default values
 	config := &Config{
 		ContinueOnError:   continueOnError,
 		DenySymlinks:      denySymlinks,
 		FollowSymlinks:    followSymlinks,
 		Overwrite:         overwrite,
-		Log:               log.New(io.Discard, "", 0),
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
 		Verbose:           verbose,
 	}
+
+	// setup default logger
+	config.LogLevel.Set(logLevel)
+	config.Log = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: &config.LogLevel,
+	}))
 
 	// Loop through each option
 	for _, opt := range opts {
@@ -116,15 +125,17 @@ func WithFollowSymlinks(follow bool) ConfigOption {
 	}
 }
 
-// WithVerbose options pattern function to get details on extraction
-func WithVerbose(verbose bool) ConfigOption {
+// WithLogLevel options pattern function to get details on extraction
+func WithLogLevel(logLevel slog.Level) ConfigOption {
 	return func(c *Config) {
-		c.Verbose = verbose
-		if verbose {
-			c.Log.SetOutput(os.Stderr)
-		} else {
-			c.Log.SetOutput(io.Discard)
-		}
+		c.LogLevel.Set(logLevel)
+	}
+}
+
+// WithLogger options pattern function to set a custom logger
+func WithLogger(logger *slog.Logger) ConfigOption {
+	return func(c *Config) {
+		c.Log = logger
 	}
 }
 

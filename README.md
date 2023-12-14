@@ -30,25 +30,26 @@ import (
     // open archive
     archive, _ := os.Open(...)
 
-    // prepare config
+    // prepare config (these are the default values)
     config := config.NewConfig(
         config.WithContinueOnError(false),            // fail on error
         config.WithDenySymlinks(false),               // allow symlink creation
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
-        config.WithOverwrite(false),                  // dont replace existing files
-        config.WithMaxExtractionTime(60),             // stop after 1 minute
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb
-        config.WithMaxFiles(1000),                    // only 1k files maximum
-        config.WithVerbose(false),                    // dont show details
+        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
+        config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
+        config.WithOverwrite(false),                  // don't replace existing files
+        config.WithLogLevel(slog.Info),               // don't show log (log with setting to slog.Debug)
+        config.WithLogger(slog.Default(),             // adjust logger
     )
 
-    extractOptions := []extract.ExtractorOption{
-        extract.WithConfig(config),
-    }
+    // prepare context with timeout
+    var cancel context.CancelFunc
+    ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
+    defer cancel()
 
     // extract archive
-    if err := extract.Unpack(ctx, archive, destination, extractOptions...); err != nil {
-        // handle error
+    if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
+      // handle error
     }
 
 ...
@@ -57,7 +58,7 @@ import (
 
 ## Cli Tool
 
-The libraray can also be used directly on the cli `extract`.
+The library can also be used directly on the cli `extract`.
 
 ### Installation
 
@@ -119,9 +120,9 @@ Flags:
 - [x] `io.Reader` as source
 - [x] symlink inside archive
 - [x] symlink to outside is detected
-- [x] symlink with absolut path is detected
+- [x] symlink with absolute path is detected
 - [x] file with path traversal is detected
-- [x] file with absolut path is detected
+- [x] file with absolute path is detected
 - [x] filetype detection based on magic bytes
 - [x] windows support
 - [x] tests for gzip
