@@ -137,18 +137,18 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	}{
 		{
 			name:   "Allow symlinks",
-			config: NewConfig(WithDenySymlinks(false)), // enable overwrite
+			config: NewConfig(WithAllowSymlinks(false)), // disable symlinks
 			expect: false,
 		},
 		{
 			name:   "Deny symlinks",
-			config: NewConfig(WithDenySymlinks(true)), // disable overwrite
+			config: NewConfig(WithAllowSymlinks(true)), // allow symlinks
 			expect: true,
 		},
 		{
-			name:   "Default is disabled",
+			name:   "Default is enabled",
 			config: NewConfig(), // check default value
-			expect: false,
+			expect: true,
 		},
 	}
 
@@ -156,7 +156,7 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.DenySymlinks
+			got := tc.config.AllowSymlinks
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}

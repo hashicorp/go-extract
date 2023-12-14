@@ -32,8 +32,8 @@ import (
 
     // prepare config (these are the default values)
     config := config.NewConfig(
+        config.WithAllowSymlinks(true),               // allow symlink creation
         config.WithContinueOnError(false),            // fail on error
-        config.WithDenySymlinks(false),               // allow symlink creation
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
@@ -93,10 +93,10 @@ Flags:
   -C, --continue-on-error                 Continue extraction on error.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
+      --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
+      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
+      --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
   -O, --overwrite                         Overwrite if exist.
-      --max-files=1000                    Maximum files that are extracted before stop.
-      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes).
-      --max-extraction-time=60            Maximum time that an extraction should take (in seconds).
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```

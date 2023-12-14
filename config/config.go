@@ -22,8 +22,8 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	Overwrite bool
 
-	// DenySymlinks offers the option to disable the extraction of symlinks
-	DenySymlinks bool
+	// AllowSymlinks offers the option to enable/disable the extraction of symlinks
+	AllowSymlinks bool
 
 	// ContinueOnError decides if the extraction should be continued even if an error occurred
 	ContinueOnError bool
@@ -46,7 +46,7 @@ type Config struct {
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		continueOnError   = false
-		denySymlinks      = false
+		allowSymlinks     = true
 		followSymlinks    = false
 		logLevel          = slog.LevelInfo
 		maxFiles          = 1000          // 1k files
@@ -59,7 +59,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 	// setup default values
 	config := &Config{
 		ContinueOnError:   continueOnError,
-		DenySymlinks:      denySymlinks,
+		AllowSymlinks:     allowSymlinks,
 		FollowSymlinks:    followSymlinks,
 		Overwrite:         overwrite,
 		MaxFiles:          maxFiles,
@@ -104,10 +104,10 @@ func WithOverwrite(enable bool) ConfigOption {
 	}
 }
 
-// WithDenySymlinks options pattern function to deny symlink extraction
-func WithDenySymlinks(deny bool) ConfigOption {
+// WithAllowSymlinks options pattern function to deny symlink extraction
+func WithAllowSymlinks(allow bool) ConfigOption {
 	return func(c *Config) {
-		c.DenySymlinks = deny
+		c.AllowSymlinks = allow
 	}
 }
 

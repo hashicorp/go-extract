@@ -22,12 +22,12 @@ type CLI struct {
 	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
+	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
-	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
 	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
-	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
+	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -53,7 +53,7 @@ func Run(version, commit, date string) {
 	// process cli params
 	config := config.NewConfig(
 		config.WithContinueOnError(cli.ContinueOnError),
-		config.WithDenySymlinks(cli.DenySymlinks),
+		config.WithAllowSymlinks(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogLevel(logLevel),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
