@@ -25,7 +25,7 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:              "unpack normal tar",
 			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		},
 		{
@@ -109,12 +109,12 @@ func TestTarUnpack(t *testing.T) {
 		}, {
 			name:              "absolute path in filename",
 			testFileGenerator: createTestTarWithAbsolutePathInFilename,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		}, {
 			name:              "absolute path in filename (windows)",
 			testFileGenerator: createTestTarWithAbsolutePathInFilenameWindows,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		},
 	}

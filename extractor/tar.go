@@ -87,7 +87,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			return err
 		}
 
-		c.Log.Printf("extract %s", hdr.Name)
+		c.Log.Debug("extract", "name", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it
@@ -97,7 +97,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe directory", "error", err)
 					continue
 				}
 
@@ -119,7 +119,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe file", "error", err)
 					continue
 				}
 
@@ -134,7 +134,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe symlink", "error", err)
 					continue
 				}
 

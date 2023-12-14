@@ -70,7 +70,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		// get next file
 		hdr := archiveFile.FileHeader
 
-		c.Log.Printf("extract %s", hdr.Name)
+		c.Log.Debug("extract", "name", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
@@ -80,7 +80,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe directory", "error", err)
 					continue
 				}
 
@@ -104,7 +104,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe symlink", "error", err)
 					continue
 				}
 
@@ -134,7 +134,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 				// do not end on error
 				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+					c.Log.Debug("failed to create safe directory", "error", err)
 					fileInArchive.Close()
 					continue
 				}
