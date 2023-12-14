@@ -24,3 +24,6 @@ test/test-dir-*
 
 # IDE
 .vscode/
+
+# the binary
+extract
