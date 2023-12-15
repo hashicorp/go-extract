@@ -66,7 +66,7 @@ func findExtractor(data []byte) Extractor {
 		for _, magicBytes := range ex.magicBytes {
 
 			// check for byte match
-			if matchesMagicBytes(data, ex.offset, magicBytes) {
+			if MatchesMagicBytes(data, ex.offset, magicBytes) {
 				return ex.newExtractor()
 			}
 		}
@@ -76,8 +76,8 @@ func findExtractor(data []byte) Extractor {
 	return nil
 }
 
-// matchesMagicBytes checks if the bytes in data are equal to magicBytes after at a given offset
-func matchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
+// MatchesMagicBytes checks if the bytes in data are equal to magicBytes after at a given offset
+func MatchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
 	if offset+len(magicBytes) > len(data) {
 		return false
 	}

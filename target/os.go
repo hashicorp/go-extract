@@ -248,7 +248,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	// check link target for traversal
 	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
 	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
-		return err
+		return fmt.Errorf("symlink target path traversal (%s)", linkTarget)
 	}
 
 	targetFile := filepath.Join(dstBase, newLinkName)

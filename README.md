@@ -32,14 +32,15 @@ import (
 
     // prepare config (these are the default values)
     config := config.NewConfig(
-        config.WithAllowSymlinks(true),               // allow symlink creation
-        config.WithContinueOnError(false),            // fail on error
-        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
-        config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
-        config.WithOverwrite(false),                  // don't replace existing files
-        config.WithLogLevel(slog.Info),               // don't show log (log with setting to slog.Debug)
-        config.WithLogger(slog.Default(),             // adjust logger
+        config.WithAllowSymlinks(true),                      // allow symlink creation
+        config.WithContinueOnError(false),                   // fail on error
+        config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
+        config.WithLogLevel(slog.Info),                      // set log level on library default logger (set slog.Debug for log output)
+        config.WithLogger(logger),                           // adjust logger (default: os.Stderr)
+        config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
+        config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
+        config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
+        config.WithOverwrite(false),                         // don't replace existing files
     )
 
     // prepare context with timeout
@@ -96,6 +97,7 @@ Flags:
       --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
+  -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
@@ -128,9 +130,8 @@ Flags:
 - [x] tests for gzip
 - [x] function documentation
 - [x] check for windows
-- [ ] PAX header extraction
-- [ ] Allow/deny symlinks in general
-- [ ] Allow/deny external directories!?
+- [x] Allow/deny symlinks in general
+- [x] Metrics call back function
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target

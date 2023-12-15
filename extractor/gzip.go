@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -40,9 +41,40 @@ func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.T
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+
+	// object to store metrics
+	metrics := config.Metrics{}
+	metrics.ExtractedType = "gzip"
+	metricsEmitted := false
+	start := time.Now()
+
+	// anonymous function to ensure single metrics emit
+	emitMetrics := func() {
+
+		// do not emit metrics twice
+		if !metricsEmitted {
+			metricsEmitted = true
+
+			// calculate execution time
+			metrics.ExtractionDuration = time.Since(start)
+
+			// emit metrics
+			if c.MetricsHook != nil {
+				c.MetricsHook(metrics)
+			}
+		}
+	}
+
+	// emit metrics
+	defer emitMetrics()
+
+	c.Log.Debug("extracting gzip")
+
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
-		return fmt.Errorf("cannot decompress gzip")
+		metrics.ExtractionErrors++
+		metrics.LastExtractionError = fmt.Errorf("cannot decompress gzip: %s", err)
+		return metrics.LastExtractionError
 	}
 
 	// size check
@@ -53,6 +85,8 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			buf := make([]byte, 1024)
 			n, err := uncompressedStream.Read(buf)
 			if err != nil && err != io.EOF {
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = err
 				return err
 			}
 
@@ -65,28 +99,49 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			if readBytes+int64(n) < c.MaxExtractionSize {
 				bytesBuffer.Write(buf[:n])
 				readBytes = readBytes + int64(n)
+				metrics.ExtractionSize = readBytes
 
 				// check if context is canceled
 				if ctx.Err() != nil {
 					return nil
 				}
 			} else {
-				return fmt.Errorf("maximum extraction size exceeded")
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = fmt.Errorf("maximum extraction size exceeded")
+				return metrics.LastExtractionError
 			}
 		}
 	} else {
-		_, err = bytesBuffer.ReadFrom(uncompressedStream)
+		metrics.ExtractionSize, err = bytesBuffer.ReadFrom(uncompressedStream)
 		if err != nil {
-			return fmt.Errorf("cannot read decompressed gzip")
+			metrics.ExtractionErrors++
+			metrics.LastExtractionError = fmt.Errorf("cannot read decompressed gzip")
+			return metrics.LastExtractionError
 		}
 	}
+	metrics.ExtractedFiles++
 
 	// check if src is a tar archive
-
+	c.Log.Debug("check magic bytes")
 	for _, magicBytes := range MagicBytesTar {
-		if bytes.Equal(magicBytes, bytesBuffer.Bytes()) {
+
+		// get decompressed gzip data
+		data := bytesBuffer.Bytes()
+
+		// skip if smaller than offset
+		if OffsetTar+len(magicBytes) > len(data) {
+			continue
+		}
+
+		// check if magic bytes match
+		if bytes.Equal(magicBytes, data[OffsetTar:OffsetTar+len(magicBytes)]) {
+
+			// emit metrics for gzip
+			emitMetrics()
+
+			// extract tar archive
 			tar := NewTar()
-			return tar.Unpack(ctx, bytes.NewReader(bytesBuffer.Bytes()), dst, t, c)
+			return tar.Unpack(ctx, bytes.NewReader(data), dst, t, c)
 		}
 	}
 
@@ -105,5 +160,10 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}
 
 	// Create file
-	return t.CreateSafeFile(c, dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644)
+	if err := t.CreateSafeFile(c, dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644); err != nil {
+		metrics.ExtractionErrors++
+		metrics.LastExtractionError = err
+		return err
+	}
+	return nil
 }

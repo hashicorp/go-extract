@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -46,8 +48,25 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
+	// object to store metrics
+	metrics := config.Metrics{}
+	metrics.ExtractedType = "tar"
+	start := time.Now()
+
+	// anonymous function to emit metrics
+	defer func() {
+
+		// calculate execution time
+		metrics.ExtractionDuration = time.Since(start)
+
+		// emit metrics
+		if c.MetricsHook != nil {
+			c.MetricsHook(metrics)
+		}
+	}()
+
 	// prepare safety vars
-	var fileCounter int64
+	var objectCounter int64
 	var extractionSize uint64
 
 	// open tar
@@ -72,6 +91,8 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// return any other error
 		case err != nil:
+			metrics.ExtractionErrors++
+			metrics.LastExtractionError = err
 			return err
 
 		// if the header is nil, just skip it (not sure how this happens)
@@ -79,12 +100,19 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			continue
 		}
 
-		// check for to many files in archive
-		fileCounter++
+		// check for to many objects in archive
+		objectCounter++
 
-		// check if size is exceeded
-		if err := c.CheckMaxFiles(fileCounter); err != nil {
+		// check if maximum of objects is exceeded
+		if err := c.CheckMaxObjects(objectCounter); err != nil {
+			metrics.ExtractionErrors++
+			metrics.LastExtractionError = err
 			return err
+		}
+
+		// check if name is just current working dir
+		if filepath.Clean(hdr.Name) == "." {
+			continue
 		}
 
 		c.Log.Debug("extract", "name", hdr.Name)
@@ -92,8 +120,13 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
+
 			// handle directory
 			if err := t.target.CreateSafeDir(c, dst, hdr.Name); err != nil {
+
+				// increase error counter and set error
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = err
 
 				// do not end on error
 				if c.ContinueOnError {
@@ -104,6 +137,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 				// end extraction
 				return err
 			}
+			metrics.ExtractedDirs++
 			continue
 
 		// if it's a file create it
@@ -112,10 +146,16 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			// check extraction size
 			extractionSize = extractionSize + uint64(hdr.Size)
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = err
 				return err
 			}
 
 			if err := t.target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+
+				// increase error counter and set error
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = err
 
 				// do not end on error
 				if c.ContinueOnError {
@@ -126,11 +166,17 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 				// end extraction
 				return err
 			}
+			metrics.ExtractionSize = int64(extractionSize)
+			metrics.ExtractedFiles++
 
 		// its a symlink !!
 		case tar.TypeSymlink:
 			// create link
 			if err := t.target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
+
+				// increase error counter and set error
+				metrics.ExtractionErrors++
+				metrics.LastExtractionError = err
 
 				// do not end on error
 				if c.ContinueOnError {
@@ -141,9 +187,12 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 				// end extraction
 				return err
 			}
+			metrics.ExtractedSymlinks++
 
 		default:
-			return fmt.Errorf("unsupported filetype in archive")
+			metrics.ExtractionErrors++
+			metrics.LastExtractionError = fmt.Errorf("unsupported filetype in archive")
+			return metrics.LastExtractionError
 		}
 	}
 }

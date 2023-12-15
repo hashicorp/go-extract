@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 )
 
 // ConfigOption is a function pointer to implement the option pattern
@@ -18,6 +19,9 @@ type Config struct {
 	// MaxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
 	MaxExtractionSize int64
+
+	// MetricsHook is a function pointer to consume metrics after finished extraction
+	MetricsHook MetricsHook
 
 	// Define if files should be overwritten in the destination
 	Overwrite bool
@@ -69,9 +73,14 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default logger
 	config.LogLevel.Set(logLevel)
-	config.Log = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+	logOpts := &slog.HandlerOptions{
 		Level: &config.LogLevel,
-	}))
+	}
+	logHandler := slog.NewTextHandler(os.Stdout, logOpts)
+	config.Log = slog.New(logHandler)
+	// config.Log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	// 	Level: &config.LogLevel,
+	// }))
 
 	// Loop through each option
 	for _, opt := range opts {
@@ -80,6 +89,58 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// return the modified house instance
 	return config
+}
+
+// Metrics is a struct type that holds all metrics of an extraction
+type Metrics struct {
+
+	// ExtractionDuration is the time it took to extract the archive
+	ExtractionDuration time.Duration
+
+	// ExtractionSize is the size of the extracted files
+	ExtractionSize int64
+
+	// ExtractedType is the type of the archive
+	ExtractedType string
+
+	// ExtractedFiles is the number of extracted files
+	ExtractedFiles int64
+
+	// ExtractedSymlinks is the number of extracted symlinks
+	ExtractedSymlinks int64
+
+	// ExtractedDirs is the number of extracted directories
+	ExtractedDirs int64
+
+	// ExtractionErrors is the number of errors during extraction
+	ExtractionErrors int64
+
+	// LastExtractionError is the last error during extraction
+	LastExtractionError error
+}
+
+// String returns a string representation of the metrics
+func (m Metrics) String() string {
+	return fmt.Sprintf("type: %s, duration: %s, size: %d, files: %d, symlinks: %d, dirs: %d, errors: %d, last error: %s",
+		m.ExtractedType,
+		m.ExtractionDuration,
+		m.ExtractionSize,
+		m.ExtractedFiles,
+		m.ExtractedSymlinks,
+		m.ExtractedDirs,
+		m.ExtractionErrors,
+		m.LastExtractionError,
+	)
+}
+
+// MetricsHook is a function pointer to implement the option pattern
+type MetricsHook func(Metrics)
+
+// WithMetricsHook options pattern function to set a metrics hook
+func WithMetricsHook(hook MetricsHook) ConfigOption {
+	return func(c *Config) {
+		c.MetricsHook = hook
+	}
 }
 
 // WithMaxFiles options pattern function to set maxFiles in the config (-1 to disable check)
@@ -140,7 +201,7 @@ func WithLogger(logger *slog.Logger) ConfigOption {
 }
 
 // checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e
-func (e *Config) CheckMaxFiles(counter int64) error {
+func (e *Config) CheckMaxObjects(counter int64) error {
 
 	// check if disabled
 	if e.MaxFiles == -1 {
