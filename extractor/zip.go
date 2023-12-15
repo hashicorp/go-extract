@@ -60,26 +60,31 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// convert io.Reader to io.ReaderAt
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
+
+	// check for errors, format and handle them
 	if err != nil {
-		metrics.ExtractionErrors++
-		metrics.LastExtractionError = fmt.Errorf("cannot read src: %s", err)
-		return metrics.LastExtractionError
+		msg := "cannot read src"
+		handleError(c, &metrics, msg, err)
+		return fmt.Errorf("%s: %s", msg, err)
 	}
+
 	reader := bytes.NewReader(buff.Bytes())
 
 	// Open a zip archive for reading.
 	zipReader, err := zip.NewReader(reader, size)
+
+	// check for errors, format and handle them
 	if err != nil {
-		metrics.ExtractionErrors++
-		metrics.LastExtractionError = fmt.Errorf("cannot read zip: %s", err)
-		return metrics.LastExtractionError
+		msg := "cannot read zip"
+		handleError(c, &metrics, msg, err)
+		return fmt.Errorf("%s: %s", msg, err)
 	}
 
 	// check for to many files in archive
 	if err := c.CheckMaxObjects(int64(len(zipReader.File))); err != nil {
-		metrics.ExtractionErrors++
-		metrics.LastExtractionError = err
-		return err
+		msg := "max objects check failed"
+		handleError(c, &metrics, msg, err)
+		return fmt.Errorf("%s: %s", msg, err)
 	}
 
 	// summarize file-sizes
@@ -117,20 +122,14 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 				continue
 			}
 
-			// create dir
+			// create dir and check for errors, format and handle them
 			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
-
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe directory", "error", err)
-					continue
+				if err := handleError(c, &metrics, "failed to create safe dir", err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// don't collect metrics on failure
+				continue
 			}
 
 			// next item
@@ -141,33 +140,25 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 			// extract link target
 			linkTarget, err := readLinkTargetFromZip(archiveFile)
-			if err != nil {
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
 
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to read symlink target", "error", err)
-					continue
+			// check for errors, format and handle them
+			if err != nil {
+				if err := handleError(c, &metrics, "failed to read symlink target", err); err != nil {
+					return err
 				}
 
-				return err
+				// step over creation
+				continue
 			}
 
 			// create link
 			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
-
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe symlink", "error", err)
-					continue
+				if err := handleError(c, &metrics, "failed to create safe symlink", err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// don't collect metrics on failure
+				continue
 			}
 
 			// next item
@@ -179,35 +170,34 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// check for file size
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = fmt.Errorf("maximum extraction size exceeded: %s", err)
-				return metrics.LastExtractionError
+				msg := "maximum extraction size exceeded"
+				handleError(c, &metrics, msg, err)
+				return fmt.Errorf("%s: %s", msg, err)
 			}
 
 			// open stream
 			fileInArchive, err := archiveFile.Open()
+
+			// check for errors, format and handle them
 			if err != nil {
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = fmt.Errorf("cannot open file in archive: %s", err)
-				return metrics.LastExtractionError
+				if err := handleError(c, &metrics, "cannot open file in archive", err); err != nil {
+					return err
+				}
+
+				// don't collect metrics on failure
+				continue
 			}
 
 			// create the file
 			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
-
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe file", "error", err)
+				if err := handleError(c, &metrics, "failed to create safe file", err); err != nil {
 					fileInArchive.Close()
-					continue
+					return err
 				}
 
-				// end extraction
+				// don't collect metrics on failure
 				fileInArchive.Close()
-				return err
+				continue
 			}
 
 			// next item
@@ -215,15 +205,39 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			metrics.ExtractedFiles++
 			fileInArchive.Close()
 			continue
+
 		default: // catch all for unsupported file modes
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = fmt.Errorf("unsupported file mode: %s", hdr.Mode())
-			return metrics.LastExtractionError
+
+			// format error
+			err := fmt.Errorf("unsupported file mode: %x", hdr.Mode())
+
+			// format and handle error
+			if err := handleError(c, &metrics, "cannot extract file", err); err != nil {
+				return err
+			}
 		}
 	}
 
 	// finished without problems
 	return nil
+}
+
+// continueOnError increases the error counter, sets the latest error and
+// decides if extraction should continue.
+func handleError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
+
+	// increase error counter and set error
+	metrics.ExtractionErrors++
+	metrics.LastExtractionError = err
+
+	// do not end on error
+	if c.ContinueOnError {
+		c.Log.Debug("error during extraction", "msg", msg, "error", err)
+		return nil
+	}
+
+	// end extraction on error
+	return fmt.Errorf("%s: %s", msg, err)
 }
 
 // readLinkTargetFromZip extracts the symlink destination for symlinkFile
