@@ -78,9 +78,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 	}
 	logHandler := slog.NewTextHandler(os.Stdout, logOpts)
 	config.Log = slog.New(logHandler)
-	// config.Log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-	// 	Level: &config.LogLevel,
-	// }))
 
 	// Loop through each option
 	for _, opt := range opts {
