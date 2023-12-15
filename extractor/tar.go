@@ -91,9 +91,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// return any other error
 		case err != nil:
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = err
-			return err
+			msg := "error reading tar"
+			handleError(c, &metrics, msg, err)
+			return fmt.Errorf("%s: %s", msg, err)
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case hdr == nil:
@@ -105,9 +105,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = err
-			return err
+			msg := "max objects check failed"
+			handleError(c, &metrics, msg, err)
+			return fmt.Errorf("%s: %s", msg, err)
 		}
 
 		// check if name is just current working dir
@@ -123,20 +123,15 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 			// handle directory
 			if err := t.target.CreateSafeDir(c, dst, hdr.Name); err != nil {
-
-				// increase error counter and set error
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe directory", "error", err)
-					continue
+				if err := handleError(c, &metrics, "failed to create safe directory", err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// do not end on error
+				continue
 			}
+
+			// store metrics and continue
 			metrics.ExtractedDirs++
 			continue
 
@@ -146,53 +141,57 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			// check extraction size
 			extractionSize = extractionSize + uint64(hdr.Size)
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-				return err
+				msg := "max extraction size exceeded"
+				handleError(c, &metrics, msg, err)
+				return fmt.Errorf("%s: %s", msg, err)
 			}
 
+			// create file
 			if err := t.target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
-				// increase error counter and set error
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe file", "error", err)
-					continue
+				// increase error counter, set error and end if necessary
+				if err := handleError(c, &metrics, "failed to create safe file", err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// do not end on error
+				continue
 			}
+
+			// store metrics
 			metrics.ExtractionSize = int64(extractionSize)
 			metrics.ExtractedFiles++
+			continue
 
 		// its a symlink !!
 		case tar.TypeSymlink:
+
 			// create link
 			if err := t.target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
-				// increase error counter and set error
-				metrics.ExtractionErrors++
-				metrics.LastExtractionError = err
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Debug("failed to create safe symlink", "error", err)
-					continue
+				if err := handleError(c, &metrics, "failed to create safe symlink", err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// do not end on error
+				continue
 			}
+
+			// store metrics and continue
 			metrics.ExtractedSymlinks++
+			continue
 
 		default:
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = fmt.Errorf("unsupported filetype in archive")
-			return metrics.LastExtractionError
+
+			// format error
+			err := fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)
+
+			if err := handleError(c, &metrics, "cannot extract file", err); err != nil {
+				return err
+			}
+
+			// do not end on error
+			continue
 		}
 	}
 }
