@@ -332,7 +332,7 @@ func TestMatchesMagicBytes(t *testing.T) {
 
 			// create testing directory
 			expected := tc.expectMatch
-			got := MatchesMagicBytes(tc.data, tc.offset, tc.magicBytes)
+			got := matchesMagicBytes(tc.data, tc.offset, tc.magicBytes)
 
 			// success if both are nil and no engine found
 			if got != expected {
