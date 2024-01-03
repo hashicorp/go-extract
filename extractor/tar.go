@@ -65,6 +65,8 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		}
 	}()
 
+	c.Log.Debug("extracting tar")
+
 	// prepare safety vars
 	var objectCounter int64
 	var extractionSize uint64
