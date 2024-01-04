@@ -46,15 +46,22 @@ func Run(version, commit, date string) {
 	)
 
 	// Check for verbose output
-	logLevel := slog.LevelInfo
+	logTarget := io.Discard
+	logLevel := slog.LevelError
 	if cli.Verbose {
 		logLevel = slog.LevelDebug
+		logTarget = os.Stderr
 	}
+
+	// setup logger
+	logger := slog.New(slog.NewTextHandler(logTarget, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
 
 	// setup metrics hook
 	metricsToLog := func(metrics config.Metrics) {
 		if cli.Metrics {
-			log.Printf("metrics: %s", metrics)
+			logger.Info("extraction finished", "metrics", metrics)
 		}
 	}
 
@@ -63,7 +70,7 @@ func Run(version, commit, date string) {
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
-		config.WithLogLevel(logLevel),
+		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithMetricsHook(metricsToLog),
