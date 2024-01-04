@@ -20,6 +20,7 @@ import (
     ...
     "github.com/hashicorp/go-extract"
     "github.com/hashicorp/go-extract/config"
+    "github.com/hashicorp/go-extract/target"
     ...
 )
 
@@ -35,8 +36,7 @@ import (
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
-        config.WithLogLevel(slog.Info),                      // set log level on library default logger (set slog.Debug for log output)
-        config.WithLogger(*slog.Logger),                     // adjust logger (default: os.Stderr)
+        config.WithLogger(*slog.Logger),                     // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
         config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
