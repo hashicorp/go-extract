@@ -109,7 +109,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			return processError(c, &metrics, "max objects check failed", err)
 		}
 
-		c.Log.Debug("extract", "name", hdr.Name)
+		c.Logger.Info("extract", "name", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
@@ -224,7 +224,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	return nil
 }
 
-// continueOnError increases the error counter, sets the latest error and
+// processError increases the error counter, sets the latest error and
 // decides if extraction should continue.
 func processError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
 
@@ -234,7 +234,7 @@ func processError(c *config.Config, metrics *config.Metrics, msg string, err err
 
 	// do not end on error
 	if c.ContinueOnError {
-		c.Log.Debug("error during extraction", "msg", msg, "error", err)
+		c.Logger.Error(msg, "error", err)
 		return nil
 	}
 

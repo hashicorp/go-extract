@@ -68,7 +68,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// emit metrics
 	defer emitMetrics()
 
-	c.Log.Debug("extracting gzip")
+	c.Logger.Info("extracting gzip")
 
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
@@ -119,7 +119,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	metrics.ExtractedFiles++
 
 	// check if src is a tar archive
-	c.Log.Debug("check magic bytes")
+	c.Logger.Debug("check magic bytes")
 	for _, magicBytes := range MagicBytesTar {
 
 		// get decompressed gzip data

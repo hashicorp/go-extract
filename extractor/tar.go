@@ -65,7 +65,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		}
 	}()
 
-	c.Log.Debug("extracting tar")
+	c.Logger.Info("extracting tar")
 
 	// prepare safety vars
 	var objectCounter int64
@@ -115,7 +115,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			continue
 		}
 
-		c.Log.Debug("extract", "name", hdr.Name)
+		c.Logger.Debug("extract", "name", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it

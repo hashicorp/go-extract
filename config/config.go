@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
-	"os"
 	"time"
 )
 
@@ -38,11 +38,8 @@ type Config struct {
 	// Verbose log extraction to stderr
 	Verbose bool
 
-	// Log stream for extraction
-	Log *slog.Logger
-
-	// LogLevel is the log level for the logger
-	LogLevel slog.LevelVar
+	// Logger stream for extraction
+	Logger *slog.Logger
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -52,7 +49,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 		continueOnError   = false
 		allowSymlinks     = true
 		followSymlinks    = false
-		logLevel          = slog.LevelInfo
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
@@ -71,13 +67,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		Verbose:           verbose,
 	}
 
-	// setup default logger
-	config.LogLevel.Set(logLevel)
-	logOpts := &slog.HandlerOptions{
-		Level: &config.LogLevel,
-	}
-	logHandler := slog.NewTextHandler(os.Stdout, logOpts)
-	config.Log = slog.New(logHandler)
+	// disable logging by default
+	config.Logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	// Loop through each option
 	for _, opt := range opts {
@@ -183,17 +174,10 @@ func WithFollowSymlinks(follow bool) ConfigOption {
 	}
 }
 
-// WithLogLevel options pattern function to get details on extraction
-func WithLogLevel(logLevel slog.Level) ConfigOption {
-	return func(c *Config) {
-		c.LogLevel.Set(logLevel)
-	}
-}
-
 // WithLogger options pattern function to set a custom logger
 func WithLogger(logger *slog.Logger) ConfigOption {
 	return func(c *Config) {
-		c.Log = logger
+		c.Logger = logger
 	}
 }
 
