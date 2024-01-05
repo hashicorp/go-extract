@@ -60,7 +60,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 
 			// emit metrics
 			if c.MetricsHook != nil {
-				c.MetricsHook(metrics)
+				c.MetricsHook(ctx, metrics)
 			}
 		}
 	}

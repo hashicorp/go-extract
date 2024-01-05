@@ -53,7 +53,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 		// emit metrics
 		if c.MetricsHook != nil {
-			c.MetricsHook(metrics)
+			c.MetricsHook(ctx, metrics)
 		}
 	}()
 

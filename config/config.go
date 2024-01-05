@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -122,7 +123,7 @@ func (m Metrics) String() string {
 }
 
 // MetricsHook is a function pointer to implement the option pattern
-type MetricsHook func(Metrics)
+type MetricsHook func(context.Context, Metrics)
 
 // WithMetricsHook options pattern function to set a metrics hook
 func WithMetricsHook(hook MetricsHook) ConfigOption {
