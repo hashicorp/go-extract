@@ -85,7 +85,7 @@ func Run(version, commit, date string) {
 		var err error
 		if archive, err = os.Open(cli.Archive); err != nil {
 			logger.Error("opening archive failed", "err", err)
-			return err
+			os.Exit(-1)
 		} else {
 			defer archive.(*os.File).Close()
 		}
