@@ -94,7 +94,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		// return any other error
 		case err != nil:
 			msg := "error reading tar"
-			return processError(c, &metrics, msg, err)
+			return handleError(c, &metrics, msg, err)
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case hdr == nil:
@@ -107,7 +107,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
 			msg := "max objects check failed"
-			return processError(c, &metrics, msg, err)
+			return handleError(c, &metrics, msg, err)
 		}
 
 		// check if name is just current working dir
@@ -124,7 +124,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			// handle directory
 			if err := t.target.CreateSafeDir(c, dst, hdr.Name); err != nil {
 				msg := "failed to create safe directory"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -143,7 +143,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			extractionSize = extractionSize + uint64(hdr.Size)
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
 				msg := "max extraction size exceeded"
-				return processError(c, &metrics, msg, err)
+				return handleError(c, &metrics, msg, err)
 			}
 
 			// create file
@@ -151,7 +151,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 				// increase error counter, set error and end if necessary
 				msg := "failed to create safe file"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -172,7 +172,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 				// increase error counter, set error and end if necessary
 				msg := "failed to create safe symlink"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -189,7 +189,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			// increase error counter, set error and end if necessary
 			err := fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)
 			msg := "cannot extract file"
-			if err := processError(c, &metrics, msg, err); err != nil {
+			if err := handleError(c, &metrics, msg, err); err != nil {
 				return err
 			}
 

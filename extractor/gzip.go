@@ -73,7 +73,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
 		msg := "cannot read gzip"
-		return processError(c, &metrics, msg, err)
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// size check
@@ -85,7 +85,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			n, err := uncompressedStream.Read(buf)
 			if err != nil && err != io.EOF {
 				msg := "cannot read decompressed gzip"
-				return processError(c, &metrics, msg, err)
+				return handleError(c, &metrics, msg, err)
 			}
 
 			// clothing read
@@ -106,14 +106,14 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			} else {
 				err := fmt.Errorf("maximum extraction size exceeded")
 				msg := "cannot continue decompress gzip"
-				return processError(c, &metrics, msg, err)
+				return handleError(c, &metrics, msg, err)
 			}
 		}
 	} else {
 		metrics.ExtractionSize, err = bytesBuffer.ReadFrom(uncompressedStream)
 		if err != nil {
 			msg := "cannot read from gzip"
-			return processError(c, &metrics, msg, err)
+			return handleError(c, &metrics, msg, err)
 		}
 	}
 	metrics.ExtractedFiles++
@@ -159,7 +159,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// Create file
 	if err := t.CreateSafeFile(c, dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644); err != nil {
 		msg := "cannot create file"
-		return processError(c, &metrics, msg, err)
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// finished

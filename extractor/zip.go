@@ -64,7 +64,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// check for errors, format and handle them
 	if err != nil {
 		msg := "cannot read src"
-		return processError(c, &metrics, msg, err)
+		return handleError(c, &metrics, msg, err)
 	}
 
 	reader := bytes.NewReader(buff.Bytes())
@@ -75,13 +75,13 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// check for errors, format and handle them
 	if err != nil {
 		msg := "cannot read zip"
-		return processError(c, &metrics, msg, err)
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// check for to many files in archive
 	if err := c.CheckMaxObjects(int64(len(zipReader.File))); err != nil {
 		msg := "max objects check failed"
-		return processError(c, &metrics, msg, err)
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// summarize file-sizes
@@ -106,7 +106,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
 			metrics.ExtractionErrors++
 			metrics.LastExtractionError = err
-			return processError(c, &metrics, "max objects check failed", err)
+			return handleError(c, &metrics, "max objects check failed", err)
 		}
 
 		c.Logger.Info("extract", "name", hdr.Name)
@@ -122,7 +122,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// create dir and check for errors, format and handle them
 			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
 				msg := "failed to create safe directory"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -142,7 +142,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// check for errors, format and handle them
 			if err != nil {
 				msg := "failed to read symlink target"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -153,7 +153,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// create link
 			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
 				msg := "failed to create safe symlink"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -171,7 +171,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
 				msg := "maximum extraction size exceeded"
-				return processError(c, &metrics, msg, err)
+				return handleError(c, &metrics, msg, err)
 			}
 
 			// open stream
@@ -180,7 +180,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// check for errors, format and handle them
 			if err != nil {
 				msg := "cannot open file in archive"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
 				}
 
@@ -191,7 +191,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// create the file
 			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				msg := "failed to create safe file"
-				if err := processError(c, &metrics, msg, err); err != nil {
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					fileInArchive.Close()
 					return err
 				}
@@ -210,9 +210,9 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		default: // catch all for unsupported file modes
 
 			// increase error counter, set error and end if necessary
-			err := fmt.Errorf("unsupported file mode: %x", hdr.Mode())
+			err := fmt.Errorf("unsupported file mode (%x)", hdr.Mode())
 			msg := "cannot extract file"
-			if err := processError(c, &metrics, msg, err); err != nil {
+			if err := handleError(c, &metrics, msg, err); err != nil {
 				return err
 			}
 
@@ -224,9 +224,9 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	return nil
 }
 
-// processError increases the error counter, sets the latest error and
+// handleError increases the error counter, sets the latest error and
 // decides if extraction should continue.
-func processError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
+func handleError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
 
 	// increase error counter and set error
 	metrics.ExtractionErrors++
