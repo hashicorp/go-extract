@@ -133,7 +133,7 @@ func WithFollowSymlinks(follow bool) ConfigOption {
 }
 
 // WithLogger options pattern function to set a custom logger
-func WithLogger(logger *slog.Logger) ConfigOption {
+func WithLogger(logger Logger) ConfigOption {
 	return func(c *Config) {
 		c.Logger = logger
 	}
