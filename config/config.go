@@ -42,15 +42,6 @@ type Config struct {
 	Logger Logger
 }
 
-// Logger is an interface that defines the logging functions
-// that are used by the extractor
-type Logger interface {
-	Debug(msg string, keysAndValues ...interface{})
-	Info(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-}
-
 // NewConfig is a generator option that takes opts as adjustments of the
 // default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
