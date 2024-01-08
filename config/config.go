@@ -40,6 +40,9 @@ type Config struct {
 
 	// Logger stream for extraction
 	Logger Logger
+
+	// Create destination directory if it does not exist
+	CreateDestination bool
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -167,4 +170,11 @@ func (e *Config) CheckExtractionSize(fileSize int64) error {
 		return fmt.Errorf("maximum extraction size exceeded")
 	}
 	return nil
+}
+
+// WithCreateDestination options pattern function to create destination directory if it does not exist
+func WithCreateDestination(create bool) ConfigOption {
+	return func(c *Config) {
+		c.CreateDestination = create
+	}
 }

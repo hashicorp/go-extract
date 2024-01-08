@@ -109,7 +109,13 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	// check if dst exist
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
-			return fmt.Errorf("destination does not exist (%s)", dstBase)
+			if config.CreateDestination {
+				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
+					return err
+				}
+			} else {
+				return fmt.Errorf("destination does not exist (%s)", dstBase)
+			}
 		}
 	}
 

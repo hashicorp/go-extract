@@ -21,6 +21,7 @@ import (
 type CLI struct {
 	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
+	CreateDestination bool             `short:"c" help:"Create destination directory if it does not exist."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
 	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -68,6 +69,7 @@ func Run(version, commit, date string) {
 	// process cli params
 	config := config.NewConfig(
 		config.WithContinueOnError(cli.ContinueOnError),
+		config.WithCreateDestination(cli.CreateDestination),
 		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
