@@ -113,6 +113,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
 					return err
 				}
+				config.Logger.Info("created destination directory", "path", dstBase)
 			} else {
 				return fmt.Errorf("destination does not exist (%s)", dstBase)
 			}
