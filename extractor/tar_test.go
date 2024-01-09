@@ -25,7 +25,7 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:              "unpack normal tar",
 			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		},
 		{
@@ -84,10 +84,10 @@ func TestTarUnpack(t *testing.T) {
 			expectError:       true,
 		},
 		{
-			name:              "malicious tar.gz with empty name for a dir",
-			testFileGenerator: createTestTarGzWithEmptyNameDirectory,
+			name:              "malicious tar.gz with empty name for compressed file",
+			testFileGenerator: createTestTarGzWithEmptyFileName,
 			opts:              []config.ConfigOption{},
-			expectError:       true,
+			expectError:       false,
 		},
 		{
 			name:              "malicious tar with .. as filename",
@@ -109,12 +109,12 @@ func TestTarUnpack(t *testing.T) {
 		}, {
 			name:              "absolute path in filename",
 			testFileGenerator: createTestTarWithAbsolutePathInFilename,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		}, {
 			name:              "absolute path in filename (windows)",
 			testFileGenerator: createTestTarWithAbsolutePathInFilenameWindows,
-			opts:              []config.ConfigOption{config.WithVerbose(true)},
+			opts:              []config.ConfigOption{},
 			expectError:       false,
 		},
 	}
@@ -387,7 +387,7 @@ func createTestTarFiveFiles(dstDir string) string {
 	return targetFile
 }
 
-func createTestTarGzWithEmptyNameDirectory(dstDir string) string {
+func createTestTarGzWithEmptyFileName(dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarEmptyNameDir.tar.gz")
 

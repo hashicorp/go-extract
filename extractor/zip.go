@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -37,27 +39,54 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+
+	// object to store metrics
+	metrics := config.Metrics{}
+	metrics.ExtractedType = "zip"
+	start := time.Now()
+
+	// anonymous function to emit metrics
+	defer func() {
+
+		// calculate execution time
+		metrics.ExtractionDuration = time.Since(start)
+
+		// emit metrics
+		if c.MetricsHook != nil {
+			c.MetricsHook(ctx, metrics)
+		}
+	}()
+
 	// convert io.Reader to io.ReaderAt
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
+
+	// check for errors, format and handle them
 	if err != nil {
-		return err
+		msg := "cannot read src"
+		return handleError(c, &metrics, msg, err)
 	}
+
 	reader := bytes.NewReader(buff.Bytes())
 
 	// Open a zip archive for reading.
 	zipReader, err := zip.NewReader(reader, size)
+
+	// check for errors, format and handle them
 	if err != nil {
-		return err
+		msg := "cannot read zip"
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// check for to many files in archive
-	if err := c.CheckMaxFiles(int64(len(zipReader.File))); err != nil {
-		return err
+	if err := c.CheckMaxObjects(int64(len(zipReader.File))); err != nil {
+		msg := "max objects check failed"
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// summarize file-sizes
 	var extractionSize uint64
+	var objectCounter int64
 
 	// walk over archive
 	for _, archiveFile := range zipReader.File {
@@ -70,49 +99,70 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		// get next file
 		hdr := archiveFile.FileHeader
 
-		c.Log.Printf("extract %s", hdr.Name)
+		// check for to many objects in archive
+		objectCounter++
+
+		// check if maximum of objects is exceeded
+		if err := c.CheckMaxObjects(objectCounter); err != nil {
+			metrics.ExtractionErrors++
+			metrics.LastExtractionError = err
+			return handleError(c, &metrics, "max objects check failed", err)
+		}
+
+		c.Logger.Info("extract", "name", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
 
-			// create dir
-			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
+			// check if dir is just current working dir
+			if filepath.Clean(hdr.Name) == "." {
+				continue
+			}
 
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
-					continue
+			// create dir and check for errors, format and handle them
+			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
+				msg := "failed to create safe directory"
+				if err := handleError(c, &metrics, msg, err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// don't collect metrics on failure
+				continue
 			}
 
 			// next item
+			metrics.ExtractedDirs++
 			continue
 
 		case os.ModeSymlink: // handle symlink
 
 			// extract link target
 			linkTarget, err := readLinkTargetFromZip(archiveFile)
+
+			// check for errors, format and handle them
 			if err != nil {
-				return err
+				msg := "failed to read symlink target"
+				if err := handleError(c, &metrics, msg, err); err != nil {
+					return err
+				}
+
+				// step over creation
+				continue
 			}
 
 			// create link
 			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
-					continue
+				msg := "failed to create safe symlink"
+				if err := handleError(c, &metrics, msg, err); err != nil {
+					return err
 				}
 
-				// end extraction
-				return err
+				// don't collect metrics on failure
+				continue
 			}
 
 			// next item
+			metrics.ExtractedSymlinks++
 			continue
 
 		case 0: // handle regular files
@@ -120,40 +170,76 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// check for file size
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				return err
+				msg := "maximum extraction size exceeded"
+				return handleError(c, &metrics, msg, err)
 			}
 
 			// open stream
 			fileInArchive, err := archiveFile.Open()
+
+			// check for errors, format and handle them
 			if err != nil {
-				return err
+				msg := "cannot open file in archive"
+				if err := handleError(c, &metrics, msg, err); err != nil {
+					return err
+				}
+
+				// don't collect metrics on failure
+				continue
 			}
 
 			// create the file
 			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
-
-				// do not end on error
-				if c.ContinueOnError {
-					c.Log.Printf("extraction error: %s", err)
+				msg := "failed to create safe file"
+				if err := handleError(c, &metrics, msg, err); err != nil {
 					fileInArchive.Close()
-					continue
+					return err
 				}
 
-				// end extraction
+				// don't collect metrics on failure
 				fileInArchive.Close()
-				return err
+				continue
 			}
 
 			// next item
+			metrics.ExtractionSize = int64(extractionSize)
+			metrics.ExtractedFiles++
 			fileInArchive.Close()
 			continue
+
 		default: // catch all for unsupported file modes
-			return fmt.Errorf("unsupported filetype in archive")
+
+			// increase error counter, set error and end if necessary
+			err := fmt.Errorf("unsupported file mode (%x)", hdr.Mode())
+			msg := "cannot extract file"
+			if err := handleError(c, &metrics, msg, err); err != nil {
+				return err
+			}
+
+			continue
 		}
 	}
 
 	// finished without problems
 	return nil
+}
+
+// handleError increases the error counter, sets the latest error and
+// decides if extraction should continue.
+func handleError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
+
+	// increase error counter and set error
+	metrics.ExtractionErrors++
+	metrics.LastExtractionError = err
+
+	// do not end on error
+	if c.ContinueOnError {
+		c.Logger.Error(msg, "error", err)
+		return nil
+	}
+
+	// end extraction on error
+	return fmt.Errorf("%s: %s", msg, err)
 }
 
 // readLinkTargetFromZip extracts the symlink destination for symlinkFile

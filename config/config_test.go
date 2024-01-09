@@ -38,7 +38,7 @@ func TestCheckMaxFiles(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			got := tc.config.CheckMaxFiles(tc.input) != nil
+			got := tc.config.CheckMaxObjects(tc.input) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -137,18 +137,18 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	}{
 		{
 			name:   "Allow symlinks",
-			config: NewConfig(WithDenySymlinks(false)), // enable overwrite
+			config: NewConfig(WithAllowSymlinks(false)), // disable symlinks
 			expect: false,
 		},
 		{
 			name:   "Deny symlinks",
-			config: NewConfig(WithDenySymlinks(true)), // disable overwrite
+			config: NewConfig(WithAllowSymlinks(true)), // allow symlinks
 			expect: true,
 		},
 		{
-			name:   "Default is disabled",
+			name:   "Default is enabled",
 			config: NewConfig(), // check default value
-			expect: false,
+			expect: true,
 		},
 	}
 
@@ -156,7 +156,7 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.DenySymlinks
+			got := tc.config.AllowSymlinks
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -233,44 +233,6 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
 			got := tc.config.FollowSymlinks
-			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
-			}
-		})
-	}
-}
-
-// TestCheckWithFollowSymlinks implements test cases
-func TestCheckWithVerbose(t *testing.T) {
-
-	// prepare test cases
-	cases := []struct {
-		name   string
-		config *Config
-		expect bool
-	}{
-		{
-			name:   "Not verbose",
-			config: NewConfig(WithVerbose(false)),
-			expect: false,
-		},
-		{
-			name:   "Be verbose",
-			config: NewConfig(WithVerbose(true)),
-			expect: true,
-		},
-		{
-			name:   "Default is disabled",
-			config: NewConfig(), // check default value
-			expect: false,
-		},
-	}
-
-	// run cases
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			want := tc.expect
-			got := tc.config.Verbose
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}

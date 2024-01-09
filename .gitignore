@@ -21,3 +21,10 @@
 go.work
 test/test-dir-*
 *.DS_Store
+
+# IDE
+.vscode/
+
+# the binary
+extract
+go.work.sum

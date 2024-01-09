@@ -39,7 +39,7 @@ var extractorsForMagicBytes = []struct {
 	},
 }
 
-// Unpack reads data from src, identifies if its a known archive type. If so, dst is unpackecked
+// Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config and target.
 func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 	var ex Extractor

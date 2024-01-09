@@ -69,7 +69,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 		// check for symlink
 		if isSymlink(checkDir) {
 			if config.FollowSymlinks {
-				config.Log.Printf("warning: following symlink (%s)", subDirs)
+				config.Logger.Warn("following symlink", "sub-dir", subDirs)
 			} else {
 				return fmt.Errorf(fmt.Sprintf("symlink in path (%s) %s", subDirs, checkDir))
 			}
@@ -109,7 +109,14 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	// check if dst exist
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
-			return fmt.Errorf("destination does not exist (%s)", dstBase)
+			if config.CreateDestination {
+				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
+					return err
+				}
+				config.Logger.Info("created destination directory", "path", dstBase)
+			} else {
+				return fmt.Errorf("destination does not exist (%s)", dstBase)
+			}
 		}
 	}
 
@@ -120,7 +127,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 	// Check if newDir starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
-		config.Log.Printf("remove absolute path prefix (%s)", start)
+		config.Logger.Debug("remove absolute path prefix", "prefix", start)
 		newDir = strings.TrimPrefix(newDir, start)
 	}
 
@@ -148,7 +155,7 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// Check if newFileName starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		config.Log.Printf("remove absolute path prefix (%s)", start)
+		config.Logger.Debug("remove absolute path prefix", "prefix", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
@@ -213,8 +220,8 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
 	// check if symlink extraction is denied
-	if config.DenySymlinks {
-		config.Log.Printf("skipped symlink extraction: %s -> %s", newLinkName, linkTarget)
+	if !config.AllowSymlinks {
+		config.Logger.Info("skipped symlink extraction", newLinkName, linkTarget)
 		return nil
 	}
 
@@ -228,7 +235,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 		// continue on error?
 		if config.ContinueOnError {
-			config.Log.Printf("skip link target with absolute path (%s)", linkTarget)
+			config.Logger.Info("skip link target with absolute path", "link target", linkTarget)
 			return nil
 		}
 
@@ -248,7 +255,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	// check link target for traversal
 	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
 	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
-		return err
+		return fmt.Errorf("symlink target path traversal (%s)", linkTarget)
 	}
 
 	targetFile := filepath.Join(dstBase, newLinkName)
@@ -260,7 +267,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		}
 
 		// delete existing link
-		config.Log.Printf("overwrite symlink (%s)", newLinkName)
+		config.Logger.Warn("overwrite symlink", "name", newLinkName)
 		if err := os.Remove(targetFile); err != nil {
 			return err
 		}

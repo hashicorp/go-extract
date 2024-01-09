@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,13 +21,15 @@ import (
 type CLI struct {
 	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
 	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
+	CreateDestination bool             `short:"c" help:"Create destination directory if it does not exist."`
 	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
-	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
-	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
-	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop."`
-	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes)."`
-	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds)."`
 	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
+	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
+	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
+	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
+	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
+	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
+	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -44,21 +47,36 @@ func Run(version, commit, date string) {
 	)
 
 	// Check for verbose output
+	logTarget := io.Discard
+	logLevel := slog.LevelError
 	if cli.Verbose {
-		log.SetOutput(os.Stderr)
-	} else {
-		log.SetOutput(io.Discard)
+		logLevel = slog.LevelDebug
+		logTarget = os.Stderr
+	}
+
+	// setup logger
+	logger := slog.New(slog.NewTextHandler(logTarget, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+
+	// setup metrics hook
+	metricsToLog := func(ctx context.Context, metrics config.Metrics) {
+		if cli.Metrics {
+			logger.Info("extraction finished", "metrics", metrics)
+		}
 	}
 
 	// process cli params
 	config := config.NewConfig(
 		config.WithContinueOnError(cli.ContinueOnError),
-		config.WithDenySymlinks(cli.DenySymlinks),
+		config.WithCreateDestination(cli.CreateDestination),
+		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
-		config.WithOverwrite(cli.Overwrite),
+		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
-		config.WithVerbose(cli.Verbose),
+		config.WithMetricsHook(metricsToLog),
+		config.WithOverwrite(cli.Overwrite),
 	)
 
 	// open archive
@@ -68,7 +86,10 @@ func Run(version, commit, date string) {
 	} else {
 		var err error
 		if archive, err = os.Open(cli.Archive); err != nil {
-			panic(err)
+			logger.Error("opening archive failed", "err", err)
+			os.Exit(-1)
+		} else {
+			defer archive.(*os.File).Close()
 		}
 	}
 

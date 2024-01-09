@@ -20,6 +20,7 @@ import (
     ...
     "github.com/hashicorp/go-extract"
     "github.com/hashicorp/go-extract/config"
+    "github.com/hashicorp/go-extract/target"
     ...
 )
 
@@ -30,25 +31,26 @@ import (
     // open archive
     archive, _ := os.Open(...)
 
-    // prepare config
+    // prepare config (these are the default values)
     config := config.NewConfig(
-        config.WithContinueOnError(false),            // fail on error
-        config.WithDenySymlinks(false),               // allow symlink creation
-        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
-        config.WithOverwrite(false),                  // dont replace existing files
-        config.WithMaxExtractionTime(60),             // stop after 1 minute
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb
-        config.WithMaxFiles(1000),                    // only 1k files maximum
-        config.WithVerbose(false),                    // dont show details
+        config.WithAllowSymlinks(true),                      // allow symlink creation
+        config.WithContinueOnError(false),                   // fail on error
+        config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
+        config.WithLogger(*slog.Logger),                     // adjust logger (default: io.Discard)
+        config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
+        config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
+        config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
+        config.WithOverwrite(false),                         // don't replace existing files
     )
 
-    extractOptions := []extract.ExtractorOption{
-        extract.WithConfig(config),
-    }
+    // prepare context with timeout
+    var cancel context.CancelFunc
+    ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
+    defer cancel()
 
     // extract archive
-    if err := extract.Unpack(ctx, archive, destination, extractOptions...); err != nil {
-        // handle error
+    if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
+      // handle error
     }
 
 ...
@@ -57,7 +59,7 @@ import (
 
 ## Cli Tool
 
-The libraray can also be used directly on the cli `extract`.
+The library can also be used directly on the cli `extract`.
 
 ### Installation
 
@@ -92,10 +94,11 @@ Flags:
   -C, --continue-on-error                 Continue extraction on error.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
+      --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
+      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
+      --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
+  -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
-      --max-files=1000                    Maximum files that are extracted before stop.
-      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes).
-      --max-extraction-time=60            Maximum time that an extraction should take (in seconds).
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```
@@ -119,17 +122,16 @@ Flags:
 - [x] `io.Reader` as source
 - [x] symlink inside archive
 - [x] symlink to outside is detected
-- [x] symlink with absolut path is detected
+- [x] symlink with absolute path is detected
 - [x] file with path traversal is detected
-- [x] file with absolut path is detected
+- [x] file with absolute path is detected
 - [x] filetype detection based on magic bytes
 - [x] windows support
 - [x] tests for gzip
 - [x] function documentation
 - [x] check for windows
-- [ ] PAX header extraction
-- [ ] Allow/deny symlinks in general
-- [ ] Allow/deny external directories!?
+- [x] Allow/deny symlinks in general
+- [x] Metrics call back function
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target

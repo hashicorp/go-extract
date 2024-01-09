@@ -1,10 +1,10 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"log"
-	"os"
+	"log/slog"
 )
 
 // ConfigOption is a function pointer to implement the option pattern
@@ -20,11 +20,14 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	MaxExtractionSize int64
 
+	// MetricsHook is a function pointer to consume metrics after finished extraction
+	MetricsHook MetricsHook
+
 	// Define if files should be overwritten in the destination
 	Overwrite bool
 
-	// DenySymlinks offers the option to disable the extraction of symlinks
-	DenySymlinks bool
+	// AllowSymlinks offers the option to enable/disable the extraction of symlinks
+	AllowSymlinks bool
 
 	// ContinueOnError decides if the extraction should be continued even if an error occurred
 	ContinueOnError bool
@@ -35,8 +38,11 @@ type Config struct {
 	// Verbose log extraction to stderr
 	Verbose bool
 
-	// Log stream for extraction
-	Log *log.Logger
+	// Logger stream for extraction
+	Logger Logger
+
+	// Create destination directory if it does not exist
+	CreateDestination bool
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -44,7 +50,7 @@ type Config struct {
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		continueOnError   = false
-		denySymlinks      = false
+		allowSymlinks     = true
 		followSymlinks    = false
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
@@ -53,16 +59,19 @@ func NewConfig(opts ...ConfigOption) *Config {
 		verbose           = false
 	)
 
+	// setup default values
 	config := &Config{
 		ContinueOnError:   continueOnError,
-		DenySymlinks:      denySymlinks,
+		AllowSymlinks:     allowSymlinks,
 		FollowSymlinks:    followSymlinks,
 		Overwrite:         overwrite,
-		Log:               log.New(io.Discard, "", 0),
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
 		Verbose:           verbose,
 	}
+
+	// disable logging by default
+	config.Logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	// Loop through each option
 	for _, opt := range opts {
@@ -71,6 +80,16 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// return the modified house instance
 	return config
+}
+
+// MetricsHook is a function pointer to implement the option pattern
+type MetricsHook func(context.Context, Metrics)
+
+// WithMetricsHook options pattern function to set a metrics hook
+func WithMetricsHook(hook MetricsHook) ConfigOption {
+	return func(c *Config) {
+		c.MetricsHook = hook
+	}
 }
 
 // WithMaxFiles options pattern function to set maxFiles in the config (-1 to disable check)
@@ -95,10 +114,10 @@ func WithOverwrite(enable bool) ConfigOption {
 	}
 }
 
-// WithDenySymlinks options pattern function to deny symlink extraction
-func WithDenySymlinks(deny bool) ConfigOption {
+// WithAllowSymlinks options pattern function to deny symlink extraction
+func WithAllowSymlinks(allow bool) ConfigOption {
 	return func(c *Config) {
-		c.DenySymlinks = deny
+		c.AllowSymlinks = allow
 	}
 }
 
@@ -116,20 +135,15 @@ func WithFollowSymlinks(follow bool) ConfigOption {
 	}
 }
 
-// WithVerbose options pattern function to get details on extraction
-func WithVerbose(verbose bool) ConfigOption {
+// WithLogger options pattern function to set a custom logger
+func WithLogger(logger Logger) ConfigOption {
 	return func(c *Config) {
-		c.Verbose = verbose
-		if verbose {
-			c.Log.SetOutput(os.Stderr)
-		} else {
-			c.Log.SetOutput(io.Discard)
-		}
+		c.Logger = logger
 	}
 }
 
 // checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e
-func (e *Config) CheckMaxFiles(counter int64) error {
+func (e *Config) CheckMaxObjects(counter int64) error {
 
 	// check if disabled
 	if e.MaxFiles == -1 {
@@ -156,4 +170,11 @@ func (e *Config) CheckExtractionSize(fileSize int64) error {
 		return fmt.Errorf("maximum extraction size exceeded")
 	}
 	return nil
+}
+
+// WithCreateDestination options pattern function to create destination directory if it does not exist
+func WithCreateDestination(create bool) ConfigOption {
+	return func(c *Config) {
+		c.CreateDestination = create
+	}
 }
