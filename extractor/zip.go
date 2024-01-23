@@ -57,16 +57,53 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		}
 	}()
 
-	// convert io.Reader to io.ReaderAt
+	// read src into buffer and check for limits and errors
 	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, src)
+	var size int64
+	{
+		var err error
+		if c.MaxExtractionSize > -1 {
+			// read src safe into buffer
+			for {
+				buf := make([]byte, 1024)
+				n, err := src.Read(buf)
+				if err != nil && err != io.EOF {
+					msg := "cannot read source zip archive"
+					return handleError(c, &metrics, msg, err)
+				}
 
-	// check for errors, format and handle them
-	if err != nil {
-		msg := "cannot read src"
-		return handleError(c, &metrics, msg, err)
+				// clothing read
+				if n == 0 {
+					break
+				}
+
+				// check if maximum is exceeded
+				if size+int64(n) < c.MaxExtractionSize {
+					buff.Write(buf[:n])
+					size = size + int64(n)
+
+					// check if context is errored
+					if ctx.Err() != nil {
+						msg := "context error"
+						return handleError(c, &metrics, msg, ctx.Err())
+					}
+				} else {
+					err := fmt.Errorf("archive size exceeds maximum extraction size")
+					msg := "cannot continue decompress zip"
+					return handleError(c, &metrics, msg, err)
+				}
+			}
+		} else {
+			// read all without limitations
+			size, err = io.Copy(buff, src)
+		}
+		if err != nil && err != io.EOF {
+			msg := "cannot read src"
+			return handleError(c, &metrics, msg, err)
+		}
 	}
 
+	// get content of buf as io.Reader
 	reader := bytes.NewReader(buff.Bytes())
 
 	// Open a zip archive for reading.
