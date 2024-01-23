@@ -39,23 +39,71 @@ var extractorsForMagicBytes = []struct {
 	},
 }
 
+var headerLength int
+
+func init() {
+	for _, ex := range extractorsForMagicBytes {
+		needs := ex.offset
+		for _, mb := range ex.magicBytes {
+			needs += len(mb)
+		}
+		if needs > headerLength {
+			headerLength = needs
+		}
+	}
+}
+
+// headerReader is an implementation of io.Reader that allows the first bytes of
+// the reader to be read twice. This is useful for identifying the archive type
+// before unpacking.
+type headerReader struct {
+	r      io.Reader
+	header []byte
+}
+
+func newHeaderReader(r io.Reader, headerSize int) (*headerReader, error) {
+	// read at least headerSize bytes. If EOF, capture whatever was read.
+	buf := make([]byte, headerSize)
+	n, err := io.ReadFull(r, buf)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, err
+	}
+	return &headerReader{r, buf[:n]}, nil
+}
+
+func (p *headerReader) Read(b []byte) (int, error) {
+	// read from header first
+	if len(p.header) > 0 {
+		n := copy(b, p.header)
+		p.header = p.header[n:]
+		return n, nil
+	}
+
+	// then continue reading from the source
+	return p.r.Read(b)
+}
+
+func (p *headerReader) PeekHeader() []byte {
+	return p.header
+}
+
 // Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config and target.
 func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 	var ex Extractor
 
-	// get bytes
-	archiveData, err := io.ReadAll(src)
+	header, err := newHeaderReader(src, headerLength)
 	if err != nil {
 		return err
 	}
+	headerData := header.PeekHeader()
 
-	if ex = findExtractor(archiveData); ex == nil {
+	if ex = findExtractor(headerData); ex == nil {
 		return fmt.Errorf("archive type not supported")
 	}
 
 	// perform extraction with identified reader
-	return ex.Unpack(ctx, bytes.NewReader(archiveData), dst, t, c)
+	return ex.Unpack(ctx, header, dst, t, c)
 }
 
 // findExtractor identifies the correct extractor based on magic bytes.
