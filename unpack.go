@@ -64,17 +64,17 @@ type headerReader struct {
 func newHeaderReader(r io.Reader, headerSize int) (*headerReader, error) {
 	// read at least headerSize bytes. If EOF, capture whatever was read.
 	buf := make([]byte, headerSize)
-	n, err := io.ReadAtLeast(r, buf, headerSize)
+	n, err := io.ReadFull(r, buf)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		return nil, err
 	}
 	return &headerReader{r, buf[:n]}, nil
 }
 
-func (p *headerReader) Read(b []byte) (n int, err error) {
+func (p *headerReader) Read(b []byte) (int, error) {
 	// read from header first
 	if len(p.header) > 0 {
-		n = copy(b, p.header)
+		n := copy(b, p.header)
 		p.header = p.header[n:]
 		return n, nil
 	}
