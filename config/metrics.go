@@ -29,7 +29,7 @@ type Metrics struct {
 	// ExtractedType is the type of the archive
 	ExtractedType string
 
-	// InputSize is the size of the input file
+	// InputSize is the size of the input
 	InputSize int64
 
 	// LastExtractionError is the last error during extraction
