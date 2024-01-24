@@ -102,6 +102,9 @@ func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *
 		return fmt.Errorf("archive type not supported")
 	}
 
+	// limit input file size if configured
+	src = NewLimitErrorReader(src, c.MaxInputFileSize)
+
 	// perform extraction with identified reader
 	return ex.Unpack(ctx, header, dst, t, c)
 }
@@ -131,4 +134,37 @@ func matchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
 	}
 
 	return bytes.Equal(magicBytes, data[offset:offset+len(magicBytes)])
+}
+
+type LimitErrorReader struct {
+	O io.Reader // original reader
+	R io.Reader // limited underlying reader
+}
+
+func (l *LimitErrorReader) Read(p []byte) (int, error) {
+	n, err := l.R.Read(p)
+
+	// check if original source is also fully read
+	if n == 0 {
+		if n, err = l.O.Read(p); n > 0 {
+			return 0, fmt.Errorf("read limit exceeded, but more data available")
+		}
+	}
+
+	// return
+	return n, err
+}
+
+// NewLimitErrorReader returns a new LimitErrorReader that reads from r
+func NewLimitErrorReader(r io.Reader, limit int64) *LimitErrorReader {
+	if limit > -1 {
+		return &LimitErrorReader{
+			O: r,
+			R: io.LimitReader(r, limit),
+		}
+	}
+	return &LimitErrorReader{
+		O: r,
+		R: r,
+	}
 }
