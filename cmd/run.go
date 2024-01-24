@@ -48,15 +48,13 @@ func Run(version, commit, date string) {
 	)
 
 	// Check for verbose output
-	logTarget := io.Discard
 	logLevel := slog.LevelError
 	if cli.Verbose {
 		logLevel = slog.LevelDebug
-		logTarget = os.Stderr
 	}
 
 	// setup logger
-	logger := slog.New(slog.NewTextHandler(logTarget, &slog.HandlerOptions{
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logLevel,
 	}))
 
