@@ -42,26 +42,27 @@ func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.T
 // the tar archive is extracted
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
+	// ensure input size and capture metrics
+	ler := NewLimitErrorReader(src, c.MaxInputFileSize)
+	src = ler
+
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "gzip"
-	metricsEmitted := false
 	start := time.Now()
 
-	// anonymous function to ensure single metrics emit
+	// anonymous function to emit metrics
 	emitMetrics := func() {
 
-		// do not emit metrics twice
-		if !metricsEmitted {
-			metricsEmitted = true
+		// store input file size
+		metrics.InputFileSize = ler.N
 
-			// calculate execution time
-			metrics.ExtractionDuration = time.Since(start)
+		// calculate execution time
+		metrics.ExtractionDuration = time.Since(start)
 
-			// emit metrics
-			if c.MetricsHook != nil {
-				c.MetricsHook(ctx, metrics)
-			}
+		// emit metrics
+		if c.MetricsHook != nil {
+			c.MetricsHook(ctx, metrics)
 		}
 	}
 

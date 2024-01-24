@@ -40,6 +40,10 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
+	// ensure input size and capture metrics
+	ler := NewLimitErrorReader(src, c.MaxInputFileSize)
+	src = ler
+
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "zip"
@@ -47,6 +51,9 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// anonymous function to emit metrics
 	defer func() {
+
+		// store input file size
+		metrics.InputFileSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)
@@ -265,4 +272,48 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 
 	// return result
 	return symlinkTarget, nil
+}
+
+// LimitErrorReader is a reader that returns an error if the limit is exceeded
+// before the underlying reader is fully read.
+// If the limit is -1, all data from the original reader is read.
+type LimitErrorReader struct {
+	O io.Reader // original reader
+	R io.Reader // limited underlying reader
+	N int64     // number of bytes read
+}
+
+// Read reads from the underlying reader and returns an error if the limit is exceeded
+// before the underlying reader is fully read.
+// If the limit is -1, all data from the original reader is read.
+// If the limit is exceeded, the original reader is read to check if more data is available.
+// If more data is available, an error is returned and left over data is stored in the buffer.
+func (l *LimitErrorReader) Read(p []byte) (int, error) {
+	n, err := l.R.Read(p)
+	l.N += int64(n)
+
+	// check if original source is also fully read
+	if n == 0 {
+		if n, err = l.O.Read(p); n > 0 {
+			l.N += int64(n)
+			return 0, fmt.Errorf("read limit exceeded, but more data available")
+		}
+	}
+
+	// return
+	return n, err
+}
+
+// NewLimitErrorReader returns a new LimitErrorReader that reads from r
+func NewLimitErrorReader(r io.Reader, limit int64) *LimitErrorReader {
+	if limit > -1 {
+		return &LimitErrorReader{
+			O: r,
+			R: io.LimitReader(r, limit),
+		}
+	}
+	return &LimitErrorReader{
+		O: r,
+		R: r,
+	}
 }

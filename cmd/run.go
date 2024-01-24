@@ -67,9 +67,9 @@ func Run(version, commit, date string) {
 
 	// process cli params
 	config := config.NewConfig(
+		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithCreateDestination(cli.CreateDestination),
-		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),

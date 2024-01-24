@@ -102,9 +102,6 @@ func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *
 		return fmt.Errorf("archive type not supported")
 	}
 
-	// limit input file size if configured
-	src = NewLimitErrorReader(src, c.MaxInputFileSize)
-
 	// perform extraction with identified reader
 	return ex.Unpack(ctx, header, dst, t, c)
 }
@@ -134,45 +131,4 @@ func matchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
 	}
 
 	return bytes.Equal(magicBytes, data[offset:offset+len(magicBytes)])
-}
-
-// LimitErrorReader is a reader that returns an error if the limit is exceeded
-// before the underlying reader is fully read.
-// If the limit is -1, all data from the original reader is read.
-type LimitErrorReader struct {
-	O io.Reader // original reader
-	R io.Reader // limited underlying reader
-}
-
-// Read reads from the underlying reader and returns an error if the limit is exceeded
-// before the underlying reader is fully read.
-// If the limit is -1, all data from the original reader is read.
-// If the limit is exceeded, the original reader is read to check if more data is available.
-// If more data is available, an error is returned and left over data is stored in the buffer.
-func (l *LimitErrorReader) Read(p []byte) (int, error) {
-	n, err := l.R.Read(p)
-
-	// check if original source is also fully read
-	if n == 0 {
-		if n, err = l.O.Read(p); n > 0 {
-			return 0, fmt.Errorf("read limit exceeded, but more data available")
-		}
-	}
-
-	// return
-	return n, err
-}
-
-// NewLimitErrorReader returns a new LimitErrorReader that reads from r
-func NewLimitErrorReader(r io.Reader, limit int64) *LimitErrorReader {
-	if limit > -1 {
-		return &LimitErrorReader{
-			O: r,
-			R: io.LimitReader(r, limit),
-		}
-	}
-	return &LimitErrorReader{
-		O: r,
-		R: r,
-	}
 }
