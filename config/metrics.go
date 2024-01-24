@@ -29,8 +29,8 @@ type Metrics struct {
 	// ExtractedType is the type of the archive
 	ExtractedType string
 
-	// InputFileSize is the size of the input file
-	InputFileSize int64
+	// InputSize is the size of the input file
+	InputSize int64
 
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
@@ -38,7 +38,7 @@ type Metrics struct {
 
 // String returns a string representation of the metrics
 func (m Metrics) String() string {
-	return fmt.Sprintf("type: %s, duration: %s, size: %d, files: %d, symlinks: %d, dirs: %d, errors: %d, last error: %s, archive size: %d",
+	return fmt.Sprintf("type: %s, duration: %s, size: %d, files: %d, symlinks: %d, dirs: %d, errors: %d, last error: %s, input size: %d",
 		m.ExtractedType,
 		m.ExtractionDuration,
 		m.ExtractionSize,
@@ -47,6 +47,6 @@ func (m Metrics) String() string {
 		m.ExtractedDirs,
 		m.ExtractionErrors,
 		m.LastExtractionError,
-		m.InputFileSize,
+		m.InputSize,
 	)
 }

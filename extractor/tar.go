@@ -61,7 +61,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	defer func() {
 
 		// store input file size
-		metrics.InputFileSize = ler.N
+		metrics.InputSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)

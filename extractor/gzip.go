@@ -55,7 +55,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	emitMetrics := func() {
 
 		// store input file size
-		metrics.InputFileSize = ler.N
+		metrics.InputSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)

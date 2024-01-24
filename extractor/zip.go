@@ -53,7 +53,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	defer func() {
 
 		// store input file size
-		metrics.InputFileSize = ler.N
+		metrics.InputSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)
