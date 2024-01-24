@@ -2,7 +2,7 @@
 
 [![test linux](https://github.com/hashicorp/go-extract/actions/workflows/test-linux.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/test-linux.yml) [![test windows](https://github.com/hashicorp/go-extract/actions/workflows/test-windows.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/test-windows.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure extraction of zip/tar/tar.gz/gz archive type.
+Secure in-memory extraction of zip/tar/tar.gz/gz archive type.
 
 ## Code Example
 
@@ -35,10 +35,12 @@ import (
     config := config.NewConfig(
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
+        config.WithCreateDestination(false),                 // do not try to create specified destination
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
-        config.WithLogger(*slog.Logger),                     // adjust logger (default: io.Discard)
+        config.WithLogger(Logger),                           // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
+        config.WithMaxInputFileSize(1 << (10 * 3)),          // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
     )
@@ -92,11 +94,13 @@ Arguments:
 Flags:
   -h, --help                              Show context-sensitive help.
   -C, --continue-on-error                 Continue extraction on error.
+  -c, --create-destination                Create destination directory if it does not exist.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
       --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
+      --max-input-file-size=1073741824    Maximum input file size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
   -v, --verbose                           Verbose logging.
@@ -117,7 +121,8 @@ Flags:
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
-- [x] context based cancleation
+- [x] input file size limitations
+- [x] context based cancelation
 - [x] option pattern for configuration
 - [x] `io.Reader` as source
 - [x] symlink inside archive
@@ -132,6 +137,8 @@ Flags:
 - [x] check for windows
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
+- [ ] Extraction filter with file names
+- [ ] Cache input on disk
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target
