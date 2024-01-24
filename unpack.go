@@ -136,11 +136,19 @@ func matchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
 	return bytes.Equal(magicBytes, data[offset:offset+len(magicBytes)])
 }
 
+// LimitErrorReader is a reader that returns an error if the limit is exceeded
+// before the underlying reader is fully read.
+// If the limit is -1, all data from the original reader is read.
 type LimitErrorReader struct {
 	O io.Reader // original reader
 	R io.Reader // limited underlying reader
 }
 
+// Read reads from the underlying reader and returns an error if the limit is exceeded
+// before the underlying reader is fully read.
+// If the limit is -1, all data from the original reader is read.
+// If the limit is exceeded, the original reader is read to check if more data is available.
+// If more data is available, an error is returned and left over data is stored in the buffer.
 func (l *LimitErrorReader) Read(p []byte) (int, error) {
 	n, err := l.R.Read(p)
 
