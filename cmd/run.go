@@ -28,7 +28,7 @@ type CLI struct {
 	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
-	MaxInputFileSize  int64            `optional:"" default:"1073741824" help:"Maximum input file size that allowed is (in bytes). (disable check: -1)"`
+	MaxInputSize      int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
 	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
@@ -74,7 +74,7 @@ func Run(version, commit, date string) {
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
-		config.WithMaxInputFileSize(cli.MaxInputFileSize),
+		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
 	)

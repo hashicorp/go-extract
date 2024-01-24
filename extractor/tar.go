@@ -49,7 +49,7 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
 	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputFileSize)
+	ler := NewLimitErrorReader(src, c.MaxInputSize)
 	src = ler
 
 	// object to store metrics

@@ -35,9 +35,9 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	MaxFiles int64
 
-	// MaxInputFileSize is the maximum size of the input file
+	// MaxInputSize is the maximum size of the input
 	// Set value to -1 to disable the check.
-	MaxInputFileSize int64
+	MaxInputSize int64
 
 	// MetricsHook is a function pointer to consume metrics after finished extraction
 	MetricsHook MetricsHook
@@ -60,7 +60,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
-		maxInputFileSize  = 1 << (10 * 3) // 1 Gb
+		maxInputSize      = 1 << (10 * 3) // 1 Gb
 		overwrite         = false
 		verbose           = false
 	)
@@ -77,7 +77,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		Logger:            logger,
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
-		MaxInputFileSize:  maxInputFileSize,
+		MaxInputSize:      maxInputSize,
 		Overwrite:         overwrite,
 		Verbose:           verbose,
 	}
@@ -116,11 +116,11 @@ func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	}
 }
 
-// WithMaxInputFileSize options pattern function to set WithMaxInputFileSize in the
+// WithMaxInputSize options pattern function to set MaxInputSize in the
 // config (-1 to disable check)
-func WithMaxInputFileSize(maxInputFileSize int64) ConfigOption {
+func WithMaxInputSize(maxInputSize int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxInputFileSize = maxInputFileSize
+		c.MaxInputSize = maxInputSize
 	}
 }
 

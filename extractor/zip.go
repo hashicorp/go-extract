@@ -41,7 +41,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
 	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputFileSize)
+	ler := NewLimitErrorReader(src, c.MaxInputSize)
 	src = ler
 
 	// object to store metrics
