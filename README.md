@@ -40,7 +40,7 @@ import (
         config.WithLogger(Logger),                           // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
-        config.WithMaxInputFileSize(1 << (10 * 3)),          // limit to 1 Gb (disable check: -1)
+        config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
     )
@@ -100,7 +100,7 @@ Flags:
       --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
-      --max-input-file-size=1073741824    Maximum input file size that allowed is (in bytes). (disable check: -1)
+      --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
   -v, --verbose                           Verbose logging.
