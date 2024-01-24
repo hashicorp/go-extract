@@ -43,6 +43,10 @@ type Config struct {
 
 	// Create destination directory if it does not exist
 	CreateDestination bool
+
+	// MaxInputFileSize is the maximum size of the input file
+	// Set value to -1 to disable the check.
+	MaxInputFileSize int64
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -55,6 +59,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
+		maxInputFileSize  = 1 << (10 * 3) // 1 Gb
 		overwrite         = false
 		verbose           = false
 	)
@@ -67,6 +72,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		Overwrite:         overwrite,
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
+		MaxInputFileSize:  maxInputFileSize,
 		Verbose:           verbose,
 	}
 
@@ -104,6 +110,14 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxExtractionSize = maxExtractionSize
+	}
+}
+
+// WithMaxInputFileSize options pattern function to set WithMaxInputFileSize in the
+// config (-1 to disable check)
+func WithMaxInputFileSize(maxInputFileSize int64) ConfigOption {
+	return func(c *Config) {
+		c.MaxInputFileSize = maxInputFileSize
 	}
 }
 
