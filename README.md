@@ -26,10 +26,13 @@ import (
 
 ...
 
-    ctx := context.Background()
 
     // open archive
     archive, _ := os.Open(...)
+
+    // prepare context with timeout
+    ctx, cancel := context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
+    defer cancel()
 
     // prepare config (these are the default values)
     config := config.NewConfig(
@@ -44,11 +47,6 @@ import (
         config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
     )
-
-    // prepare context with timeout
-    var cancel context.CancelFunc
-    ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
-    defer cancel()
 
     // extract archive
     if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
