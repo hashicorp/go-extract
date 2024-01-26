@@ -34,17 +34,29 @@ import (
     ctx, cancel := context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
     defer cancel()
 
+    // prepare logger
+    logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		  Level: slog.LevelInfo,
+	  }))
+
+    // setup metrics hook
+    metricsToLog := func(ctx context.Context, metrics config.Metrics) {
+      if cli.Metrics {
+        logger.Info("extraction finished", "metrics", metrics)
+      }
+    }
+
     // prepare config (these are the default values)
     config := config.NewConfig(
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
         config.WithCreateDestination(false),                 // do not try to create specified destination
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
-        config.WithLogger(Logger),                           // adjust logger (default: io.Discard)
+        config.WithLogger(logger),                           // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
-        config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
+        config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
     )
 
