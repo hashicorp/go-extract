@@ -12,13 +12,32 @@ type ConfigOption func(*Config)
 
 // Config is a struct type that holds all config options
 type Config struct {
-	// MaxFiles is the maximum of files in an archive.
-	// Set value to -1 to disable the check.
-	MaxFiles int64
+	// AllowSymlinks offers the option to enable/disable the extraction of symlinks
+	AllowSymlinks bool
+
+	// ContinueOnError decides if the extraction should be continued even if an error occurred
+	ContinueOnError bool
+
+	// Create destination directory if it does not exist
+	CreateDestination bool
+
+	// FollowSymlinks follow symlinks to directories during extraction
+	FollowSymlinks bool
+
+	// Logger stream for extraction
+	Logger Logger
 
 	// MaxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
 	MaxExtractionSize int64
+
+	// MaxFiles is the maximum of files in an archive.
+	// Set value to -1 to disable the check.
+	MaxFiles int64
+
+	// MaxInputSize is the maximum size of the input
+	// Set value to -1 to disable the check.
+	MaxInputSize int64
 
 	// MetricsHook is a function pointer to consume metrics after finished extraction
 	MetricsHook MetricsHook
@@ -26,52 +45,42 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	Overwrite bool
 
-	// AllowSymlinks offers the option to enable/disable the extraction of symlinks
-	AllowSymlinks bool
-
-	// ContinueOnError decides if the extraction should be continued even if an error occurred
-	ContinueOnError bool
-
-	// FollowSymlinks follow symlinks to directories during extraction
-	FollowSymlinks bool
-
 	// Verbose log extraction to stderr
 	Verbose bool
-
-	// Logger stream for extraction
-	Logger Logger
-
-	// Create destination directory if it does not exist
-	CreateDestination bool
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
 // default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
-		continueOnError   = false
 		allowSymlinks     = true
+		continueOnError   = false
+		createDestination = false
 		followSymlinks    = false
 		maxFiles          = 1000          // 1k files
 		maxExtractionSize = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime = 60            // 1 minute
+		maxInputSize      = 1 << (10 * 3) // 1 Gb
 		overwrite         = false
 		verbose           = false
 	)
 
+	// disable logging by default
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+
 	// setup default values
 	config := &Config{
-		ContinueOnError:   continueOnError,
 		AllowSymlinks:     allowSymlinks,
+		ContinueOnError:   continueOnError,
+		CreateDestination: createDestination,
 		FollowSymlinks:    followSymlinks,
-		Overwrite:         overwrite,
+		Logger:            logger,
 		MaxFiles:          maxFiles,
 		MaxExtractionSize: maxExtractionSize,
+		MaxInputSize:      maxInputSize,
+		Overwrite:         overwrite,
 		Verbose:           verbose,
 	}
-
-	// disable logging by default
-	config.Logger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 
 	// Loop through each option
 	for _, opt := range opts {
@@ -104,6 +113,14 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.MaxExtractionSize = maxExtractionSize
+	}
+}
+
+// WithMaxInputSize options pattern function to set MaxInputSize in the
+// config (-1 to disable check)
+func WithMaxInputSize(maxInputSize int64) ConfigOption {
+	return func(c *Config) {
+		c.MaxInputSize = maxInputSize
 	}
 }
 

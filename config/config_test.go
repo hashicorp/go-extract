@@ -1,7 +1,10 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"testing"
 )
 
@@ -46,45 +49,112 @@ func TestCheckMaxFiles(t *testing.T) {
 	}
 }
 
-// TestCheckExtractionSize implements test cases
-func TestCheckExtractionSize(t *testing.T) {
-
-	// prepare test cases
-	cases := []struct {
-		name        string
-		input       int64
-		config      *Config
-		expectError bool
-	}{
-		{
-			name:        "file size less then maximum",
-			input:       1 << (9 * 1),                                    // 512b
-			config:      NewConfig(WithMaxExtractionSize(1 << (10 * 1))), // 1kb
-			expectError: false,
-		},
-		{
-			name:        "file bigger then maximum",
-			input:       5 << (10 * 1),                                   // 5kb
-			config:      NewConfig(WithMaxExtractionSize(1 << (10 * 1))), // 1kb
-			expectError: true,
-		},
-		{
-			name:        "disable file size check",
-			input:       5 << (10 * 1),                        // 5kb
-			config:      NewConfig(WithMaxExtractionSize(-1)), // 1kb
-			expectError: false,
-		},
+// TestCheckMaxInputSize implements test cases
+func TestWithMetricsHook(t *testing.T) {
+	hook := func(ctx context.Context, metrics Metrics) {
+		// This is just a dummy hook for testing
 	}
 
-	// run cases
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			want := tc.expectError
-			got := tc.config.CheckExtractionSize(tc.input) != nil
-			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
-			}
-		})
+	config := &Config{}
+	option := WithMetricsHook(hook)
+	option(config)
+
+	if config.MetricsHook == nil {
+		t.Errorf("Expected MetricsHook to be set, but it was nil")
+	}
+}
+
+// TestWithMaxFiles implements test cases
+func TestWithMaxInputSize(t *testing.T) {
+	maxInputSize := int64(1024)
+	config := &Config{}
+	option := WithMaxInputSize(maxInputSize)
+	option(config)
+
+	if config.MaxInputSize != maxInputSize {
+		t.Errorf("Expected MaxInputSize to be %d, but got %d", maxInputSize, config.MaxInputSize)
+	}
+}
+
+// TestWithLogger implements test cases
+func TestWithLogger(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	config := &Config{}
+	option := WithLogger(logger)
+	option(config)
+
+	if config.Logger == nil {
+		t.Errorf("Expected Logger to be set, but it was nil")
+	}
+}
+
+// TestCheckMaxObjects implements test cases
+func TestCheckMaxObjects(t *testing.T) {
+	config := &Config{MaxFiles: 5}
+
+	err := config.CheckMaxObjects(6)
+	if err == nil {
+		t.Errorf("Expected error when counter exceeds MaxFiles, but got nil")
+	}
+
+	err = config.CheckMaxObjects(5)
+	if err != nil {
+		t.Errorf("Expected no error when counter equals MaxFiles, but got: %s", err)
+	}
+
+	err = config.CheckMaxObjects(4)
+	if err != nil {
+		t.Errorf("Expected no error when counter is less than MaxFiles, but got: %s", err)
+	}
+
+	config.MaxFiles = -1
+	err = config.CheckMaxObjects(6)
+	if err != nil {
+		t.Errorf("Expected no error when MaxFiles is -1, but got: %s", err)
+	}
+}
+
+// TestCheckExtractionSize implements test cases
+func TestCheckExtractionSize(t *testing.T) {
+	config := &Config{MaxExtractionSize: 1024}
+
+	err := config.CheckExtractionSize(2048)
+	if err == nil {
+		t.Errorf("Expected error when fileSize exceeds MaxExtractionSize, but got nil")
+	}
+
+	err = config.CheckExtractionSize(1024)
+	if err != nil {
+		t.Errorf("Expected no error when fileSize equals MaxExtractionSize, but got: %s", err)
+	}
+
+	err = config.CheckExtractionSize(512)
+	if err != nil {
+		t.Errorf("Expected no error when fileSize is less than MaxExtractionSize, but got: %s", err)
+	}
+
+	config.MaxExtractionSize = -1
+	err = config.CheckExtractionSize(2048)
+	if err != nil {
+		t.Errorf("Expected no error when MaxExtractionSize is -1, but got: %s", err)
+	}
+}
+
+// TestWithCreateDestination implements test cases
+func TestWithCreateDestination(t *testing.T) {
+	config := &Config{}
+	option := WithCreateDestination(true)
+	option(config)
+
+	if config.CreateDestination != true {
+		t.Errorf("Expected CreateDestination to be true, but got false")
+	}
+
+	option = WithCreateDestination(false)
+	option(config)
+
+	if config.CreateDestination != false {
+		t.Errorf("Expected CreateDestination to be false, but got true")
 	}
 }
 

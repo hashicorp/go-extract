@@ -48,6 +48,10 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
+	// ensure input size and capture metrics
+	ler := NewLimitErrorReader(src, c.MaxInputSize)
+	src = ler
+
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "tar"
@@ -55,6 +59,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 	// anonymous function to emit metrics
 	defer func() {
+
+		// store input file size
+		metrics.InputSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)

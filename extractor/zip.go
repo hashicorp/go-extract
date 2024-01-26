@@ -40,6 +40,10 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
+	// ensure input size and capture metrics
+	ler := NewLimitErrorReader(src, c.MaxInputSize)
+	src = ler
+
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "zip"
@@ -47,6 +51,9 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// anonymous function to emit metrics
 	defer func() {
+
+		// store input file size
+		metrics.InputSize = ler.N
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)
@@ -57,20 +64,23 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		}
 	}()
 
-	// convert io.Reader to io.ReaderAt
+	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
-
-	// check for errors, format and handle them
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)
 	}
 
-	reader := bytes.NewReader(buff.Bytes())
+	// check if context is canceled
+	if err := ctx.Err(); err != nil {
+		msg := "context error"
+		return handleError(c, &metrics, msg, err)
+	}
 
-	// Open a zip archive for reading.
-	zipReader, err := zip.NewReader(reader, size)
+	// get content of buf as io.Reader
+	srcReader := bytes.NewReader(buff.Bytes())
+	zipReader, err := zip.NewReader(srcReader, size)
 
 	// check for errors, format and handle them
 	if err != nil {
@@ -262,4 +272,45 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 
 	// return result
 	return symlinkTarget, nil
+}
+
+// limitErrorReader is a reader that returns an error if the limit is exceeded
+// before the underlying reader is fully read.
+// If the limit is -1, all data from the original reader is read.
+type limitErrorReader struct {
+	R io.Reader // underlying reader
+	L int64     // limit
+	N int64     // number of bytes read
+}
+
+// Read reads from the underlying reader and fills up p.
+// It returns an error if the limit is exceeded, even if the underlying reader is not fully read.
+// If the limit is -1, all data from the original reader is read.
+// Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
+// reader is fully read.
+func (l *limitErrorReader) Read(p []byte) (int, error) {
+
+	if l.L == -1 {
+		return l.R.Read(p)
+	}
+
+	// read from underlying reader
+	n, err := l.R.Read(p)
+	l.N += int64(n)
+	if err != nil {
+		return n, err
+	}
+
+	// check if limit has exceeded
+	if l.N > l.L {
+		return n, fmt.Errorf("read limit exceeded")
+	}
+
+	// return
+	return n, err
+}
+
+// NewLimitErrorReader returns a new LimitErrorReader that reads from r
+func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReader {
+	return &limitErrorReader{R: r, L: limit, N: 0}
 }

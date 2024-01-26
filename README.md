@@ -1,8 +1,8 @@
 # go-extract
 
-[![test linux](https://github.com/hashicorp/go-extract/actions/workflows/test-linux.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/test-linux.yml) [![test windows](https://github.com/hashicorp/go-extract/actions/workflows/test-windows.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/test-windows.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
+[![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure extraction of zip/tar/tar.gz/gz archive type.
+Secure in-memory extraction of zip/tar/tar.gz/gz archive type.
 
 ## Code Example
 
@@ -26,27 +26,37 @@ import (
 
 ...
 
-    ctx := context.Background()
 
     // open archive
     archive, _ := os.Open(...)
+
+    // prepare context with timeout
+    ctx, cancel := context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
+    defer cancel()
+
+    // prepare logger
+    logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+      Level: slog.LevelInfo,
+    }))
+
+    // setup metrics hook
+    metricsToLog := func(ctx context.Context, metrics config.Metrics) {
+      logger.Info("extraction finished", "metrics", metrics)
+    }
 
     // prepare config (these are the default values)
     config := config.NewConfig(
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
+        config.WithCreateDestination(false),                 // do not try to create specified destination
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
-        config.WithLogger(*slog.Logger),                     // adjust logger (default: io.Discard)
+        config.WithLogger(logger),                           // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
-        config.WithMetricsHook(metricsHook(config.Metrics)), // define hook to receive metrics from extraction
+        config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
+        config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
     )
-
-    // prepare context with timeout
-    var cancel context.CancelFunc
-    ctx, cancel = context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
-    defer cancel()
 
     // extract archive
     if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
@@ -92,11 +102,13 @@ Arguments:
 Flags:
   -h, --help                              Show context-sensitive help.
   -C, --continue-on-error                 Continue extraction on error.
+  -c, --create-destination                Create destination directory if it does not exist.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
       --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
+      --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
   -v, --verbose                           Verbose logging.
@@ -117,7 +129,8 @@ Flags:
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion
-- [x] context based cancleation
+- [x] input file size limitations
+- [x] context based cancelation
 - [x] option pattern for configuration
 - [x] `io.Reader` as source
 - [x] symlink inside archive
@@ -132,6 +145,8 @@ Flags:
 - [x] check for windows
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
+- [ ] Extraction filter with file names
+- [ ] Cache input on disk
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target

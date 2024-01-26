@@ -28,6 +28,7 @@ type CLI struct {
 	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
+	MaxInputSize      int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
 	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
@@ -47,15 +48,13 @@ func Run(version, commit, date string) {
 	)
 
 	// Check for verbose output
-	logTarget := io.Discard
 	logLevel := slog.LevelError
 	if cli.Verbose {
 		logLevel = slog.LevelDebug
-		logTarget = os.Stderr
 	}
 
 	// setup logger
-	logger := slog.New(slog.NewTextHandler(logTarget, &slog.HandlerOptions{
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logLevel,
 	}))
 
@@ -68,13 +67,14 @@ func Run(version, commit, date string) {
 
 	// process cli params
 	config := config.NewConfig(
+		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithCreateDestination(cli.CreateDestination),
-		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
+		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
 	)
