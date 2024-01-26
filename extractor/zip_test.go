@@ -557,8 +557,7 @@ func TestLimitErrorReader_Read(t *testing.T) {
 			buf := make([]byte, len(tt.input))
 			n, err := l.Read(buf)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Read() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("Read() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if n != tt.expectN {
 				t.Errorf("Read() = %v, want %v", n, tt.expectN)
