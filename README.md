@@ -36,8 +36,8 @@ import (
 
     // prepare logger
     logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		  Level: slog.LevelInfo,
-	  }))
+      Level: slog.LevelInfo,
+    }))
 
     // setup metrics hook
     metricsToLog := func(ctx context.Context, metrics config.Metrics) {
