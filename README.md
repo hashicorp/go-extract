@@ -41,9 +41,7 @@ import (
 
     // setup metrics hook
     metricsToLog := func(ctx context.Context, metrics config.Metrics) {
-      if cli.Metrics {
-        logger.Info("extraction finished", "metrics", metrics)
-      }
+      logger.Info("extraction finished", "metrics", metrics)
     }
 
     // prepare config (these are the default values)
