@@ -50,19 +50,25 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "gzip"
 	start := time.Now()
+	emitGzipMetrics := true
 
 	// anonymous function to emit metrics
 	emitMetrics := func() {
 
-		// store input file size
-		metrics.InputSize = ler.N
+		// check if metrics should still be emitted
+		if emitGzipMetrics {
 
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
+			// store input file size
+			metrics.InputSize = ler.N
 
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
+			// calculate execution time
+			metrics.ExtractionDuration = time.Since(start)
+
+			// emit metrics
+			if c.MetricsHook != nil {
+				c.MetricsHook(ctx, metrics)
+			}
+
 		}
 	}
 
@@ -134,8 +140,26 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 		// check if magic bytes match
 		if bytes.Equal(magicBytes, data[OffsetTar:OffsetTar+len(magicBytes)]) {
 
-			// emit metrics for gzip
-			emitMetrics()
+			// ensure that gzip metrics are not emitted and tar metrics are combined with gzip metrics
+			if c.MetricsHook != nil {
+				emitGzipMetrics = false
+				oldMetricsHook := c.MetricsHook
+				c.MetricsHook = func(ctx context.Context, m config.Metrics) {
+					metrics.ExtractedType = "tar+gzip"             // combined input type
+					metrics.InputSize = ler.N                      // store original input file size
+					metrics.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
+					// emit metrics
+					if oldMetricsHook != nil {
+						c.MetricsHook(ctx, metrics)
+					}
+				}
+			}
+
+			// check if context is canceled
+			if err := ctx.Err(); err != nil {
+				msg := "context error"
+				return handleError(c, &metrics, msg, err)
+			}
 
 			// extract tar archive
 			tar := NewTar()
