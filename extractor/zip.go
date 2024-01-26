@@ -274,10 +274,10 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	return symlinkTarget, nil
 }
 
-// LimitErrorReader is a reader that returns an error if the limit is exceeded
+// limitErrorReader is a reader that returns an error if the limit is exceeded
 // before the underlying reader is fully read.
 // If the limit is -1, all data from the original reader is read.
-type LimitErrorReader struct {
+type limitErrorReader struct {
 	R io.Reader // underlying reader
 	L int64     // limit
 	N int64     // number of bytes read
@@ -288,7 +288,7 @@ type LimitErrorReader struct {
 // If the limit is -1, all data from the original reader is read.
 // Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
 // reader is fully read.
-func (l *LimitErrorReader) Read(p []byte) (int, error) {
+func (l *limitErrorReader) Read(p []byte) (int, error) {
 
 	if l.L == -1 {
 		return l.R.Read(p)
@@ -311,6 +311,6 @@ func (l *LimitErrorReader) Read(p []byte) (int, error) {
 }
 
 // NewLimitErrorReader returns a new LimitErrorReader that reads from r
-func NewLimitErrorReader(r io.Reader, limit int64) *LimitErrorReader {
-	return &LimitErrorReader{R: r, L: limit, N: 0}
+func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReader {
+	return &limitErrorReader{R: r, L: limit, N: 0}
 }
