@@ -290,10 +290,6 @@ type limitErrorReader struct {
 // reader is fully read.
 func (l *limitErrorReader) Read(p []byte) (int, error) {
 
-	if l.L == -1 {
-		return l.R.Read(p)
-	}
-
 	// read from underlying reader
 	n, err := l.R.Read(p)
 	l.N += int64(n)
