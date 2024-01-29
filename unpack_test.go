@@ -594,6 +594,24 @@ func TestMetriksHook(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name:                  "normal tar.gz with file with max files limit",
+			inputGenerator:        genTarGzWith5Files,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1024 * 5 * 2, // more storage needed to include file headers for tar and gzip
+			WithMaxFiles:          4,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   4,
+				ExtractionErrors: 1,
+				ExtractionSize:   1024 * 4,
+				ExtractedType:    "tar+gzip",
+			},
+			expectError: true,
+		},
 	}
 
 	// run cases
