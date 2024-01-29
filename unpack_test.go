@@ -582,7 +582,7 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
-			WithMaxExtractionSize: 1024 * 5 * 2, // more storage needed to include file headers for tar and gzip
+			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
 			expectedMetrics: config.Metrics{
@@ -600,7 +600,7 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
-			WithMaxExtractionSize: 1024 * 5 * 2, // more storage needed to include file headers for tar and gzip
+			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          4,
 			WithOverwrite:         false,
 			expectedMetrics: config.Metrics{
