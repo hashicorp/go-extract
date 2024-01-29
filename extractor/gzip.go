@@ -101,7 +101,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			}
 
 			// check if maximum is exceeded
-			if readBytes+int64(n) < c.MaxExtractionSize {
+			if readBytes+int64(n) <= c.MaxExtractionSize {
 				bytesBuffer.Write(buf[:n])
 				readBytes = readBytes + int64(n)
 				metrics.ExtractionSize = readBytes
@@ -123,7 +123,6 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			return handleError(c, &metrics, msg, err)
 		}
 	}
-	metrics.ExtractedFiles++
 
 	// check if src is a tar archive
 	c.Logger.Debug("check magic bytes")
@@ -145,12 +144,12 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 				emitGzipMetrics = false
 				oldMetricsHook := c.MetricsHook
 				c.MetricsHook = func(ctx context.Context, m config.Metrics) {
-					metrics.ExtractedType = "tar+gzip"             // combined input type
-					metrics.InputSize = ler.N                      // store original input file size
-					metrics.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
+					m.ExtractedType = "tar+gzip"             // combined input type
+					m.InputSize = int64(ler.ReadBytes())     // store original input file size
+					m.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
 					// emit metrics
 					if oldMetricsHook != nil {
-						c.MetricsHook(ctx, metrics)
+						oldMetricsHook(ctx, m)
 					}
 				}
 			}
@@ -177,8 +176,9 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}
 
 	// check if context is canceled
-	if ctx.Err() != nil {
-		return nil
+	if err := ctx.Err(); err != nil {
+		msg := "context error"
+		return handleError(c, &metrics, msg, err)
 	}
 
 	// Create file
@@ -188,5 +188,6 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}
 
 	// finished
+	metrics.ExtractedFiles++
 	return nil
 }
