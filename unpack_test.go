@@ -503,7 +503,7 @@ func TestMetriksHook(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:                  "normal gzip with file, and decompression target-name in sub-dir failing",
+			name:                  "normal gzip with file and decompression target-name in sub-dir failing",
 			inputGenerator:        gen1024ByteGzip,
 			inputName:             "GzipWithFile.gz",
 			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
@@ -516,7 +516,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
-				ExtractionSize:   1024,
+				ExtractionSize:   0,
 				ExtractedType:    "gzip",
 			},
 			expectError: true,
