@@ -42,7 +42,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// ensure input size and capture metrics
 	ler := NewLimitErrorReader(src, c.MaxInputSize)
-	src = ler
 
 	// object to store metrics
 	metrics := config.Metrics{}
@@ -66,7 +65,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, src)
+	size, err := io.Copy(buff, ler)
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)

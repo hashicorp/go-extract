@@ -52,26 +52,16 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 
 	// anonymous function to emit metrics
 	emitMetrics := func() {
-
-		// check if metrics should still be emitted
-		if emitGzipMetrics {
-
-			// store input file size
-			metrics.InputSize = int64(ler.ReadBytes())
-
-			// calculate execution time
-			metrics.ExtractionDuration = time.Since(start)
-
-			// emit metrics
-			if c.MetricsHook != nil {
+		if emitGzipMetrics { // check if metrics should still be emitted
+			metrics.InputSize = int64(ler.ReadBytes())     // store input file size
+			metrics.ExtractionDuration = time.Since(start) // calculate execution time
+			if c.MetricsHook != nil {                      // emit metrics
 				c.MetricsHook(ctx, metrics)
 			}
 
 		}
 	}
-
-	// emit metrics
-	defer emitMetrics()
+	defer emitMetrics() // emit metrics
 
 	c.Logger.Info("extracting gzip")
 
