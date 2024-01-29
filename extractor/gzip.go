@@ -147,10 +147,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 					m.ExtractedType = "tar+gzip"             // combined input type
 					m.InputSize = int64(ler.ReadBytes())     // store original input file size
 					m.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
-					// emit metrics
-					if oldMetricsHook != nil {
-						oldMetricsHook(ctx, m)
-					}
+					oldMetricsHook(ctx, m)                   // finally emit metrics
 				}
 			}
 
