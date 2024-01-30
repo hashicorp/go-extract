@@ -56,6 +56,7 @@ import (
         config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithOverwrite(false),                         // don't replace existing files
+        config.WithTarGzExtract(false),                      // gunzip only a tar.gz and don't untar also
     )
 
     // extract archive
@@ -111,6 +112,7 @@ Flags:
       --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
   -O, --overwrite                         Overwrite if exist.
+      --tar-gz                            Enable tar.gz extraction.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```

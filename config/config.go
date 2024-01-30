@@ -46,6 +46,9 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	overwrite bool
 
+	// tarGzExtract offers the option to enable/disable the extraction of tar.gz archives
+	tarGzExtract bool
+
 	// verbose log extraction to stderr
 	verbose bool
 }
@@ -63,6 +66,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionTime = 60            // 1 minute
 		maxInputSize      = 1 << (10 * 3) // 1 Gb
 		overwrite         = false
+		tarGzExtract      = false
 		verbose           = false
 	)
 
@@ -80,6 +84,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize: maxExtractionSize,
 		maxInputSize:      maxInputSize,
 		overwrite:         overwrite,
+		tarGzExtract:      tarGzExtract,
 		verbose:           verbose,
 	}
 
@@ -106,6 +111,13 @@ func WithMetricsHook(hook MetricsHook) ConfigOption {
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.maxFiles = maxFiles
+	}
+}
+
+// WithTarGzExtract options pattern function to enable/disable tar.gz extraction
+func WithTarGzExtract(enable bool) ConfigOption {
+	return func(c *Config) {
+		c.tarGzExtract = enable
 	}
 }
 
@@ -151,6 +163,11 @@ func (c *Config) MaxInputSize() int64 {
 // Overwrite returns true if files should be overwritten in the destination
 func (c *Config) Overwrite() bool {
 	return c.overwrite
+}
+
+// TarGzExtract returns true if tar.gz extraction is enabled
+func (c *Config) TarGzExtract() bool {
+	return c.tarGzExtract
 }
 
 // MetricsHooksOnce emits metrics once to all configured hooks and resets the hook list

@@ -100,7 +100,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	headerBytes := headerReader.PeekHeader()
 
 	// check for tar header
-	if IsTar(headerBytes) {
+	if c.TarGzExtract() && IsTar(headerBytes) {
 		// combine types
 		c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
 			m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType)
@@ -111,6 +111,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}
 
 	// determine name for decompressed content
+	// TODO: use headerReader to determine name
 	name := "gunziped-content"
 	if dst != "." {
 		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
