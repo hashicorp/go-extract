@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -52,37 +51,18 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReaderCounter(src, c.MaxInputSize)
-
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "tar"
-	start := time.Now()
 
 	// anonymous function to emit metrics
-	defer func() {
+	defer c.MetricsHook(ctx, &metrics)
 
-		// store input file size
-		metrics.InputSize = int64(ler.ReadBytes())
-
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
-
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, &metrics)
-		}
-	}()
-
+	// start extraction
 	c.Logger.Info("extracting tar")
-
-	// prepare safety vars
 	var objectCounter int64
 	var extractionSize uint64
-
-	// open tar
-	tr := tar.NewReader(ler)
+	tr := tar.NewReader(src)
 
 	// walk through tar
 	for {
