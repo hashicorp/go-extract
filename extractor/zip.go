@@ -43,6 +43,9 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 }
 
 // prepare ensures limited read and generic metric capturing
+// remark: this preparation is located in the extractor package so that the
+// different extractor engines can be used independently and keep their
+// functionality.
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
 	// ensure input size and capture metrics
