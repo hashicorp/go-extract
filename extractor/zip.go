@@ -46,7 +46,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
 	// ensure input size and capture metrics
-	ler := NewLimitErrorReaderCounter(src, c.MaxInputSize)
+	ler := newLimitErrorReaderCounter(src, c.MaxInputSize)
 
 	// capture start to calculate execution time
 	start := time.Now()
@@ -329,7 +329,7 @@ func (l *limitErrorReaderCounter) ReadBytes() int {
 	return int(l.N)
 }
 
-// NewLimitErrorReaderCounter returns a new LimitErrorReaderCounter that reads from r
-func NewLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
+// newLimitErrorReaderCounter returns a new limitErrorReaderCounter that reads from r
+func newLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
 	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }

@@ -552,7 +552,7 @@ func TestLimitErrorReader_Read(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := strings.NewReader(tt.input)
-			l := NewLimitErrorReaderCounter(r, tt.limit)
+			l := newLimitErrorReaderCounter(r, tt.limit)
 
 			buf := make([]byte, len(tt.input))
 			n, err := l.Read(buf)
@@ -624,7 +624,7 @@ func TestReadBytes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := strings.NewReader(tt.input)
-			l := NewLimitErrorReaderCounter(r, tt.limit)
+			l := newLimitErrorReaderCounter(r, tt.limit)
 			buf := make([]byte, tt.bufferSize)
 			n, err := l.Read(buf)
 			if (err != nil) != tt.wantErr {
