@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -34,38 +34,32 @@ func NewGzip() *Gzip {
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
-	return g.unpack(ctx, src, dst, t, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	return g.unpack(ctx, reader, dst, t, c)
 }
 
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "gzip"
-	start := time.Now()
-	emitGzipMetrics := true
 
 	// anonymous function to emit metrics
-	emitMetrics := func() {
+	emitGzipMetrics := true
+	defer func() {
 		if emitGzipMetrics { // check if metrics should still be emitted
-			metrics.InputSize = int64(ler.ReadBytes())     // store input file size
-			metrics.ExtractionDuration = time.Since(start) // calculate execution time
-			if c.MetricsHook != nil {                      // emit metrics
-				c.MetricsHook(ctx, metrics)
-			}
-
+			c.MetricsHook(ctx, &metrics)
 		}
-	}
-	defer emitMetrics() // emit metrics
+	}()
 
+	// prepare gzip extraction
 	c.Logger.Info("extracting gzip")
-
-	uncompressedStream, err := gzip.NewReader(ler)
+	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
 		msg := "cannot read gzip"
 		return handleError(c, &metrics, msg, err)
@@ -102,11 +96,9 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			if c.MetricsHook != nil {
 				emitGzipMetrics = false
 				oldMetricsHook := c.MetricsHook
-				c.MetricsHook = func(ctx context.Context, m config.Metrics) {
-					m.ExtractedType = "tar+gzip"             // combined input type
-					m.InputSize = int64(ler.ReadBytes())     // store original input file size
-					m.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
-					oldMetricsHook(ctx, m)                   // finally emit metrics
+				c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
+					m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType) // combine types
+					oldMetricsHook(ctx, m)                                    // finally emit metrics
 				}
 			}
 			return tar.Unpack(ctx, headerReader, dst, t, c)

@@ -42,15 +42,18 @@ func NewTar() *Tar {
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
-	return t.unpack(ctx, src, dst, target, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	return t.unpack(ctx, reader, dst, target, c)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
 	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-	src = ler
+	ler := NewLimitErrorReaderCounter(src, c.MaxInputSize)
 
 	// object to store metrics
 	metrics := config.Metrics{}
@@ -61,14 +64,14 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	defer func() {
 
 		// store input file size
-		metrics.InputSize = ler.N
+		metrics.InputSize = int64(ler.ReadBytes())
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)
 
 		// emit metrics
 		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
+			c.MetricsHook(ctx, &metrics)
 		}
 	}()
 
@@ -79,7 +82,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	var extractionSize uint64
 
 	// open tar
-	tr := tar.NewReader(src)
+	tr := tar.NewReader(ler)
 
 	// walk through tar
 	for {

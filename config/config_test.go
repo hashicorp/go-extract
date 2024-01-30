@@ -51,7 +51,7 @@ func TestCheckMaxFiles(t *testing.T) {
 
 // TestCheckMaxInputSize implements test cases
 func TestWithMetricsHook(t *testing.T) {
-	hook := func(ctx context.Context, metrics Metrics) {
+	hook := func(ctx context.Context, metrics *Metrics) {
 		// This is just a dummy hook for testing
 	}
 

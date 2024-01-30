@@ -679,8 +679,8 @@ func TestMetriksHook(t *testing.T) {
 			}
 
 			// prepare config
-			var collectedMetrics config.Metrics
-			hook := func(ctx context.Context, metrics config.Metrics) {
+			var collectedMetrics *config.Metrics
+			hook := func(ctx context.Context, metrics *config.Metrics) {
 				collectedMetrics = metrics
 			}
 

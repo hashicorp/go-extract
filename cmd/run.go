@@ -59,7 +59,7 @@ func Run(version, commit, date string) {
 	}))
 
 	// setup metrics hook
-	metricsToLog := func(ctx context.Context, metrics config.Metrics) {
+	metricsToLog := func(ctx context.Context, metrics *config.Metrics) {
 		if cli.Metrics {
 			logger.Info("extraction finished", "metrics", metrics)
 		}

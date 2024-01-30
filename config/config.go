@@ -92,7 +92,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 }
 
 // MetricsHook is a function pointer to implement the option pattern
-type MetricsHook func(context.Context, Metrics)
+type MetricsHook func(context.Context, *Metrics)
 
 // WithMetricsHook options pattern function to set a metrics hook
 func WithMetricsHook(hook MetricsHook) ConfigOption {

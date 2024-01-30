@@ -34,38 +34,54 @@ func NewZip() *Zip {
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
-	return z.unpack(ctx, src, dst, t, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	// perform extraction
+	return z.unpack(ctx, reader, dst, t, c)
+}
+
+// prepare ensures limited read and generic metric capturing
+func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
+
+	// ensure input size and capture metrics
+	ler := NewLimitErrorReaderCounter(src, c.MaxInputSize)
+
+	// capture start to calculate execution time
+	start := time.Now()
+
+	// extend metric collection
+	oldMetricsHook := c.MetricsHook
+	c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
+
+		// capture execution time
+		m.ExtractionDuration = time.Since(start)
+
+		// capture inputSize metric
+		m.InputSize = int64(ler.ReadBytes())
+
+		if oldMetricsHook != nil {
+			oldMetricsHook(ctx, m)
+		}
+	}
+
+	return ler
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "zip"
-	start := time.Now()
 
-	// anonymous function to emit metrics
-	defer func() {
-
-		// store input file size
-		metrics.InputSize = int64(ler.ReadBytes())
-
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
-
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
-		}
-	}()
+	// emit metrics
+	defer c.MetricsHook(ctx, &metrics)
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, ler)
+	size, err := io.Copy(buff, src)
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)
@@ -113,9 +129,13 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = err
-			return handleError(c, &metrics, "max objects check failed", err)
+			msg := "max objects exceeded"
+			if err := handleError(c, &metrics, msg, err); err != nil {
+				return err
+			}
+
+			// go to next item
+			continue
 		}
 
 		c.Logger.Info("extract", "name", hdr.Name)
@@ -310,7 +330,7 @@ func (l *limitErrorReaderCounter) ReadBytes() int {
 	return int(l.N)
 }
 
-// NewLimitErrorReader returns a new LimitErrorReader that reads from r
-func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReaderCounter {
+// NewLimitErrorReaderCounter returns a new LimitErrorReaderCounter that reads from r
+func NewLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
 	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }
