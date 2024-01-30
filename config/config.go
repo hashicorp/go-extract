@@ -12,41 +12,42 @@ type ConfigOption func(*Config)
 
 // Config is a struct type that holds all config options
 type Config struct {
-	// AllowSymlinks offers the option to enable/disable the extraction of symlinks
-	AllowSymlinks bool
+	// allowSymlinks offers the option to enable/disable the extraction of symlinks
+	allowSymlinks bool
 
-	// ContinueOnError decides if the extraction should be continued even if an error occurred
-	ContinueOnError bool
+	// continueOnError decides if the extraction should be continued even if an error occurred
+	continueOnError bool
 
-	// Create destination directory if it does not exist
-	CreateDestination bool
+	// create destination directory if it does not exist
+	createDestination bool
 
-	// FollowSymlinks follow symlinks to directories during extraction
-	FollowSymlinks bool
+	// followSymlinks follow symlinks to directories during extraction
+	followSymlinks bool
 
-	// Logger stream for extraction
-	Logger Logger
+	// logger stream for extraction
+	logger Logger
 
-	// MaxExtractionSize is the maximum size of a file after decompression.
+	// maxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
-	MaxExtractionSize int64
+	maxExtractionSize int64
 
-	// MaxFiles is the maximum of files in an archive.
+	// maxFiles is the maximum of files in an archive.
 	// Set value to -1 to disable the check.
-	MaxFiles int64
+	maxFiles int64
 
-	// MaxInputSize is the maximum size of the input
+	// maxInputSize is the maximum size of the input
 	// Set value to -1 to disable the check.
-	MaxInputSize int64
+	maxInputSize int64
 
 	// MetricsHook is a function pointer to consume metrics after finished extraction
+	// Important: do not adjust this value after extraction started
 	MetricsHook MetricsHook
 
 	// Define if files should be overwritten in the destination
-	Overwrite bool
+	overwrite bool
 
-	// Verbose log extraction to stderr
-	Verbose bool
+	// verbose log extraction to stderr
+	verbose bool
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -70,16 +71,16 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default values
 	config := &Config{
-		AllowSymlinks:     allowSymlinks,
-		ContinueOnError:   continueOnError,
-		CreateDestination: createDestination,
-		FollowSymlinks:    followSymlinks,
-		Logger:            logger,
-		MaxFiles:          maxFiles,
-		MaxExtractionSize: maxExtractionSize,
-		MaxInputSize:      maxInputSize,
-		Overwrite:         overwrite,
-		Verbose:           verbose,
+		allowSymlinks:     allowSymlinks,
+		continueOnError:   continueOnError,
+		createDestination: createDestination,
+		followSymlinks:    followSymlinks,
+		logger:            logger,
+		maxFiles:          maxFiles,
+		maxExtractionSize: maxExtractionSize,
+		maxInputSize:      maxInputSize,
+		overwrite:         overwrite,
+		verbose:           verbose,
 	}
 
 	// Loop through each option
@@ -104,15 +105,59 @@ func WithMetricsHook(hook MetricsHook) ConfigOption {
 // WithMaxFiles options pattern function to set maxFiles in the config (-1 to disable check)
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxFiles = maxFiles
+		c.maxFiles = maxFiles
 	}
+}
+
+// AllowSymlinks returns true if symlinks are allowed
+func (c *Config) AllowSymlinks() bool {
+	return c.allowSymlinks
+}
+
+// ContinueOnError returns true if the extraction should continue on error
+func (c *Config) ContinueOnError() bool {
+	return c.continueOnError
+}
+
+// CreateDestination returns true if the destination directory should be created if it does not exist
+func (c *Config) CreateDestination() bool {
+	return c.createDestination
+}
+
+// FollowSymlinks returns true if symlinks should be followed
+func (c *Config) FollowSymlinks() bool {
+	return c.followSymlinks
+}
+
+func (c *Config) Logger() Logger {
+	return c.logger
+}
+
+// MaxExtractionSize returns the maximum size of a file after decompression
+func (c *Config) MaxExtractionSize() int64 {
+	return c.maxExtractionSize
+}
+
+// MaxFiles returns the maximum of files in an archive
+func (c *Config) MaxFiles() int64 {
+	return c.maxFiles
+}
+
+// MaxInputSize returns the maximum size of the input
+func (c *Config) MaxInputSize() int64 {
+	return c.maxInputSize
+}
+
+// Overwrite returns true if files should be overwritten in the destination
+func (c *Config) Overwrite() bool {
+	return c.overwrite
 }
 
 // WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the
 // config (-1 to disable check)
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxExtractionSize = maxExtractionSize
+		c.maxExtractionSize = maxExtractionSize
 	}
 }
 
@@ -120,42 +165,42 @@ func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 // config (-1 to disable check)
 func WithMaxInputSize(maxInputSize int64) ConfigOption {
 	return func(c *Config) {
-		c.MaxInputSize = maxInputSize
+		c.maxInputSize = maxInputSize
 	}
 }
 
 // WithOverwrite options pattern function to set overwrite in the config
 func WithOverwrite(enable bool) ConfigOption {
 	return func(c *Config) {
-		c.Overwrite = enable
+		c.overwrite = enable
 	}
 }
 
 // WithAllowSymlinks options pattern function to deny symlink extraction
 func WithAllowSymlinks(allow bool) ConfigOption {
 	return func(c *Config) {
-		c.AllowSymlinks = allow
+		c.allowSymlinks = allow
 	}
 }
 
 // WithContinueOnError options pattern function to continue on error during extraction
 func WithContinueOnError(yes bool) ConfigOption {
 	return func(c *Config) {
-		c.ContinueOnError = yes
+		c.continueOnError = yes
 	}
 }
 
 // WithFollowSymlinks options pattern function to follow symlinks to  directories during extraction
 func WithFollowSymlinks(follow bool) ConfigOption {
 	return func(c *Config) {
-		c.FollowSymlinks = follow
+		c.followSymlinks = follow
 	}
 }
 
 // WithLogger options pattern function to set a custom logger
 func WithLogger(logger Logger) ConfigOption {
 	return func(c *Config) {
-		c.Logger = logger
+		c.logger = logger
 	}
 }
 
@@ -163,12 +208,12 @@ func WithLogger(logger Logger) ConfigOption {
 func (e *Config) CheckMaxObjects(counter int64) error {
 
 	// check if disabled
-	if e.MaxFiles == -1 {
+	if e.MaxFiles() == -1 {
 		return nil
 	}
 
 	// check value
-	if counter > e.MaxFiles {
+	if counter > e.MaxFiles() {
 		return fmt.Errorf("to many files in archive")
 	}
 	return nil
@@ -178,12 +223,12 @@ func (e *Config) CheckMaxObjects(counter int64) error {
 func (e *Config) CheckExtractionSize(fileSize int64) error {
 
 	// check if disabled
-	if e.MaxExtractionSize == -1 {
+	if e.MaxExtractionSize() == -1 {
 		return nil
 	}
 
 	// check value
-	if fileSize > e.MaxExtractionSize {
+	if fileSize > e.MaxExtractionSize() {
 		return fmt.Errorf("maximum extraction size exceeded")
 	}
 	return nil
@@ -192,6 +237,6 @@ func (e *Config) CheckExtractionSize(fileSize int64) error {
 // WithCreateDestination options pattern function to create destination directory if it does not exist
 func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
-		c.CreateDestination = create
+		c.createDestination = create
 	}
 }

@@ -58,7 +58,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	defer c.MetricsHook(ctx, &metrics)
 
 	// start extraction
-	c.Logger.Info("extracting tar")
+	c.Logger().Info("extracting tar")
 	var objectCounter int64
 	var extractionSize uint64
 	tr := tar.NewReader(src)
@@ -104,7 +104,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			continue
 		}
 
-		c.Logger.Debug("extract", "name", hdr.Name)
+		c.Logger().Debug("extract", "name", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it

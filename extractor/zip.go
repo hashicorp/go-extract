@@ -49,7 +49,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
 	// ensure input size and capture metrics
-	ler := newLimitErrorReaderCounter(src, c.MaxInputSize)
+	ler := newLimitErrorReaderCounter(src, c.MaxInputSize())
 
 	// capture start to calculate execution time
 	start := time.Now()
@@ -84,6 +84,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
 	size, err := io.Copy(buff, src)
+
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)
@@ -140,7 +141,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			continue
 		}
 
-		c.Logger.Info("extract", "name", hdr.Name)
+		c.Logger().Info("extract", "name", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
@@ -264,8 +265,8 @@ func handleError(c *config.Config, metrics *config.Metrics, msg string, err erro
 	metrics.LastExtractionError = err
 
 	// do not end on error
-	if c.ContinueOnError {
-		c.Logger.Error(msg, "error", err)
+	if c.ContinueOnError() {
+		c.Logger().Error(msg, "error", err)
 		return nil
 	}
 
@@ -336,3 +337,25 @@ func (l *limitErrorReaderCounter) ReadBytes() int {
 func newLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
 	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }
+
+// type safeReadAt struct {
+// 	R io.Reader
+// 	B bytes.Buffer
+// }
+
+// func (s *safeReadAt) ReadAt(p []byte, off int64) (int, error) {
+// 	if off < int64(s.B.Len()) {
+// 		io.Copy(p, io.NewSectionReader(&s.B, off, int64(s.B.Len())-off)
+// 		return s.B.ReadAt(p, off)
+// 	}
+
+// 	s.B.Write
+
+// 	n, err := s.R.Read(p)
+// 	if err != nil {
+// 		return n, err
+// 	}
+
+// 	_, err = s.B.Write(p[:n])
+// 	return n, err
+// }

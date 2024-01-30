@@ -57,7 +57,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}()
 
 	// prepare gzip extraction
-	c.Logger.Info("extracting gzip")
+	c.Logger().Info("extracting gzip")
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
 		msg := "cannot read gzip"
@@ -92,13 +92,11 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 			tar := NewTar()
 
 			// ensure that gzip metrics are not emitted and tar metrics are combined with gzip metrics
-			if c.MetricsHook != nil {
-				emitGzipMetrics = false
-				oldMetricsHook := c.MetricsHook
-				c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
-					m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType) // combine types
-					oldMetricsHook(ctx, m)                                    // finally emit metrics
-				}
+			oldMetricsHook := c.MetricsHook
+			emitGzipMetrics = false
+			c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
+				m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType) // combine types
+				oldMetricsHook(ctx, m)                                    // finally emit metrics
 			}
 			return tar.Unpack(ctx, headerReader, dst, t, c)
 		}
