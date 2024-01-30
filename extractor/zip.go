@@ -330,25 +330,3 @@ func (l *limitErrorReaderCounter) ReadBytes() int {
 func newLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
 	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }
-
-// type safeReadAt struct {
-// 	R io.Reader
-// 	B bytes.Buffer
-// }
-
-// func (s *safeReadAt) ReadAt(p []byte, off int64) (int, error) {
-// 	if off < int64(s.B.Len()) {
-// 		io.Copy(p, io.NewSectionReader(&s.B, off, int64(s.B.Len())-off)
-// 		return s.B.ReadAt(p, off)
-// 	}
-
-// 	s.B.Write
-
-// 	n, err := s.R.Read(p)
-// 	if err != nil {
-// 		return n, err
-// 	}
-
-// 	_, err = s.B.Write(p[:n])
-// 	return n, err
-// }
