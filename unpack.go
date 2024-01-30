@@ -1,7 +1,6 @@
 package extract
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -33,26 +32,12 @@ func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *
 // findExtractor identifies the correct extractor based on magic bytes.
 func findExtractor(data []byte) Extractor {
 	// find extractor with longest suffix match
-	for _, ex := range extractor.ExtractorsForMagicBytes {
-		// check all possible magic bytes for extract engine
-		for _, magicBytes := range ex.MagicBytes {
-
-			// check for byte match
-			if matchesMagicBytes(data, ex.Offset, magicBytes) {
-				return ex.NewExtractor()
-			}
+	for _, ex := range extractor.AvailableExtractors {
+		if ex.HeaderCheck(data) {
+			return ex.NewExtractor()
 		}
 	}
 
 	// no matching reader found
 	return nil
-}
-
-// matchesMagicBytes checks if the bytes in data are equal to magicBytes after at a given offset
-func matchesMagicBytes(data []byte, offset int, magicBytes []byte) bool {
-	if offset+len(magicBytes) > len(data) {
-		return false
-	}
-
-	return bytes.Equal(magicBytes, data[offset:offset+len(magicBytes)])
 }

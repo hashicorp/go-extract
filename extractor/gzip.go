@@ -16,7 +16,7 @@ import (
 
 // reference https://socketloop.com/tutorials/golang-gunzip-file
 
-var MagicBytesGZIP = [][]byte{
+var magicBytesGZIP = [][]byte{
 	{0x1f, 0x8b},
 }
 
@@ -30,6 +30,30 @@ func NewGzip() *Gzip {
 
 	// return the modified house instance
 	return &gzip
+}
+
+type HeaderCheck (func([]byte) bool)
+
+func IsGZIP(header []byte) bool {
+	return matchesMagicBytes(header, 0, magicBytesGZIP)
+}
+
+func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
+	// check all possible magic bytes until match is found
+	for _, mb := range magicBytes {
+		// check if header is long enough
+		if offset+len(mb) > len(data) {
+			continue
+		}
+
+		// check for byte match
+		if bytes.Equal(mb, data[offset:offset+len(mb)]) {
+			return true
+		}
+	}
+
+	// no match found
+	return false
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
@@ -48,13 +72,8 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// object to store metrics
 	metrics := config.Metrics{ExtractedType: "gzip"}
 
-	// anonymous function to emit metrics
-	emitGzipMetrics := true
-	defer func() {
-		if emitGzipMetrics { // check if metrics should still be emitted
-			c.MetricsHook(ctx, &metrics)
-		}
-	}()
+	// emit metrics
+	defer c.MetricsHooksOnce(ctx, &metrics)
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
@@ -79,27 +98,16 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 
 	// check if uncompressed stream is tar
 	headerBytes := headerReader.PeekHeader()
-	for _, magicBytes := range MagicBytesTar {
 
-		// check if header is long enough
-		if OffsetTar+len(magicBytes) > len(headerBytes) {
-			continue
-		}
+	// check for tar header
+	if IsTar(headerBytes) {
+		// combine types
+		c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
+			m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType)
+		})
 
-		// check for byte match
-		if bytes.Equal(magicBytes, headerBytes[OffsetTar:OffsetTar+len(magicBytes)]) {
-
-			tar := NewTar()
-
-			// ensure that gzip metrics are not emitted and tar metrics are combined with gzip metrics
-			oldMetricsHook := c.MetricsHook
-			emitGzipMetrics = false
-			c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
-				m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType) // combine types
-				oldMetricsHook(ctx, m)                                    // finally emit metrics
-			}
-			return tar.Unpack(ctx, headerReader, dst, t, c)
-		}
+		// continue with tar extraction
+		return NewTar().Unpack(ctx, headerReader, dst, t, c)
 	}
 
 	// determine name for decompressed content
@@ -167,41 +175,47 @@ type extractor interface {
 	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
 }
 
-// ExtractorsForMagicBytes is collection of new extractor functions with
+// AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
-var ExtractorsForMagicBytes = []struct {
+var AvailableExtractors = []struct {
 	NewExtractor func() extractor
-	Offset       int
+	HeaderCheck  func([]byte) bool
 	MagicBytes   [][]byte
+	Offset       int
 }{
 	{
 		NewExtractor: func() extractor {
 			return NewTar()
 		},
-		Offset:     OffsetTar,
-		MagicBytes: MagicBytesTar,
+		HeaderCheck: IsTar,
+		MagicBytes:  magicBytesTar,
+		Offset:      offsetTar,
 	},
 	{
 		NewExtractor: func() extractor {
 			return NewZip()
 		},
-		MagicBytes: MagicBytesZIP,
+		HeaderCheck: IsZip,
+		MagicBytes:  magicBytesZIP,
 	},
 	{
 		NewExtractor: func() extractor {
 			return NewGzip()
 		},
-		MagicBytes: MagicBytesGZIP,
+		HeaderCheck: IsGZIP,
+		MagicBytes:  magicBytesGZIP,
 	},
 }
 
 var MaxHeaderLength int
 
 func init() {
-	for _, ex := range ExtractorsForMagicBytes {
+	for _, ex := range AvailableExtractors {
 		needs := ex.Offset
 		for _, mb := range ex.MagicBytes {
-			needs += len(mb)
+			if len(mb)+ex.Offset > needs {
+				needs = len(mb) + ex.Offset
+			}
 		}
 		if needs > MaxHeaderLength {
 			MaxHeaderLength = needs

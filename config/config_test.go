@@ -51,16 +51,18 @@ func TestCheckMaxFiles(t *testing.T) {
 
 // TestCheckMaxInputSize implements test cases
 func TestWithMetricsHook(t *testing.T) {
+	hookExecuted := false
 	hook := func(ctx context.Context, metrics *Metrics) {
-		// This is just a dummy hook for testing
+		hookExecuted = true
 	}
 
 	config := &Config{}
 	option := WithMetricsHook(hook)
 	option(config)
+	config.MetricsHooksOnce(context.Background(), &Metrics{})
 
-	if config.MetricsHook == nil {
-		t.Errorf("Expected MetricsHook to be set, but it was nil")
+	if hookExecuted == false {
+		t.Errorf("Expected MetricsHook to be executed, but it was not")
 	}
 }
 

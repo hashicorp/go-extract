@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-const OffsetTar = 257
+const offsetTar = 257
 
-var MagicBytesTar = [][]byte{
+var magicBytesTar = [][]byte{
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
 }
@@ -23,6 +23,10 @@ var MagicBytesTar = [][]byte{
 type Tar struct {
 	// target is the target of the extraction
 	target target.Target
+}
+
+func IsTar(data []byte) bool {
+	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }
 
 // NewTar creates a new untar object with config as configuration
@@ -55,7 +59,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	metrics := config.Metrics{ExtractedType: "tar"}
 
 	// anonymous function to emit metrics
-	defer c.MetricsHook(ctx, &metrics)
+	defer c.MetricsHooksOnce(ctx, &metrics)
 
 	// start extraction
 	c.Logger().Info("extracting tar")

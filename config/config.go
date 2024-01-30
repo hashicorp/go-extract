@@ -41,7 +41,7 @@ type Config struct {
 
 	// MetricsHook is a function pointer to consume metrics after finished extraction
 	// Important: do not adjust this value after extraction started
-	MetricsHook MetricsHook
+	metricsHooks []MetricsHook
 
 	// Define if files should be overwritten in the destination
 	overwrite bool
@@ -98,7 +98,7 @@ type MetricsHook func(context.Context, *Metrics)
 // WithMetricsHook options pattern function to set a metrics hook
 func WithMetricsHook(hook MetricsHook) ConfigOption {
 	return func(c *Config) {
-		c.MetricsHook = hook
+		c.metricsHooks = append(c.metricsHooks, hook)
 	}
 }
 
@@ -151,6 +151,24 @@ func (c *Config) MaxInputSize() int64 {
 // Overwrite returns true if files should be overwritten in the destination
 func (c *Config) Overwrite() bool {
 	return c.overwrite
+}
+
+// MetricsHooksOnce emits metrics once to all configured hooks and resets the hook list
+// after execution
+func (c *Config) MetricsHooksOnce(ctx context.Context, metrics *Metrics) {
+
+	// emit metrics in reverse order
+	for i := len(c.metricsHooks) - 1; i >= 0; i-- {
+		c.metricsHooks[i](ctx, metrics)
+	}
+
+	// empty hooks
+	c.metricsHooks = []MetricsHook{}
+
+}
+
+func (c *Config) AddMetricsHook(hook MetricsHook) {
+	c.metricsHooks = append(c.metricsHooks, hook)
 }
 
 // WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the

@@ -16,12 +16,16 @@ import (
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
-var MagicBytesZIP = [][]byte{
+var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
 // Zip is implements the Extractor interface to extract zip archives.
 type Zip struct{}
+
+func IsZip(data []byte) bool {
+	return matchesMagicBytes(data, 0, magicBytesZIP)
+}
 
 // NewZip returns a new zip object with config as configuration.
 func NewZip() *Zip {
@@ -48,26 +52,15 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 // functionality.
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
-	// ensure input size and capture metrics
-	ler := newLimitErrorReaderCounter(src, c.MaxInputSize())
-
-	// capture start to calculate execution time
-	start := time.Now()
+	// setup reader and timer
+	start := time.Now()                                      // capture start to calculate execution time
+	ler := newLimitErrorReaderCounter(src, c.MaxInputSize()) // ensure input size and capture metrics
 
 	// extend metric collection
-	oldMetricsHook := c.MetricsHook
-	c.MetricsHook = func(ctx context.Context, m *config.Metrics) {
-
-		// capture execution time
-		m.ExtractionDuration = time.Since(start)
-
-		// capture inputSize metric
-		m.InputSize = int64(ler.ReadBytes())
-
-		if oldMetricsHook != nil {
-			oldMetricsHook(ctx, m)
-		}
-	}
+	c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
+		m.ExtractionDuration = time.Since(start) // capture execution time
+		m.InputSize = int64(ler.ReadBytes())     // capture inputSize metric
+	})
 
 	return ler
 }
@@ -79,7 +72,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	metrics := config.Metrics{ExtractedType: "zip"}
 
 	// emit metrics
-	defer c.MetricsHook(ctx, &metrics)
+	defer c.MetricsHooksOnce(ctx, &metrics)
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
@@ -262,7 +255,7 @@ func handleError(c *config.Config, metrics *config.Metrics, msg string, err erro
 
 	// increase error counter and set error
 	metrics.ExtractionErrors++
-	metrics.LastExtractionError = err
+	metrics.LastExtractionError = fmt.Errorf("%s: %s", msg, err)
 
 	// do not end on error
 	if c.ContinueOnError() {
@@ -271,7 +264,7 @@ func handleError(c *config.Config, metrics *config.Metrics, msg string, err erro
 	}
 
 	// end extraction on error
-	return fmt.Errorf("%s: %s", msg, err)
+	return metrics.LastExtractionError
 }
 
 // readLinkTargetFromZip extracts the symlink destination for symlinkFile

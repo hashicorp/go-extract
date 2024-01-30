@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"encoding/json"
 	"time"
 )
 
@@ -38,15 +38,6 @@ type Metrics struct {
 
 // String returns a string representation of the metrics
 func (m Metrics) String() string {
-	return fmt.Sprintf("type: %s, duration: %s, size: %d, files: %d, symlinks: %d, dirs: %d, errors: %d, last error: %v, input size: %d",
-		m.ExtractedType,
-		m.ExtractionDuration,
-		m.ExtractionSize,
-		m.ExtractedFiles,
-		m.ExtractedSymlinks,
-		m.ExtractedDirs,
-		m.ExtractionErrors,
-		m.LastExtractionError,
-		m.InputSize,
-	)
+	b, _ := json.Marshal(m)
+	return string(b)
 }
