@@ -73,8 +73,7 @@ func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "zip"
+	metrics := config.Metrics{ExtractedType: "zip"}
 
 	// emit metrics
 	defer c.MetricsHook(ctx, &metrics)

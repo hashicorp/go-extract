@@ -52,8 +52,7 @@ func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target targ
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "tar"
+	metrics := config.Metrics{ExtractedType: "tar"}
 
 	// anonymous function to emit metrics
 	defer c.MetricsHook(ctx, &metrics)

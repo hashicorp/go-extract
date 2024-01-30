@@ -46,8 +46,7 @@ func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.T
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "gzip"
+	metrics := config.Metrics{ExtractedType: "gzip"}
 
 	// anonymous function to emit metrics
 	emitGzipMetrics := true
