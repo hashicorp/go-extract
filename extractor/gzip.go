@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -44,102 +43,73 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 
 	// ensure input size and capture metrics
 	ler := NewLimitErrorReader(src, c.MaxInputSize)
-	src = ler
 
 	// object to store metrics
 	metrics := config.Metrics{}
 	metrics.ExtractedType = "gzip"
 	start := time.Now()
+	emitGzipMetrics := true
 
 	// anonymous function to emit metrics
 	emitMetrics := func() {
+		if emitGzipMetrics { // check if metrics should still be emitted
+			metrics.InputSize = int64(ler.ReadBytes())     // store input file size
+			metrics.ExtractionDuration = time.Since(start) // calculate execution time
+			if c.MetricsHook != nil {                      // emit metrics
+				c.MetricsHook(ctx, metrics)
+			}
 
-		// store input file size
-		metrics.InputSize = ler.N
-
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
-
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
 		}
 	}
-
-	// emit metrics
-	defer emitMetrics()
+	defer emitMetrics() // emit metrics
 
 	c.Logger.Info("extracting gzip")
 
-	uncompressedStream, err := gzip.NewReader(src)
+	uncompressedStream, err := gzip.NewReader(ler)
 	if err != nil {
 		msg := "cannot read gzip"
 		return handleError(c, &metrics, msg, err)
 	}
 
-	// size check
-	var bytesBuffer bytes.Buffer
-	if c.MaxExtractionSize > -1 {
-		var readBytes int64
-		for {
-			buf := make([]byte, 1024)
-			n, err := uncompressedStream.Read(buf)
-			if err != nil && err != io.EOF {
-				msg := "cannot read decompressed gzip"
-				return handleError(c, &metrics, msg, err)
-			}
-
-			// clothing read
-			if n == 0 {
-				break
-			}
-
-			// check if maximum is exceeded
-			if readBytes+int64(n) < c.MaxExtractionSize {
-				bytesBuffer.Write(buf[:n])
-				readBytes = readBytes + int64(n)
-				metrics.ExtractionSize = readBytes
-
-				// check if context is canceled
-				if ctx.Err() != nil {
-					return nil
-				}
-			} else {
-				err := fmt.Errorf("maximum extraction size exceeded")
-				msg := "cannot continue decompress gzip"
-				return handleError(c, &metrics, msg, err)
-			}
-		}
-	} else {
-		metrics.ExtractionSize, err = bytesBuffer.ReadFrom(uncompressedStream)
-		if err != nil {
-			msg := "cannot read from gzip"
-			return handleError(c, &metrics, msg, err)
-		}
+	// convert to peek header
+	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
+	if err != nil {
+		msg := "cannot read header uncompressed gzip"
+		return handleError(c, &metrics, msg, err)
 	}
-	metrics.ExtractedFiles++
 
-	// check if src is a tar archive
-	c.Logger.Debug("check magic bytes")
+	// check if context is canceled
+	if err := ctx.Err(); err != nil {
+		msg := "context error"
+		return handleError(c, &metrics, msg, err)
+	}
+
+	// check if uncompressed stream is tar
+	headerBytes := headerReader.PeekHeader()
 	for _, magicBytes := range MagicBytesTar {
 
-		// get decompressed gzip data
-		data := bytesBuffer.Bytes()
-
-		// skip if smaller than offset
-		if OffsetTar+len(magicBytes) > len(data) {
+		// check if header is long enough
+		if OffsetTar+len(magicBytes) > len(headerBytes) {
 			continue
 		}
 
-		// check if magic bytes match
-		if bytes.Equal(magicBytes, data[OffsetTar:OffsetTar+len(magicBytes)]) {
+		// check for byte match
+		if bytes.Equal(magicBytes, headerBytes[OffsetTar:OffsetTar+len(magicBytes)]) {
 
-			// emit metrics for gzip
-			emitMetrics()
-
-			// extract tar archive
 			tar := NewTar()
-			return tar.Unpack(ctx, bytes.NewReader(data), dst, t, c)
+
+			// ensure that gzip metrics are not emitted and tar metrics are combined with gzip metrics
+			if c.MetricsHook != nil {
+				emitGzipMetrics = false
+				oldMetricsHook := c.MetricsHook
+				c.MetricsHook = func(ctx context.Context, m config.Metrics) {
+					m.ExtractedType = "tar+gzip"             // combined input type
+					m.InputSize = int64(ler.ReadBytes())     // store original input file size
+					m.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
+					oldMetricsHook(ctx, m)                   // finally emit metrics
+				}
+			}
+			return tar.Unpack(ctx, headerReader, dst, t, c)
 		}
 	}
 
@@ -152,17 +122,100 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 		}
 	}
 
-	// check if context is canceled
-	if ctx.Err() != nil {
-		return nil
-	}
-
 	// Create file
-	if err := t.CreateSafeFile(c, dst, name, bytes.NewReader(bytesBuffer.Bytes()), 0644); err != nil {
+	if err := t.CreateSafeFile(c, dst, name, headerReader, 0644); err != nil {
 		msg := "cannot create file"
 		return handleError(c, &metrics, msg, err)
 	}
 
+	// get size of extracted file
+	if stat, err := os.Stat(filepath.Join(dst, name)); err == nil {
+		metrics.ExtractionSize = stat.Size()
+	}
+
 	// finished
+	metrics.ExtractedFiles++
 	return nil
+}
+
+// HeaderReader is an implementation of io.Reader that allows the first bytes of
+// the reader to be read twice. This is useful for identifying the archive type
+// before unpacking.
+type HeaderReader struct {
+	r      io.Reader
+	header []byte
+}
+
+func NewHeaderReader(r io.Reader, headerSize int) (*HeaderReader, error) {
+	// read at least headerSize bytes. If EOF, capture whatever was read.
+	buf := make([]byte, headerSize)
+	n, err := io.ReadFull(r, buf)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return nil, err
+	}
+	return &HeaderReader{r, buf[:n]}, nil
+}
+
+func (p *HeaderReader) Read(b []byte) (int, error) {
+	// read from header first
+	if len(p.header) > 0 {
+		n := copy(b, p.header)
+		p.header = p.header[n:]
+		return n, nil
+	}
+
+	// then continue reading from the source
+	return p.r.Read(b)
+}
+
+func (p *HeaderReader) PeekHeader() []byte {
+	return p.header
+}
+
+// extractor is a private interface and defines all functions that needs to be implemented by an extraction engine.
+type extractor interface {
+	// Unpack is the main entrypoint to an extraction engine that takes the contents from src and extracts them to dst.
+	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
+}
+
+// ExtractorsForMagicBytes is collection of new extractor functions with
+// the required magic bytes and potential offset
+var ExtractorsForMagicBytes = []struct {
+	NewExtractor func() extractor
+	Offset       int
+	MagicBytes   [][]byte
+}{
+	{
+		NewExtractor: func() extractor {
+			return NewTar()
+		},
+		Offset:     OffsetTar,
+		MagicBytes: MagicBytesTar,
+	},
+	{
+		NewExtractor: func() extractor {
+			return NewZip()
+		},
+		MagicBytes: MagicBytesZIP,
+	},
+	{
+		NewExtractor: func() extractor {
+			return NewGzip()
+		},
+		MagicBytes: MagicBytesGZIP,
+	},
+}
+
+var MaxHeaderLength int
+
+func init() {
+	for _, ex := range ExtractorsForMagicBytes {
+		needs := ex.Offset
+		for _, mb := range ex.MagicBytes {
+			needs += len(mb)
+		}
+		if needs > MaxHeaderLength {
+			MaxHeaderLength = needs
+		}
+	}
 }

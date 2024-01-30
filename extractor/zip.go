@@ -42,7 +42,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// ensure input size and capture metrics
 	ler := NewLimitErrorReader(src, c.MaxInputSize)
-	src = ler
 
 	// object to store metrics
 	metrics := config.Metrics{}
@@ -53,7 +52,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	defer func() {
 
 		// store input file size
-		metrics.InputSize = ler.N
+		metrics.InputSize = int64(ler.ReadBytes())
 
 		// calculate execution time
 		metrics.ExtractionDuration = time.Since(start)
@@ -66,7 +65,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, src)
+	size, err := io.Copy(buff, ler)
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)
@@ -274,10 +273,10 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	return symlinkTarget, nil
 }
 
-// limitErrorReader is a reader that returns an error if the limit is exceeded
+// limitErrorReaderCounter is a reader that returns an error if the limit is exceeded
 // before the underlying reader is fully read.
 // If the limit is -1, all data from the original reader is read.
-type limitErrorReader struct {
+type limitErrorReaderCounter struct {
 	R io.Reader // underlying reader
 	L int64     // limit
 	N int64     // number of bytes read
@@ -288,11 +287,7 @@ type limitErrorReader struct {
 // If the limit is -1, all data from the original reader is read.
 // Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
 // reader is fully read.
-func (l *limitErrorReader) Read(p []byte) (int, error) {
-
-	if l.L == -1 {
-		return l.R.Read(p)
-	}
+func (l *limitErrorReaderCounter) Read(p []byte) (int, error) {
 
 	// read from underlying reader
 	n, err := l.R.Read(p)
@@ -302,15 +297,20 @@ func (l *limitErrorReader) Read(p []byte) (int, error) {
 	}
 
 	// check if limit has exceeded
-	if l.N > l.L {
+	if l.L >= 0 && l.N > l.L {
 		return n, fmt.Errorf("read limit exceeded")
 	}
 
 	// return
-	return n, err
+	return n, nil
+}
+
+// ReadBytes returns how many bytes have been read from the underlying reader
+func (l *limitErrorReaderCounter) ReadBytes() int {
+	return int(l.N)
 }
 
 // NewLimitErrorReader returns a new LimitErrorReader that reads from r
-func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReader {
-	return &limitErrorReader{R: r, L: limit, N: 0}
+func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReaderCounter {
+	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }

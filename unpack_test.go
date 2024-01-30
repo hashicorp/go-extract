@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -113,7 +114,12 @@ func createTestGzipWithFile(dstDir string) string {
 	defer os.RemoveAll(tmpDir)
 
 	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	testFilePath := filepath.Join(tmpDir, "test")
+	createTestFile(testFilePath, "foobar content")
+	f1, err := os.Open(testFilePath)
+	if err != nil {
+		panic(err)
+	}
 	defer f1.Close()
 
 	// create Gzip file
@@ -121,6 +127,35 @@ func createTestGzipWithFile(dstDir string) string {
 
 	// return path to zip
 	return targetFile
+}
+
+func createGzipFromFile(dstFile string, srcFile string) {
+	// Create a new gzipped file
+	gzippedFile, err := os.Create(dstFile)
+	if err != nil {
+		panic(err)
+	}
+	defer gzippedFile.Close()
+
+	// Create a new gzip writer
+	gzipWriter := gzip.NewWriter(gzippedFile)
+	defer gzipWriter.Close()
+
+	// open src file
+	src, err := os.Open(srcFile)
+	if err != nil {
+		panic(err)
+	}
+	defer src.Close()
+
+	// Copy the contents of the original file to the gzip writer
+	_, err = io.Copy(gzipWriter, src)
+	if err != nil {
+		panic(err)
+	}
+
+	// Flush the gzip writer to ensure all data is written
+	gzipWriter.Flush()
 }
 
 // createTestZip is a helper function to generate test data
@@ -138,7 +173,12 @@ func createTestZip(dstDir string) string {
 	defer zipWriter.Close()
 
 	// prepare testfile for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	testFilePath := filepath.Join(tmpDir, "test")
+	createTestFile(testFilePath, "foobar content")
+	f1, err := os.Open(testFilePath)
+	if err != nil {
+		panic(err)
+	}
 	defer f1.Close()
 
 	// write file into zip
@@ -159,17 +199,12 @@ func createTestNonArchive(dstDir string) string {
 }
 
 // createTestFile is a helper function to generate test files
-func createTestFile(path string, content string) *os.File {
+func createTestFile(path string, content string) {
 	byteArray := []byte(content)
 	err := os.WriteFile(path, byteArray, 0644)
 	if err != nil {
 		panic(err)
 	}
-	newFile, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	return newFile
 }
 
 // createTestTar is a helper function to generate test data
@@ -187,7 +222,12 @@ func createTestTar(dstDir string) string {
 	tarWriter := tar.NewWriter(f)
 
 	// prepare testfile for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	testFilePath := filepath.Join(tmpDir, "test")
+	createTestFile(testFilePath, "foobar content")
+	f1, err := os.Open(testFilePath)
+	if err != nil {
+		panic(err)
+	}
 	defer f1.Close()
 
 	// Add file to tar
@@ -198,6 +238,31 @@ func createTestTar(dstDir string) string {
 
 	// return path to tar
 	return targetFile
+}
+
+func createTestTarWithFiles(dst string, files map[string]string) {
+
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// prepare generated zip+writer
+
+	f, _ := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	tarWriter := tar.NewWriter(f)
+
+	for nameInArchive, origFile := range files {
+		f1, err := os.Open(origFile)
+		if err != nil {
+			panic(err)
+		}
+		defer f1.Close()
+
+		addFileToTarArchive(tarWriter, nameInArchive, f1)
+	}
+
+	// close tar
+	tarWriter.Close()
 }
 
 // addFileToTarArchive is a helper function
@@ -338,6 +403,326 @@ func TestMatchesMagicBytes(t *testing.T) {
 			if got != expected {
 				t.Errorf("test case %d failed: %s!", i, tc.name)
 			}
+		})
+	}
+}
+
+func gen1024ByteGzip(dstDir string) string {
+	testFile := filepath.Join(dstDir, "GzipWithFile.gz")
+	createGzip(testFile, strings.NewReader(strings.Repeat("A", 1024)))
+	return testFile
+}
+
+func genSingleFileTar(dstDir string) string {
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// create test file
+	testFile := filepath.Join(tmpDir, "testFile")
+	createTestFile(testFile, strings.Repeat("A", 1024))
+
+	tarFileName := filepath.Join(dstDir, "TarNormalSingleFile.tar")
+	createTestTarWithFiles(tarFileName, map[string]string{"TestFile": testFile})
+	return tarFileName
+}
+
+func genTarGzWith5Files(dstDir string) string {
+	// create a temporary dir for files in tar archive
+	tmpDir := target.CreateTmpDir()
+	defer os.RemoveAll(tmpDir)
+
+	// create test files
+	for i := 0; i < 5; i++ {
+		testFile := filepath.Join(tmpDir, fmt.Sprintf("testFile%d", i))
+		createTestFile(testFile, strings.Repeat("A", 1024))
+	}
+	tmpTar := filepath.Join(tmpDir, "tmp.tar")
+	createTestTarWithFiles(tmpTar, map[string]string{
+		"testFile0": filepath.Join(tmpDir, "testFile0"),
+		"testFile1": filepath.Join(tmpDir, "testFile1"),
+		"testFile2": filepath.Join(tmpDir, "testFile2"),
+		"testFile3": filepath.Join(tmpDir, "testFile3"),
+		"testFile4": filepath.Join(tmpDir, "testFile4"),
+	})
+
+	gzipFileName := filepath.Join(dstDir, "TarGzWith5Files.tar.gz")
+	createGzipFromFile(gzipFileName, tmpTar)
+	return gzipFileName
+}
+
+// TestMetriksHook is a test function for the metriks hook
+func TestMetriksHook(t *testing.T) {
+	cases := []struct {
+		name                  string
+		inputGenerator        func(string) string
+		inputName             string
+		dst                   string
+		WithContinueOnError   bool
+		WithCreateDestination bool
+		WithMaxExtractionSize int64
+		WithMaxFiles          int64
+		WithOverwrite         bool
+		expectedMetrics       config.Metrics
+		expectError           bool
+	}{
+		{
+			name:                  "normal gzip with file",
+			inputGenerator:        gen1024ByteGzip,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1024,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   1,
+				ExtractionErrors: 0,
+				ExtractionSize:   1024,
+				ExtractedType:    "gzip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal gzip with file, and decompression target-name",
+			inputGenerator:        gen1024ByteGzip,
+			dst:                   "target-file", // important: the gzip decompression has a filename das dst
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1024,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   1,
+				ExtractionErrors: 0,
+				ExtractionSize:   1024,
+				ExtractedType:    "gzip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal gzip with file and decompression target-name in sub-dir failing",
+			inputGenerator:        gen1024ByteGzip,
+			inputName:             "GzipWithFile.gz",
+			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1024,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   0,
+				ExtractionErrors: 1,
+				ExtractionSize:   0,
+				ExtractedType:    "gzip",
+			},
+			expectError: true,
+		},
+		{
+			name:                  "normal gzip with file, and decompression target-name in sub-dir with sub-dir-creation",
+			inputGenerator:        gen1024ByteGzip,
+			inputName:             "GzipWithFile.gz",
+			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
+			WithContinueOnError:   false,
+			WithCreateDestination: true,
+			WithMaxExtractionSize: 1024,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   1,
+				ExtractionErrors: 0,
+				ExtractionSize:   1024,
+				ExtractedType:    "gzip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal tar with file",
+			inputGenerator:        genSingleFileTar,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1024,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   1,
+				ExtractionErrors: 0,
+				ExtractionSize:   1024,
+				ExtractedType:    "tar",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal tar with file, extracted file too big",
+			inputGenerator:        genSingleFileTar,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: 1023,
+			WithMaxFiles:          1,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   0,
+				ExtractionErrors: 1,
+				ExtractionSize:   0,
+				ExtractedType:    "tar",
+			},
+			expectError: true,
+		},
+		{
+			name:                  "normal tar.gz with 5 files",
+			inputGenerator:        genTarGzWith5Files,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxFiles:          5,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   5,
+				ExtractionErrors: 0,
+				ExtractionSize:   1024 * 5,
+				ExtractedType:    "tar+gzip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal tar.gz with file with max files limit",
+			inputGenerator:        genTarGzWith5Files,
+			dst:                   ".",
+			WithContinueOnError:   false,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxFiles:          4,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   4,
+				ExtractionErrors: 1,
+				ExtractionSize:   1024 * 4,
+				ExtractedType:    "tar+gzip",
+			},
+			expectError: true,
+		},
+		{
+			name:                  "normal tar.gz with file failing bc/ of missing sub directory",
+			inputGenerator:        genTarGzWith5Files,
+			dst:                   "sub",
+			WithContinueOnError:   true,
+			WithCreateDestination: false,
+			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxFiles:          5,
+			WithOverwrite:         false,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   0,
+				ExtractionErrors: 5,
+				ExtractionSize:   0,
+				ExtractedType:    "tar+gzip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal zip file",
+			inputGenerator:        createTestZip,
+			dst:                   ".",
+			WithMaxFiles:          1,
+			WithMaxExtractionSize: 14,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   1,
+				ExtractionErrors: 0,
+				ExtractionSize:   14,
+				ExtractedType:    "zip",
+			},
+			expectError: false,
+		},
+		{
+			name:                  "normal zip file extraction size exceeded",
+			inputGenerator:        createTestZip,
+			dst:                   ".",
+			WithMaxExtractionSize: 10,
+			expectedMetrics: config.Metrics{
+				ExtractedDirs:    0,
+				ExtractedFiles:   0,
+				ExtractionErrors: 1,
+				ExtractionSize:   0,
+				ExtractedType:    "zip",
+			},
+			expectError: true,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// create testing directory
+			testDir, err := os.MkdirTemp(os.TempDir(), "extraction_test_dir*")
+			if err != nil {
+				panic(err)
+			}
+			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+			defer os.RemoveAll(testDir)
+
+			// open file
+			archive, err := os.Open(tc.inputGenerator(testDir))
+			if err != nil {
+				panic(err)
+			}
+
+			// prepare config
+			var collectedMetrics config.Metrics
+			hook := func(ctx context.Context, metrics config.Metrics) {
+				collectedMetrics = metrics
+			}
+
+			cfg := config.NewConfig(
+				config.WithContinueOnError(tc.WithContinueOnError),
+				config.WithCreateDestination(tc.WithCreateDestination),
+				config.WithMaxExtractionSize(tc.WithMaxExtractionSize),
+				config.WithMaxFiles(tc.WithMaxFiles),
+				config.WithOverwrite(tc.WithOverwrite),
+				config.WithMetricsHook(hook),
+			)
+
+			// perform actual tests
+			ctx := context.Background()
+			dstDir := filepath.Join(testDir, tc.dst)
+			err = Unpack(ctx, archive, dstDir, target.NewOs(), cfg)
+
+			// check if error is expected
+			if tc.expectError != (err != nil) {
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, tc.expectError, err)
+			}
+
+			// compare collected and expected metrics ExtractedFiles
+			if collectedMetrics.ExtractedFiles != tc.expectedMetrics.ExtractedFiles {
+				t.Errorf("test case %d failed: %s (ExtractedFiles)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractedFiles, collectedMetrics.ExtractedFiles)
+			}
+
+			// compare collected and expected metrics ExtractionErrors
+			if collectedMetrics.ExtractionErrors != tc.expectedMetrics.ExtractionErrors {
+				t.Errorf("test case %d failed: %s (ExtractionErrors)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractionErrors, collectedMetrics.ExtractionErrors)
+			}
+
+			// compare collected and expected metrics ExtractionSize
+			if collectedMetrics.ExtractionSize != tc.expectedMetrics.ExtractionSize {
+				t.Errorf("test case %d failed: %s (ExtractionSize [e:%v|g:%v])\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractionSize, collectedMetrics.ExtractionSize, tc.expectedMetrics.ExtractionSize, collectedMetrics.ExtractionSize)
+			}
+
+			// compare collected and expected metrics ExtractedType
+			if collectedMetrics.ExtractedType != tc.expectedMetrics.ExtractedType {
+				t.Errorf("test case %d failed: %s (ExtractedType)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractedType, collectedMetrics.ExtractedType)
+			}
+
 		})
 	}
 }

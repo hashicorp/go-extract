@@ -11,88 +11,12 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// extractorsForMagicBytes is collection of new extractor functions with
-// the required magic bytes and potential offset
-var extractorsForMagicBytes = []struct {
-	newExtractor func() Extractor
-	offset       int
-	magicBytes   [][]byte
-}{
-	{
-		newExtractor: func() Extractor {
-			return extractor.NewTar()
-		},
-		offset:     extractor.OffsetTar,
-		magicBytes: extractor.MagicBytesTar,
-	},
-	{
-		newExtractor: func() Extractor {
-			return extractor.NewZip()
-		},
-		magicBytes: extractor.MagicBytesZIP,
-	},
-	{
-		newExtractor: func() Extractor {
-			return extractor.NewGzip()
-		},
-		magicBytes: extractor.MagicBytesGZIP,
-	},
-}
-
-var headerLength int
-
-func init() {
-	for _, ex := range extractorsForMagicBytes {
-		needs := ex.offset
-		for _, mb := range ex.magicBytes {
-			needs += len(mb)
-		}
-		if needs > headerLength {
-			headerLength = needs
-		}
-	}
-}
-
-// headerReader is an implementation of io.Reader that allows the first bytes of
-// the reader to be read twice. This is useful for identifying the archive type
-// before unpacking.
-type headerReader struct {
-	r      io.Reader
-	header []byte
-}
-
-func newHeaderReader(r io.Reader, headerSize int) (*headerReader, error) {
-	// read at least headerSize bytes. If EOF, capture whatever was read.
-	buf := make([]byte, headerSize)
-	n, err := io.ReadFull(r, buf)
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, err
-	}
-	return &headerReader{r, buf[:n]}, nil
-}
-
-func (p *headerReader) Read(b []byte) (int, error) {
-	// read from header first
-	if len(p.header) > 0 {
-		n := copy(b, p.header)
-		p.header = p.header[n:]
-		return n, nil
-	}
-
-	// then continue reading from the source
-	return p.r.Read(b)
-}
-
-func (p *headerReader) PeekHeader() []byte {
-	return p.header
-}
-
 // Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config and target.
 func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 	var ex Extractor
 
-	header, err := newHeaderReader(src, headerLength)
+	header, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
 	if err != nil {
 		return err
 	}
@@ -109,13 +33,13 @@ func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *
 // findExtractor identifies the correct extractor based on magic bytes.
 func findExtractor(data []byte) Extractor {
 	// find extractor with longest suffix match
-	for _, ex := range extractorsForMagicBytes {
+	for _, ex := range extractor.ExtractorsForMagicBytes {
 		// check all possible magic bytes for extract engine
-		for _, magicBytes := range ex.magicBytes {
+		for _, magicBytes := range ex.MagicBytes {
 
 			// check for byte match
-			if matchesMagicBytes(data, ex.offset, magicBytes) {
-				return ex.newExtractor()
+			if matchesMagicBytes(data, ex.Offset, magicBytes) {
+				return ex.NewExtractor()
 			}
 		}
 	}
