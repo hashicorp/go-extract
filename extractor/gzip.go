@@ -50,6 +50,8 @@ func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.T
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
 	// object to store metrics
+	// remark: do not setup MetricsHook here, bc/ in case of tar+gzip, the
+	// tar extractor should submit the metrics
 	metrics := config.Metrics{ExtractedType: "gzip"}
 
 	// prepare gzip extraction
