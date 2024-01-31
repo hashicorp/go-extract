@@ -18,7 +18,7 @@ func TestMetricsString(t *testing.T) {
 		InputSize:           2048,
 	}
 
-	expected := `{"ExtractedDirs":1,"ExtractionDuration":5000000,"ExtractionErrors":0,"ExtractedFiles":5,"ExtractionSize":1024,"ExtractedSymlinks":2,"ExtractedType":"tar","InputSize":2048,"LastExtractionError":null}`
+	expected := `{"ExtractionDuration":5000,"LastExtractionError":"","ExtractedDirs":1,"ExtractionErrors":0,"ExtractedFiles":5,"ExtractionSize":1024,"ExtractedSymlinks":2,"ExtractedType":"tar","InputSize":2048}`
 	if m.String() != expected {
 		t.Errorf("Expected '%s', but got '%s'", expected, m.String())
 	}
