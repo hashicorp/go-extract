@@ -55,8 +55,8 @@ import (
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
+        config.WithNoTarGzExtract(true),                     // extract tar.gz combined
         config.WithOverwrite(false),                         // don't replace existing files
-        config.WithTarGzExtract(false),                      // gunzip only a tar.gz and don't untar also
     )
 
     // extract archive
@@ -91,7 +91,7 @@ make install
 ### Usage
 
 ```cli
-extract -h
+$ extract -h
 Usage: extract <archive> [<destination>]
 
 A secure extraction utility
@@ -111,8 +111,8 @@ Flags:
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
+  -N, --no-tar-gz                         Disable combined extraction of tar.gz.
   -O, --overwrite                         Overwrite if exist.
-      --tar-gz                            Enable tar.gz extraction.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```

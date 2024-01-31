@@ -30,8 +30,8 @@ type CLI struct {
 	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
 	MaxInputSize      int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
+	NoTarGz           bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
-	TarGz             bool             `optional:"" help:"Enable tar.gz extraction."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -78,7 +78,7 @@ func Run(version, commit, date string) {
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
-		config.WithTarGzExtract(cli.TarGz),
+		config.WithNoTarGzExtract(cli.NoTarGz),
 	)
 
 	// open archive

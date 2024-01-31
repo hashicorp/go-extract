@@ -416,7 +416,7 @@ func TestMetriksHook(t *testing.T) {
 		WithMaxExtractionSize int64
 		WithMaxFiles          int64
 		WithOverwrite         bool
-		WithTarGzExtract      bool
+		WithNoTarGzExtract    bool
 		expectedMetrics       config.Metrics
 		expectError           bool
 	}{
@@ -429,7 +429,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
@@ -448,7 +447,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
@@ -468,7 +466,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
@@ -488,7 +485,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
@@ -507,7 +503,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
@@ -526,7 +521,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1023,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
@@ -545,7 +539,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   5,
@@ -564,7 +557,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          4,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   4,
@@ -583,7 +575,6 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			WithTarGzExtract:      true,
 			expectedMetrics: config.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
@@ -653,7 +644,7 @@ func TestMetriksHook(t *testing.T) {
 				config.WithMaxExtractionSize(tc.WithMaxExtractionSize),
 				config.WithMaxFiles(tc.WithMaxFiles),
 				config.WithOverwrite(tc.WithOverwrite),
-				config.WithTarGzExtract(tc.WithTarGzExtract),
+				config.WithNoTarGzExtract(tc.WithNoTarGzExtract),
 				config.WithMetricsHook(hook),
 			)
 

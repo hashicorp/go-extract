@@ -43,11 +43,11 @@ type Config struct {
 	// Important: do not adjust this value after extraction started
 	metricsHooks []MetricsHook
 
+	// noTarGzExtract offers the option to enable/disable the combined extraction of tar.gz archives
+	noTarGzExtract bool
+
 	// Define if files should be overwritten in the destination
 	overwrite bool
-
-	// tarGzExtract offers the option to enable/disable the extraction of tar.gz archives
-	tarGzExtract bool
 
 	// verbose log extraction to stderr
 	verbose bool
@@ -66,7 +66,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionTime = 60            // 1 minute
 		maxInputSize      = 1 << (10 * 3) // 1 Gb
 		overwrite         = false
-		tarGzExtract      = false
+		noTarGzExtract    = false
 		verbose           = false
 	)
 
@@ -84,7 +84,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize: maxExtractionSize,
 		maxInputSize:      maxInputSize,
 		overwrite:         overwrite,
-		tarGzExtract:      tarGzExtract,
+		noTarGzExtract:    noTarGzExtract,
 		verbose:           verbose,
 	}
 
@@ -114,10 +114,10 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 	}
 }
 
-// WithTarGzExtract options pattern function to enable/disable tar.gz extraction
-func WithTarGzExtract(enable bool) ConfigOption {
+// WithNoTarGzExtract options pattern function to enable/disable combined tar.gz extraction
+func WithNoTarGzExtract(disabled bool) ConfigOption {
 	return func(c *Config) {
-		c.tarGzExtract = enable
+		c.noTarGzExtract = disabled
 	}
 }
 
@@ -165,9 +165,9 @@ func (c *Config) Overwrite() bool {
 	return c.overwrite
 }
 
-// TarGzExtract returns true if tar.gz extraction is enabled
-func (c *Config) TarGzExtract() bool {
-	return c.tarGzExtract
+// NoTarGzExtract returns true if tar.gz combined extraction is disabled
+func (c *Config) NoTarGzExtract() bool {
+	return c.noTarGzExtract
 }
 
 // MetricsHooksOnce emits metrics once to all configured hooks and resets the hook list

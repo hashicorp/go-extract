@@ -81,7 +81,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	headerBytes := headerReader.PeekHeader()
 
 	// check for tar header
-	if c.TarGzExtract() && IsTar(headerBytes) {
+	if !c.NoTarGzExtract() && IsTar(headerBytes) {
 		// combine types
 		c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
 			m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType)
