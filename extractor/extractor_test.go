@@ -59,7 +59,9 @@ func TestHandleError(t *testing.T) {
 	metrics := &config.Metrics{}
 
 	err := errors.New("test error")
-	handleError(c, metrics, "test message", err)
+	if err := handleError(c, metrics, "test message", err); err == nil {
+		t.Error("handleError should return an error when continueOnError is false")
+	}
 
 	if metrics.ExtractionErrors != int64(1) {
 		t.Error("ExtractionErrors was not incremented")
