@@ -39,9 +39,12 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxInputSize int64
 
-	// MetricsHook is a function pointer to consume metrics after finished extraction
+	// metricsProcessor performs operations on metrics before submitting to hook
+	metricsProcessor []MetricsHook
+
+	// metricsHook is a function pointer to consume metrics after finished extraction
 	// Important: do not adjust this value after extraction started
-	metricsHooks []MetricsHook
+	metricsHook MetricsHook
 
 	// noTarGzExtract offers the option to enable/disable the combined extraction of tar.gz archives
 	noTarGzExtract bool
@@ -103,7 +106,7 @@ type MetricsHook func(context.Context, *Metrics)
 // WithMetricsHook options pattern function to set a metrics hook
 func WithMetricsHook(hook MetricsHook) ConfigOption {
 	return func(c *Config) {
-		c.metricsHooks = append(c.metricsHooks, hook)
+		c.metricsHook = hook
 	}
 }
 
@@ -170,22 +173,22 @@ func (c *Config) NoTarGzExtract() bool {
 	return c.noTarGzExtract
 }
 
-// MetricsHooksOnce emits metrics once to all configured hooks and resets the hook list
-// after execution
-func (c *Config) MetricsHooksOnce(ctx context.Context, metrics *Metrics) {
+// MetricsHook emits metrics to hook and applies all registered metricsProcessor
+func (c *Config) MetricsHook(ctx context.Context, metrics *Metrics) {
 
 	// emit metrics in reverse order
-	for i := len(c.metricsHooks) - 1; i >= 0; i-- {
-		c.metricsHooks[i](ctx, metrics)
+	for i := len(c.metricsProcessor) - 1; i >= 0; i-- {
+		c.metricsProcessor[i](ctx, metrics)
 	}
 
-	// empty hooks
-	c.metricsHooks = []MetricsHook{}
-
+	if c.metricsHook != nil {
+		// emit metrics
+		c.metricsHook(ctx, metrics)
+	}
 }
 
-func (c *Config) AddMetricsHook(hook MetricsHook) {
-	c.metricsHooks = append(c.metricsHooks, hook)
+func (c *Config) AddMetricsProcessor(hook MetricsHook) {
+	c.metricsProcessor = append(c.metricsProcessor, hook)
 }
 
 // WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the

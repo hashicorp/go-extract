@@ -3,7 +3,6 @@ package extractor
 import (
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -53,13 +52,11 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// object to store metrics
 	metrics := config.Metrics{ExtractedType: "gzip"}
 
-	// emit metrics
-	defer c.MetricsHooksOnce(ctx, &metrics)
-
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "cannot read gzip"
 		return handleError(c, &metrics, msg, err)
 	}
@@ -67,12 +64,14 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// convert to peek header
 	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
 	if err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "cannot read header uncompressed gzip"
 		return handleError(c, &metrics, msg, err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "context error"
 		return handleError(c, &metrics, msg, err)
 	}
@@ -83,13 +82,16 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// check for tar header
 	if !c.NoTarGzExtract() && IsTar(headerBytes) {
 		// combine types
-		c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
-			m.ExtractedType = fmt.Sprintf("%s+gzip", m.ExtractedType)
+		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+			m.ExtractedType = "tar+gzip"
 		})
 
 		// continue with tar extraction
 		return NewTar().Unpack(ctx, headerReader, dst, t, c)
 	}
+
+	// ensure metrics are emitted
+	defer c.MetricsHook(ctx, &metrics)
 
 	// determine name for decompressed content
 	// TODO: use headerReader to determine name

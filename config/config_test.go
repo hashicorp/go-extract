@@ -59,7 +59,7 @@ func TestWithMetricsHook(t *testing.T) {
 	config := &Config{}
 	option := WithMetricsHook(hook)
 	option(config)
-	config.MetricsHooksOnce(context.Background(), &Metrics{})
+	config.MetricsHook(context.Background(), &Metrics{})
 
 	if hookExecuted == false {
 		t.Errorf("Expected MetricsHook to be executed, but it was not")

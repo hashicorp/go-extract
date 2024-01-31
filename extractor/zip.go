@@ -52,7 +52,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	metrics := config.Metrics{ExtractedType: "zip"}
 
 	// emit metrics
-	defer c.MetricsHooksOnce(ctx, &metrics)
+	defer c.MetricsHook(ctx, &metrics)
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})

@@ -28,7 +28,7 @@ func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 	ler := newLimitErrorReaderCounter(src, c.MaxInputSize()) // ensure input size and capture metrics
 
 	// extend metric collection
-	c.AddMetricsHook(func(ctx context.Context, m *config.Metrics) {
+	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.ExtractionDuration = time.Since(start) // capture execution time
 		m.InputSize = int64(ler.ReadBytes())     // capture inputSize metric
 	})

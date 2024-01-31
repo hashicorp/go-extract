@@ -59,7 +59,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 	metrics := config.Metrics{ExtractedType: "tar"}
 
 	// anonymous function to emit metrics
-	defer c.MetricsHooksOnce(ctx, &metrics)
+	defer c.MetricsHook(ctx, &metrics)
 
 	// start extraction
 	c.Logger().Info("extracting tar")
