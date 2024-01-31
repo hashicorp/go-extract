@@ -52,6 +52,9 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	overwrite bool
 
+	// skipUnsupportedFiles offers the option to enable/disable skipping unsupported files
+	skipUnsupportedFiles bool
+
 	// verbose log extraction to stderr
 	verbose bool
 }
@@ -60,17 +63,18 @@ type Config struct {
 // default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
-		allowSymlinks     = true
-		continueOnError   = false
-		createDestination = false
-		followSymlinks    = false
-		maxFiles          = 1000          // 1k files
-		maxExtractionSize = 1 << (10 * 3) // 1 Gb
-		maxExtractionTime = 60            // 1 minute
-		maxInputSize      = 1 << (10 * 3) // 1 Gb
-		overwrite         = false
-		noTarGzExtract    = false
-		verbose           = false
+		allowSymlinks        = true
+		continueOnError      = false
+		createDestination    = false
+		followSymlinks       = false
+		maxFiles             = 1000          // 1k files
+		maxExtractionSize    = 1 << (10 * 3) // 1 Gb
+		maxExtractionTime    = 60            // 1 minute
+		maxInputSize         = 1 << (10 * 3) // 1 Gb
+		noTarGzExtract       = false
+		overwrite            = false
+		skipUnsupportedFiles = false
+		verbose              = false
 	)
 
 	// disable logging by default
@@ -78,17 +82,18 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default values
 	config := &Config{
-		allowSymlinks:     allowSymlinks,
-		continueOnError:   continueOnError,
-		createDestination: createDestination,
-		followSymlinks:    followSymlinks,
-		logger:            logger,
-		maxFiles:          maxFiles,
-		maxExtractionSize: maxExtractionSize,
-		maxInputSize:      maxInputSize,
-		overwrite:         overwrite,
-		noTarGzExtract:    noTarGzExtract,
-		verbose:           verbose,
+		allowSymlinks:        allowSymlinks,
+		continueOnError:      continueOnError,
+		createDestination:    createDestination,
+		followSymlinks:       followSymlinks,
+		logger:               logger,
+		maxFiles:             maxFiles,
+		maxExtractionSize:    maxExtractionSize,
+		maxInputSize:         maxInputSize,
+		overwrite:            overwrite,
+		noTarGzExtract:       noTarGzExtract,
+		skipUnsupportedFiles: skipUnsupportedFiles,
+		verbose:              verbose,
 	}
 
 	// Loop through each option
@@ -121,6 +126,13 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 func WithNoTarGzExtract(disabled bool) ConfigOption {
 	return func(c *Config) {
 		c.noTarGzExtract = disabled
+	}
+}
+
+// WithSkipUnsupportedFiles options pattern function to enable/disable skipping unsupported files
+func WithSkipUnsupportedFiles(skip bool) ConfigOption {
+	return func(c *Config) {
+		c.skipUnsupportedFiles = skip
 	}
 }
 
@@ -171,6 +183,11 @@ func (c *Config) Overwrite() bool {
 // NoTarGzExtract returns true if tar.gz combined extraction is disabled
 func (c *Config) NoTarGzExtract() bool {
 	return c.noTarGzExtract
+}
+
+// SkipUnsupportedFiles returns true if unsupported files should be skipped
+func (c *Config) SkipUnsupportedFiles() bool {
+	return c.skipUnsupportedFiles
 }
 
 // MetricsHook emits metrics to hook and applies all registered metricsProcessor

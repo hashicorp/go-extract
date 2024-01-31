@@ -32,6 +32,7 @@ type CLI struct {
 	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
 	NoTarGz           bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
+	SkipUnsupported   bool             `short:"S" help:"Skip extraction of unsupported files."`
 	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -78,6 +79,7 @@ func Run(version, commit, date string) {
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
+		config.WithSkipUnsupportedFiles(cli.SkipUnsupported),
 		config.WithNoTarGzExtract(cli.NoTarGz),
 	)
 

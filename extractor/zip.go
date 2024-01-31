@@ -214,6 +214,12 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 		default: // catch all for unsupported file modes
 
+			// check if unsupported files should be skipped
+			if c.SkipUnsupportedFiles() {
+				metrics.SkippedUnsupportedFiles++
+				continue
+			}
+
 			// increase error counter, set error and end if necessary
 			err := fmt.Errorf("unsupported file mode (%x)", hdr.Mode())
 			msg := "cannot extract file"

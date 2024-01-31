@@ -57,6 +57,7 @@ import (
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithNoTarGzExtract(true),                     // extract tar.gz combined
         config.WithOverwrite(false),                         // don't replace existing files
+        config.WithSkipUnsupportedFiles(false),              // don't skip unsupported files
     )
 
     // extract archive

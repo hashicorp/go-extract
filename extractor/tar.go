@@ -179,6 +179,12 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		default:
 
+			// check if unsupported files should be skipped
+			if c.SkipUnsupportedFiles() {
+				metrics.SkippedUnsupportedFiles++
+				continue
+			}
+
 			// increase error counter, set error and end if necessary
 			err := fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)
 			msg := "cannot extract file"

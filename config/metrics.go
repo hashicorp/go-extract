@@ -34,6 +34,9 @@ type Metrics struct {
 
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
+
+	// SkippedUnsupportedFiles is the number of skipped unsupported files
+	SkippedUnsupportedFiles int64
 }
 
 // String returns a string representation of the metrics
