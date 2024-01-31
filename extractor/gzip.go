@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -36,24 +35,6 @@ type HeaderCheck (func([]byte) bool)
 
 func IsGZIP(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesGZIP)
-}
-
-func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
-	// check all possible magic bytes until match is found
-	for _, mb := range magicBytes {
-		// check if header is long enough
-		if offset+len(mb) > len(data) {
-			continue
-		}
-
-		// check for byte match
-		if bytes.Equal(mb, data[offset:offset+len(mb)]) {
-			return true
-		}
-	}
-
-	// no match found
-	return false
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
@@ -134,92 +115,4 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// finished
 	metrics.ExtractedFiles++
 	return nil
-}
-
-// HeaderReader is an implementation of io.Reader that allows the first bytes of
-// the reader to be read twice. This is useful for identifying the archive type
-// before unpacking.
-type HeaderReader struct {
-	r      io.Reader
-	header []byte
-}
-
-func NewHeaderReader(r io.Reader, headerSize int) (*HeaderReader, error) {
-	// read at least headerSize bytes. If EOF, capture whatever was read.
-	buf := make([]byte, headerSize)
-	n, err := io.ReadFull(r, buf)
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, err
-	}
-	return &HeaderReader{r, buf[:n]}, nil
-}
-
-func (p *HeaderReader) Read(b []byte) (int, error) {
-	// read from header first
-	if len(p.header) > 0 {
-		n := copy(b, p.header)
-		p.header = p.header[n:]
-		return n, nil
-	}
-
-	// then continue reading from the source
-	return p.r.Read(b)
-}
-
-func (p *HeaderReader) PeekHeader() []byte {
-	return p.header
-}
-
-// extractor is a private interface and defines all functions that needs to be implemented by an extraction engine.
-type extractor interface {
-	// Unpack is the main entrypoint to an extraction engine that takes the contents from src and extracts them to dst.
-	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
-}
-
-// AvailableExtractors is collection of new extractor functions with
-// the required magic bytes and potential offset
-var AvailableExtractors = []struct {
-	NewExtractor func() extractor
-	HeaderCheck  func([]byte) bool
-	MagicBytes   [][]byte
-	Offset       int
-}{
-	{
-		NewExtractor: func() extractor {
-			return NewTar()
-		},
-		HeaderCheck: IsTar,
-		MagicBytes:  magicBytesTar,
-		Offset:      offsetTar,
-	},
-	{
-		NewExtractor: func() extractor {
-			return NewZip()
-		},
-		HeaderCheck: IsZip,
-		MagicBytes:  magicBytesZIP,
-	},
-	{
-		NewExtractor: func() extractor {
-			return NewGzip()
-		},
-		HeaderCheck: IsGZIP,
-		MagicBytes:  magicBytesGZIP,
-	},
-}
-
-var MaxHeaderLength int
-
-func init() {
-	for _, ex := range AvailableExtractors {
-		needs := ex.Offset
-		for _, mb := range ex.MagicBytes {
-			if len(mb)+ex.Offset > needs {
-				needs = len(mb) + ex.Offset
-			}
-		}
-		if needs > MaxHeaderLength {
-			MaxHeaderLength = needs
-		}
-	}
 }
