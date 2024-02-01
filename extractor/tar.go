@@ -180,7 +180,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		default:
 
 			// check if unsupported files should be skipped
-			if c.SkipUnsupportedFiles() {
+			if c.ContinueOnUnsupportedFiles() {
 				metrics.SkippedUnsupportedFiles++
 				metrics.LastSkippedUnsupportedFile = hdr.Name
 				continue
