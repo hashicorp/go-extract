@@ -217,6 +217,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			// check if unsupported files should be skipped
 			if c.SkipUnsupportedFiles() {
 				metrics.SkippedUnsupportedFiles++
+				metrics.LastSkippedUnsupportedFile = hdr.Name
 				continue
 			}
 

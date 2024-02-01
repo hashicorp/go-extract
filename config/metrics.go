@@ -37,6 +37,9 @@ type Metrics struct {
 
 	// SkippedUnsupportedFiles is the number of skipped unsupported files
 	SkippedUnsupportedFiles int64
+
+	// LastSkippedUnsupportedFile is the last skipped unsupported file
+	LastSkippedUnsupportedFile string
 }
 
 // String returns a string representation of the metrics
