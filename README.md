@@ -48,6 +48,7 @@ import (
     config := config.NewConfig(
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
+        config.WithContinueOnUnsupportedFiles(false),        // don't on unsupported files
         config.WithCreateDestination(false),                 // do not try to create specified destination
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
         config.WithLogger(logger),                           // adjust logger (default: io.Discard)
@@ -57,7 +58,6 @@ import (
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithNoTarGzExtract(true),                     // extract tar.gz combined
         config.WithOverwrite(false),                         // don't replace existing files
-        config.WithSkipUnsupportedFiles(false),              // don't skip unsupported files
     )
 
     // extract archive
@@ -104,6 +104,7 @@ Arguments:
 Flags:
   -h, --help                              Show context-sensitive help.
   -C, --continue-on-error                 Continue extraction on error.
+  -S, --continue-on-unsupported-files     Skip extraction of unsupported files.
   -c, --create-destination                Create destination directory if it does not exist.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
