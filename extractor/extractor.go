@@ -24,8 +24,8 @@ type extractor interface {
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
 	// setup reader and timer
-	start := time.Now()                                      // capture start to calculate execution time
-	ler := newLimitErrorReaderCounter(src, c.MaxInputSize()) // ensure input size and capture metrics
+	start := time.Now()                                             // capture start to calculate execution time
+	ler := config.NewLimitErrorReaderCounter(src, c.MaxInputSize()) // ensure input size and capture metrics
 
 	// extend metric collection
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {

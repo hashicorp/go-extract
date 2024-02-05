@@ -1,14 +1,14 @@
-package extractor
+package config
 
 import (
 	"fmt"
 	"io"
 )
 
-// limitErrorReaderCounter is a reader that returns an error if the limit is exceeded
+// LimitErrorReaderCounter is a reader that returns an error if the limit is exceeded
 // before the underlying reader is fully read.
 // If the limit is -1, all data from the original reader is read.
-type limitErrorReaderCounter struct {
+type LimitErrorReaderCounter struct {
 	R io.Reader // underlying reader
 	L int64     // limit
 	N int64     // number of bytes read
@@ -19,7 +19,7 @@ type limitErrorReaderCounter struct {
 // If the limit is -1, all data from the original reader is read.
 // Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
 // reader is fully read.
-func (l *limitErrorReaderCounter) Read(p []byte) (int, error) {
+func (l *LimitErrorReaderCounter) Read(p []byte) (int, error) {
 
 	// read from underlying reader
 	n, err := l.R.Read(p)
@@ -38,11 +38,11 @@ func (l *limitErrorReaderCounter) Read(p []byte) (int, error) {
 }
 
 // ReadBytes returns how many bytes have been read from the underlying reader
-func (l *limitErrorReaderCounter) ReadBytes() int {
+func (l *LimitErrorReaderCounter) ReadBytes() int {
 	return int(l.N)
 }
 
-// newLimitErrorReaderCounter returns a new limitErrorReaderCounter that reads from r
-func newLimitErrorReaderCounter(r io.Reader, limit int64) *limitErrorReaderCounter {
-	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
+// NewLimitErrorReaderCounter returns a new limitErrorReaderCounter that reads from r
+func NewLimitErrorReaderCounter(r io.Reader, limit int64) *LimitErrorReaderCounter {
+	return &LimitErrorReaderCounter{R: r, L: limit, N: 0}
 }

@@ -1,7 +1,6 @@
 package target
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -146,7 +145,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 // CreateSafeFile creates newFileName in dstBase with content from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
+func (o *Os) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
 
 	// check if a name is provided
 	if len(newFileName) == 0 {
@@ -155,47 +154,21 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// Check if newFileName starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		config.Logger().Debug("remove absolute path prefix", "prefix", start)
+		cfg.Logger().Debug("remove absolute path prefix", "prefix", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
 	// create target dir && check for path traversal // zip-slip
-	if err := o.CreateSafeDir(config, dstBase, filepath.Dir(newFileName)); err != nil {
+	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName)); err != nil {
 		return err
 	}
 
 	// Check for file existence//overwrite
 	targetFile := filepath.Join(dstBase, newFileName)
 	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
-		if !config.Overwrite() {
+		if !cfg.Overwrite() {
 			return fmt.Errorf("file already exists (%s)", newFileName)
 		}
-	}
-
-	// finally copy the data
-	var sumRead int64
-	p := make([]byte, 1024)
-	var bytesBuffer bytes.Buffer
-
-	for {
-		n, err := reader.Read(p)
-		if err != nil && err != io.EOF {
-			return err
-		}
-
-		// nothing left to read, finished
-		if n == 0 {
-			break
-		}
-
-		// filesize check
-		if err := config.CheckExtractionSize(sumRead + int64(n)); err != nil {
-			return err
-		}
-
-		// store in buffer
-		bytesBuffer.Write(p[:n])
-		sumRead = sumRead + int64(n)
 	}
 
 	// create dst file
@@ -207,10 +180,21 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 		dstFile.Close()
 	}()
 
-	// write data
-	_, err = io.Copy(dstFile, &bytesBuffer)
-	if err != nil {
-		return err
+	// check if a max extraction size is set
+	if cfg.MaxExtractionSize() >= 0 {
+
+		// encapsulate reader with limit reader
+		ler := config.NewLimitErrorReaderCounter(reader, cfg.MaxExtractionSize())
+		if _, err = io.Copy(dstFile, ler); err != nil {
+			return err
+		}
+
+	} else {
+
+		// write data straight to file
+		if _, err = io.Copy(dstFile, reader); err != nil {
+			return err
+		}
 	}
 
 	return nil
