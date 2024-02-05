@@ -7,15 +7,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
 )
 
-const OffsetTar = 257
+const offsetTar = 257
 
-var MagicBytesTar = [][]byte{
+var magicBytesTar = [][]byte{
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
 }
@@ -24,6 +23,10 @@ var MagicBytesTar = [][]byte{
 type Tar struct {
 	// target is the target of the extraction
 	target target.Target
+}
+
+func IsTar(data []byte) bool {
+	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }
 
 // NewTar creates a new untar object with config as configuration
@@ -42,43 +45,26 @@ func NewTar() *Tar {
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
-	return t.unpack(ctx, src, dst, target, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	return t.unpack(ctx, reader, dst, target, c)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-	src = ler
-
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "tar"
-	start := time.Now()
+	metrics := config.Metrics{ExtractedType: "tar"}
 
 	// anonymous function to emit metrics
-	defer func() {
+	defer c.MetricsHook(ctx, &metrics)
 
-		// store input file size
-		metrics.InputSize = ler.N
-
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
-
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
-		}
-	}()
-
-	c.Logger.Info("extracting tar")
-
-	// prepare safety vars
+	// start extraction
+	c.Logger().Info("extracting tar")
 	var objectCounter int64
 	var extractionSize uint64
-
-	// open tar
 	tr := tar.NewReader(src)
 
 	// walk through tar
@@ -122,7 +108,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			continue
 		}
 
-		c.Logger.Debug("extract", "name", hdr.Name)
+		c.Logger().Debug("extract", "name", hdr.Name)
 		switch hdr.Typeflag {
 
 		// if its a dir and it doesn't exist create it
@@ -192,6 +178,13 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			continue
 
 		default:
+
+			// check if unsupported files should be skipped
+			if c.ContinueOnUnsupportedFiles() {
+				metrics.SkippedUnsupportedFiles++
+				metrics.LastSkippedUnsupportedFile = hdr.Name
+				continue
+			}
 
 			// increase error counter, set error and end if necessary
 			err := fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)

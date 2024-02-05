@@ -7,18 +7,19 @@ import (
 
 func TestMetricsString(t *testing.T) {
 	m := Metrics{
-		ExtractedType:       "tar",
-		ExtractionDuration:  time.Duration(5 * time.Second),
-		ExtractionSize:      1024,
-		ExtractedFiles:      5,
-		ExtractedSymlinks:   2,
-		ExtractedDirs:       1,
-		ExtractionErrors:    0,
-		LastExtractionError: nil,
-		InputSize:           2048,
+		ExtractedType:           "tar",
+		ExtractionDuration:      time.Duration(5 * time.Millisecond),
+		ExtractionSize:          1024,
+		ExtractedFiles:          5,
+		ExtractedSymlinks:       2,
+		ExtractedDirs:           1,
+		ExtractionErrors:        0,
+		LastExtractionError:     nil,
+		InputSize:               2048,
+		SkippedUnsupportedFiles: 0,
 	}
 
-	expected := "type: tar, duration: 5s, size: 1024, files: 5, symlinks: 2, dirs: 1, errors: 0, last error: <nil>, input size: 2048"
+	expected := `{"ExtractionDuration":5000,"LastExtractionError":"","ExtractedDirs":1,"ExtractionErrors":0,"ExtractedFiles":5,"ExtractionSize":1024,"ExtractedSymlinks":2,"ExtractedType":"tar","InputSize":2048,"SkippedUnsupportedFiles":0,"LastSkippedUnsupportedFile":""}`
 	if m.String() != expected {
 		t.Errorf("Expected '%s', but got '%s'", expected, m.String())
 	}

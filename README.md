@@ -48,6 +48,7 @@ import (
     config := config.NewConfig(
         config.WithAllowSymlinks(true),                      // allow symlink creation
         config.WithContinueOnError(false),                   // fail on error
+        config.WithContinueOnUnsupportedFiles(false),        // don't on unsupported files
         config.WithCreateDestination(false),                 // do not try to create specified destination
         config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
         config.WithLogger(logger),                           // adjust logger (default: io.Discard)
@@ -55,6 +56,7 @@ import (
         config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
+        config.WithNoTarGzExtract(true),                     // extract tar.gz combined
         config.WithOverwrite(false),                         // don't replace existing files
     )
 
@@ -90,7 +92,7 @@ make install
 ### Usage
 
 ```cli
-extract -h
+$ extract -h
 Usage: extract <archive> [<destination>]
 
 A secure extraction utility
@@ -102,6 +104,7 @@ Arguments:
 Flags:
   -h, --help                              Show context-sensitive help.
   -C, --continue-on-error                 Continue extraction on error.
+  -S, --continue-on-unsupported-files     Skip extraction of unsupported files.
   -c, --create-destination                Create destination directory if it does not exist.
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
@@ -110,6 +113,7 @@ Flags:
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
+  -N, --no-tar-gz                         Disable combined extraction of tar.gz.
   -O, --overwrite                         Overwrite if exist.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.

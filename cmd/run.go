@@ -19,20 +19,22 @@ import (
 
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
-	Archive           string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
-	ContinueOnError   bool             `short:"C" help:"Continue extraction on error."`
-	CreateDestination bool             `short:"c" help:"Create destination directory if it does not exist."`
-	DenySymlinks      bool             `short:"D" help:"Deny symlink extraction."`
-	Destination       string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
-	FollowSymlinks    bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
-	MaxFiles          int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
-	MaxExtractionSize int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
-	MaxExtractionTime int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
-	MaxInputSize      int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
-	Metrics           bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
-	Overwrite         bool             `short:"O" help:"Overwrite if exist."`
-	Verbose           bool             `short:"v" optional:"" help:"Verbose logging."`
-	Version           kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
+	Archive                    string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
+	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
+	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
+	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
+	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
+	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
+	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
+	MaxFiles                   int64            `optional:"" default:"1000" help:"Maximum files that are extracted before stop. (disable check: -1)"`
+	MaxExtractionSize          int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
+	MaxExtractionTime          int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
+	MaxInputSize               int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
+	Metrics                    bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
+	NoTarGz                    bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
+	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
+	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
+	Version                    kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
 
 // Run the entrypoint into go-extract as a cli tool
@@ -59,7 +61,7 @@ func Run(version, commit, date string) {
 	}))
 
 	// setup metrics hook
-	metricsToLog := func(ctx context.Context, metrics config.Metrics) {
+	metricsToLog := func(ctx context.Context, metrics *config.Metrics) {
 		if cli.Metrics {
 			logger.Info("extraction finished", "metrics", metrics)
 		}
@@ -69,6 +71,7 @@ func Run(version, commit, date string) {
 	config := config.NewConfig(
 		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithContinueOnError(cli.ContinueOnError),
+		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
@@ -77,6 +80,7 @@ func Run(version, commit, date string) {
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
+		config.WithNoTarGzExtract(cli.NoTarGz),
 	)
 
 	// open archive

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"encoding/json"
 	"time"
 )
 
@@ -34,19 +34,35 @@ type Metrics struct {
 
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
+
+	// SkippedUnsupportedFiles is the number of skipped unsupported files
+	SkippedUnsupportedFiles int64
+
+	// LastSkippedUnsupportedFile is the last skipped unsupported file
+	LastSkippedUnsupportedFile string
 }
 
 // String returns a string representation of the metrics
 func (m Metrics) String() string {
-	return fmt.Sprintf("type: %s, duration: %s, size: %d, files: %d, symlinks: %d, dirs: %d, errors: %d, last error: %v, input size: %d",
-		m.ExtractedType,
-		m.ExtractionDuration,
-		m.ExtractionSize,
-		m.ExtractedFiles,
-		m.ExtractedSymlinks,
-		m.ExtractedDirs,
-		m.ExtractionErrors,
-		m.LastExtractionError,
-		m.InputSize,
-	)
+	b, _ := json.Marshal(m)
+	return string(b)
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (m Metrics) MarshalJSON() ([]byte, error) {
+	var lastError string
+	if m.LastExtractionError != nil {
+		lastError = m.LastExtractionError.Error()
+	}
+
+	type Alias Metrics
+	return json.Marshal(&struct {
+		ExtractionDuration  int64  `json:"ExtractionDuration"`
+		LastExtractionError string `json:"LastExtractionError"`
+		*Alias
+	}{
+		ExtractionDuration:  m.ExtractionDuration.Microseconds(),
+		LastExtractionError: lastError,
+		Alias:               (*Alias)(&m),
+	})
 }

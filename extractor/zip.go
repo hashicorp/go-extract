@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -16,12 +15,16 @@ import (
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
-var MagicBytesZIP = [][]byte{
+var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
 // Zip is implements the Extractor interface to extract zip archives.
 type Zip struct{}
+
+func IsZip(data []byte) bool {
+	return matchesMagicBytes(data, 0, magicBytesZIP)
+}
 
 // NewZip returns a new zip object with config as configuration.
 func NewZip() *Zip {
@@ -34,38 +37,27 @@ func NewZip() *Zip {
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
-	return z.unpack(ctx, src, dst, t, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	// perform extraction
+	return z.unpack(ctx, reader, dst, t, c)
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "zip"
-	start := time.Now()
+	metrics := config.Metrics{ExtractedType: "zip"}
 
-	// anonymous function to emit metrics
-	defer func() {
-
-		// store input file size
-		metrics.InputSize = int64(ler.ReadBytes())
-
-		// calculate execution time
-		metrics.ExtractionDuration = time.Since(start)
-
-		// emit metrics
-		if c.MetricsHook != nil {
-			c.MetricsHook(ctx, metrics)
-		}
-	}()
+	// emit metrics
+	defer c.MetricsHook(ctx, &metrics)
 
 	// read complete zip file into memory
 	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, ler)
+	size, err := io.Copy(buff, src)
+
 	if err != nil {
 		msg := "cannot read src"
 		return handleError(c, &metrics, msg, err)
@@ -113,12 +105,16 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
-			metrics.ExtractionErrors++
-			metrics.LastExtractionError = err
-			return handleError(c, &metrics, "max objects check failed", err)
+			msg := "max objects exceeded"
+			if err := handleError(c, &metrics, msg, err); err != nil {
+				return err
+			}
+
+			// go to next item
+			continue
 		}
 
-		c.Logger.Info("extract", "name", hdr.Name)
+		c.Logger().Info("extract", "name", hdr.Name)
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory
@@ -218,6 +214,13 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 		default: // catch all for unsupported file modes
 
+			// check if unsupported files should be skipped
+			if c.ContinueOnUnsupportedFiles() {
+				metrics.SkippedUnsupportedFiles++
+				metrics.LastSkippedUnsupportedFile = hdr.Name
+				continue
+			}
+
 			// increase error counter, set error and end if necessary
 			err := fmt.Errorf("unsupported file mode (%x)", hdr.Mode())
 			msg := "cannot extract file"
@@ -231,24 +234,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// finished without problems
 	return nil
-}
-
-// handleError increases the error counter, sets the latest error and
-// decides if extraction should continue.
-func handleError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
-
-	// increase error counter and set error
-	metrics.ExtractionErrors++
-	metrics.LastExtractionError = err
-
-	// do not end on error
-	if c.ContinueOnError {
-		c.Logger.Error(msg, "error", err)
-		return nil
-	}
-
-	// end extraction on error
-	return fmt.Errorf("%s: %s", msg, err)
 }
 
 // readLinkTargetFromZip extracts the symlink destination for symlinkFile
@@ -271,46 +256,4 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 
 	// return result
 	return symlinkTarget, nil
-}
-
-// limitErrorReaderCounter is a reader that returns an error if the limit is exceeded
-// before the underlying reader is fully read.
-// If the limit is -1, all data from the original reader is read.
-type limitErrorReaderCounter struct {
-	R io.Reader // underlying reader
-	L int64     // limit
-	N int64     // number of bytes read
-}
-
-// Read reads from the underlying reader and fills up p.
-// It returns an error if the limit is exceeded, even if the underlying reader is not fully read.
-// If the limit is -1, all data from the original reader is read.
-// Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
-// reader is fully read.
-func (l *limitErrorReaderCounter) Read(p []byte) (int, error) {
-
-	// read from underlying reader
-	n, err := l.R.Read(p)
-	l.N += int64(n)
-	if err != nil {
-		return n, err
-	}
-
-	// check if limit has exceeded
-	if l.L >= 0 && l.N > l.L {
-		return n, fmt.Errorf("read limit exceeded")
-	}
-
-	// return
-	return n, nil
-}
-
-// ReadBytes returns how many bytes have been read from the underlying reader
-func (l *limitErrorReaderCounter) ReadBytes() int {
-	return int(l.N)
-}
-
-// NewLimitErrorReader returns a new LimitErrorReader that reads from r
-func NewLimitErrorReader(r io.Reader, limit int64) *limitErrorReaderCounter {
-	return &limitErrorReaderCounter{R: r, L: limit, N: 0}
 }

@@ -1,14 +1,12 @@
 package extractor
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/target"
@@ -16,7 +14,7 @@ import (
 
 // reference https://socketloop.com/tutorials/golang-gunzip-file
 
-var MagicBytesGZIP = [][]byte{
+var magicBytesGZIP = [][]byte{
 	{0x1f, 0x8b},
 }
 
@@ -32,41 +30,35 @@ func NewGzip() *Gzip {
 	return &gzip
 }
 
+type HeaderCheck (func([]byte) bool)
+
+func IsGZIP(header []byte) bool {
+	return matchesMagicBytes(header, 0, magicBytesGZIP)
+}
+
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
-	return g.unpack(ctx, src, dst, t, c)
+
+	// prepare limits input and ensures metrics capturing
+	reader := prepare(ctx, src, c)
+
+	return g.unpack(ctx, reader, dst, t, c)
 }
 
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
 func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// ensure input size and capture metrics
-	ler := NewLimitErrorReader(src, c.MaxInputSize)
-
 	// object to store metrics
-	metrics := config.Metrics{}
-	metrics.ExtractedType = "gzip"
-	start := time.Now()
-	emitGzipMetrics := true
+	// remark: do not setup MetricsHook here, bc/ in case of tar+gzip, the
+	// tar extractor should submit the metrics
+	metrics := config.Metrics{ExtractedType: "gzip"}
 
-	// anonymous function to emit metrics
-	emitMetrics := func() {
-		if emitGzipMetrics { // check if metrics should still be emitted
-			metrics.InputSize = int64(ler.ReadBytes())     // store input file size
-			metrics.ExtractionDuration = time.Since(start) // calculate execution time
-			if c.MetricsHook != nil {                      // emit metrics
-				c.MetricsHook(ctx, metrics)
-			}
-
-		}
-	}
-	defer emitMetrics() // emit metrics
-
-	c.Logger.Info("extracting gzip")
-
-	uncompressedStream, err := gzip.NewReader(ler)
+	// prepare gzip extraction
+	c.Logger().Info("extracting gzip")
+	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "cannot read gzip"
 		return handleError(c, &metrics, msg, err)
 	}
@@ -74,46 +66,37 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// convert to peek header
 	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
 	if err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "cannot read header uncompressed gzip"
 		return handleError(c, &metrics, msg, err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
+		defer c.MetricsHook(ctx, &metrics)
 		msg := "context error"
 		return handleError(c, &metrics, msg, err)
 	}
 
 	// check if uncompressed stream is tar
 	headerBytes := headerReader.PeekHeader()
-	for _, magicBytes := range MagicBytesTar {
 
-		// check if header is long enough
-		if OffsetTar+len(magicBytes) > len(headerBytes) {
-			continue
-		}
+	// check for tar header
+	if !c.NoTarGzExtract() && IsTar(headerBytes) {
+		// combine types
+		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+			m.ExtractedType = "tar+gzip"
+		})
 
-		// check for byte match
-		if bytes.Equal(magicBytes, headerBytes[OffsetTar:OffsetTar+len(magicBytes)]) {
-
-			tar := NewTar()
-
-			// ensure that gzip metrics are not emitted and tar metrics are combined with gzip metrics
-			if c.MetricsHook != nil {
-				emitGzipMetrics = false
-				oldMetricsHook := c.MetricsHook
-				c.MetricsHook = func(ctx context.Context, m config.Metrics) {
-					m.ExtractedType = "tar+gzip"             // combined input type
-					m.InputSize = int64(ler.ReadBytes())     // store original input file size
-					m.ExtractionDuration = time.Since(start) // calculate execution time beginning from gzip start
-					oldMetricsHook(ctx, m)                   // finally emit metrics
-				}
-			}
-			return tar.Unpack(ctx, headerReader, dst, t, c)
-		}
+		// continue with tar extraction
+		return NewTar().Unpack(ctx, headerReader, dst, t, c)
 	}
 
+	// ensure metrics are emitted
+	defer c.MetricsHook(ctx, &metrics)
+
 	// determine name for decompressed content
+	// TODO: use headerReader to determine name
 	name := "gunziped-content"
 	if dst != "." {
 		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
@@ -136,86 +119,4 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	// finished
 	metrics.ExtractedFiles++
 	return nil
-}
-
-// HeaderReader is an implementation of io.Reader that allows the first bytes of
-// the reader to be read twice. This is useful for identifying the archive type
-// before unpacking.
-type HeaderReader struct {
-	r      io.Reader
-	header []byte
-}
-
-func NewHeaderReader(r io.Reader, headerSize int) (*HeaderReader, error) {
-	// read at least headerSize bytes. If EOF, capture whatever was read.
-	buf := make([]byte, headerSize)
-	n, err := io.ReadFull(r, buf)
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, err
-	}
-	return &HeaderReader{r, buf[:n]}, nil
-}
-
-func (p *HeaderReader) Read(b []byte) (int, error) {
-	// read from header first
-	if len(p.header) > 0 {
-		n := copy(b, p.header)
-		p.header = p.header[n:]
-		return n, nil
-	}
-
-	// then continue reading from the source
-	return p.r.Read(b)
-}
-
-func (p *HeaderReader) PeekHeader() []byte {
-	return p.header
-}
-
-// extractor is a private interface and defines all functions that needs to be implemented by an extraction engine.
-type extractor interface {
-	// Unpack is the main entrypoint to an extraction engine that takes the contents from src and extracts them to dst.
-	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
-}
-
-// ExtractorsForMagicBytes is collection of new extractor functions with
-// the required magic bytes and potential offset
-var ExtractorsForMagicBytes = []struct {
-	NewExtractor func() extractor
-	Offset       int
-	MagicBytes   [][]byte
-}{
-	{
-		NewExtractor: func() extractor {
-			return NewTar()
-		},
-		Offset:     OffsetTar,
-		MagicBytes: MagicBytesTar,
-	},
-	{
-		NewExtractor: func() extractor {
-			return NewZip()
-		},
-		MagicBytes: MagicBytesZIP,
-	},
-	{
-		NewExtractor: func() extractor {
-			return NewGzip()
-		},
-		MagicBytes: MagicBytesGZIP,
-	},
-}
-
-var MaxHeaderLength int
-
-func init() {
-	for _, ex := range ExtractorsForMagicBytes {
-		needs := ex.Offset
-		for _, mb := range ex.MagicBytes {
-			needs += len(mb)
-		}
-		if needs > MaxHeaderLength {
-			MaxHeaderLength = needs
-		}
-	}
 }

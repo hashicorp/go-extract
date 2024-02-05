@@ -51,16 +51,18 @@ func TestCheckMaxFiles(t *testing.T) {
 
 // TestCheckMaxInputSize implements test cases
 func TestWithMetricsHook(t *testing.T) {
-	hook := func(ctx context.Context, metrics Metrics) {
-		// This is just a dummy hook for testing
+	hookExecuted := false
+	hook := func(ctx context.Context, metrics *Metrics) {
+		hookExecuted = true
 	}
 
 	config := &Config{}
 	option := WithMetricsHook(hook)
 	option(config)
+	config.MetricsHook(context.Background(), &Metrics{})
 
-	if config.MetricsHook == nil {
-		t.Errorf("Expected MetricsHook to be set, but it was nil")
+	if hookExecuted == false {
+		t.Errorf("Expected MetricsHook to be executed, but it was not")
 	}
 }
 
@@ -71,8 +73,8 @@ func TestWithMaxInputSize(t *testing.T) {
 	option := WithMaxInputSize(maxInputSize)
 	option(config)
 
-	if config.MaxInputSize != maxInputSize {
-		t.Errorf("Expected MaxInputSize to be %d, but got %d", maxInputSize, config.MaxInputSize)
+	if config.MaxInputSize() != maxInputSize {
+		t.Errorf("Expected MaxInputSize to be %d, but got %d", maxInputSize, config.MaxInputSize())
 	}
 }
 
@@ -83,14 +85,14 @@ func TestWithLogger(t *testing.T) {
 	option := WithLogger(logger)
 	option(config)
 
-	if config.Logger == nil {
+	if config.Logger() == nil {
 		t.Errorf("Expected Logger to be set, but it was nil")
 	}
 }
 
 // TestCheckMaxObjects implements test cases
 func TestCheckMaxObjects(t *testing.T) {
-	config := &Config{MaxFiles: 5}
+	config := &Config{maxFiles: 5}
 
 	err := config.CheckMaxObjects(6)
 	if err == nil {
@@ -107,7 +109,7 @@ func TestCheckMaxObjects(t *testing.T) {
 		t.Errorf("Expected no error when counter is less than MaxFiles, but got: %s", err)
 	}
 
-	config.MaxFiles = -1
+	config.maxFiles = -1
 	err = config.CheckMaxObjects(6)
 	if err != nil {
 		t.Errorf("Expected no error when MaxFiles is -1, but got: %s", err)
@@ -116,7 +118,7 @@ func TestCheckMaxObjects(t *testing.T) {
 
 // TestCheckExtractionSize implements test cases
 func TestCheckExtractionSize(t *testing.T) {
-	config := &Config{MaxExtractionSize: 1024}
+	config := &Config{maxExtractionSize: 1024}
 
 	err := config.CheckExtractionSize(2048)
 	if err == nil {
@@ -133,7 +135,7 @@ func TestCheckExtractionSize(t *testing.T) {
 		t.Errorf("Expected no error when fileSize is less than MaxExtractionSize, but got: %s", err)
 	}
 
-	config.MaxExtractionSize = -1
+	config.maxExtractionSize = -1
 	err = config.CheckExtractionSize(2048)
 	if err != nil {
 		t.Errorf("Expected no error when MaxExtractionSize is -1, but got: %s", err)
@@ -146,14 +148,14 @@ func TestWithCreateDestination(t *testing.T) {
 	option := WithCreateDestination(true)
 	option(config)
 
-	if config.CreateDestination != true {
+	if config.CreateDestination() != true {
 		t.Errorf("Expected CreateDestination to be true, but got false")
 	}
 
 	option = WithCreateDestination(false)
 	option(config)
 
-	if config.CreateDestination != false {
+	if config.CreateDestination() != false {
 		t.Errorf("Expected CreateDestination to be false, but got true")
 	}
 }
@@ -188,7 +190,7 @@ func TestCheckWithOverwrite(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.Overwrite
+			got := tc.config.Overwrite()
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -226,7 +228,7 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.AllowSymlinks
+			got := tc.config.AllowSymlinks()
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -264,7 +266,7 @@ func TestCheckWithContinueOnError(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.ContinueOnError
+			got := tc.config.ContinueOnError()
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -302,7 +304,7 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.FollowSymlinks
+			got := tc.config.FollowSymlinks()
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
