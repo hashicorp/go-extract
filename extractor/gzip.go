@@ -62,6 +62,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 		msg := "cannot read gzip"
 		return handleError(c, &metrics, msg, err)
 	}
+	defer uncompressedStream.Close()
 
 	// convert to peek header
 	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
