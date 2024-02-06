@@ -54,24 +54,18 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// emit metrics
 	defer c.MetricsHook(ctx, &metrics)
 
-	// read complete zip file into memory
-	buff := bytes.NewBuffer([]byte{})
-	size, err := io.Copy(buff, src)
-
+	// read archive into buffer
+	buf := new(bytes.Buffer)
+	size, err := buf.ReadFrom(src)
 	if err != nil {
-		msg := "cannot read src"
-		return handleError(c, &metrics, msg, err)
+		return handleError(c, &metrics, "cannot read zip", err)
 	}
 
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		msg := "context error"
-		return handleError(c, &metrics, msg, err)
-	}
+	// convert buf to io.ReaderAt
+	readerAt := bytes.NewReader(buf.Bytes())
 
-	// get content of buf as io.Reader
-	srcReader := bytes.NewReader(buff.Bytes())
-	zipReader, err := zip.NewReader(srcReader, size)
+	// get content of readerAt as io.Reader
+	zipReader, err := zip.NewReader(readerAt, size)
 
 	// check for errors, format and handle them
 	if err != nil {
@@ -257,3 +251,37 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	// return result
 	return symlinkTarget, nil
 }
+
+// // ReaderToReaderAt converts an io.Reader to an io.ReaderAt.
+// func ReaderToReaderAt(r io.Reader) (io.ReaderAt, error) {
+// 	data, err := io.ReadAll(r)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return bytes.NewReader(data), nil
+// }
+
+// type unbufferedReaderAt struct {
+// 	R io.Reader
+// 	N int64
+// }
+
+// func NewUnbufferedReaderAt(r io.Reader) io.ReaderAt {
+// 	return &unbufferedReaderAt{R: r}
+// }
+
+// func (u *unbufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
+// 	if off < u.N {
+// 		return 0, errors.New("invalid offset")
+// 	}
+// 	diff := off - u.N
+// 	written, err := io.CopyN(io.Discard, u.R, diff)
+// 	u.N += written
+// 	if err != nil {
+// 		return 0, err
+// 	}
+
+// 	n, err = u.R.Read(p)
+// 	u.N += int64(n)
+// 	return
+// }
