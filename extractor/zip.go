@@ -58,18 +58,18 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	var size int64
 	var offersReaderAtAndSeek bool
 
-	// // check if src is io.ReaderAt and io.Seeker
-	// if ra, ok := src.(io.ReaderAt); ok {
-	// 	if seeker, ok := ra.(io.Seeker); ok {
-	// 		if s, err := seeker.Seek(0, io.SeekEnd); err != nil {
-	// 			return handleError(c, &metrics, "cannot seek in zip", err)
-	// 		} else {
-	// 			size = s
-	// 			readerAt = ra
-	// 			offersReaderAtAndSeek = true
-	// 		}
-	// 	}
-	// }
+	// check if src is io.ReaderAt and io.Seeker
+	if ra, ok := src.(io.ReaderAt); ok {
+		if seeker, ok := ra.(io.Seeker); ok {
+			if s, err := seeker.Seek(0, io.SeekEnd); err != nil {
+				return handleError(c, &metrics, "cannot seek in zip", err)
+			} else {
+				size = s
+				readerAt = ra
+				offersReaderAtAndSeek = true
+			}
+		}
+	}
 
 	// read src into tmp file
 	if !offersReaderAtAndSeek {
@@ -97,19 +97,6 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 			readerAt = file
 		}
 	}
-
-	// // read src into buffer
-	// if !offersReaderAtAndSeek {
-	// 	// read archive into buffer
-	// 	var buf bytes.Buffer
-	// 	if s, err := buf.ReadFrom(src); err != nil {
-	// 		return handleError(c, &metrics, "cannot read zip", err)
-	// 	} else {
-	// 		size = s
-	// 	}
-	// 	// convert buf to io.ReaderAt
-	// 	readerAt = bytes.NewReader(buf.Bytes())
-	// }
 
 	// get content of readerAt as io.Reader
 	zipReader, err := zip.NewReader(readerAt, size)
@@ -320,37 +307,3 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	// return result
 	return symlinkTarget, nil
 }
-
-// // ReaderToReaderAt converts an io.Reader to an io.ReaderAt.
-// func ReaderToReaderAt(r io.Reader) (io.ReaderAt, error) {
-// 	data, err := io.ReadAll(r)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return bytes.NewReader(data), nil
-// }
-
-// type unbufferedReaderAt struct {
-// 	R io.Reader
-// 	N int64
-// }
-
-// func NewUnbufferedReaderAt(r io.Reader) io.ReaderAt {
-// 	return &unbufferedReaderAt{R: r}
-// }
-
-// func (u *unbufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
-// 	if off < u.N {
-// 		return 0, errors.New("invalid offset")
-// 	}
-// 	diff := off - u.N
-// 	written, err := io.CopyN(io.Discard, u.R, diff)
-// 	u.N += written
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	n, err = u.R.Read(p)
-// 	u.N += int64(n)
-// 	return
-// }
