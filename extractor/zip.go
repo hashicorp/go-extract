@@ -54,15 +54,32 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// emit metrics
 	defer c.MetricsHook(ctx, &metrics)
 
-	// read archive into buffer
-	buf := new(bytes.Buffer)
-	size, err := buf.ReadFrom(src)
-	if err != nil {
-		return handleError(c, &metrics, "cannot read zip", err)
+	var buf bytes.Buffer
+	var readerAt io.ReaderAt
+	var seeker io.Seeker
+	var size int64
+	var err error
+	var seekAble bool
+	var readAtAble bool
+
+	if readerAt, readAtAble = src.(io.ReaderAt); readAtAble {
+		if seeker, seekAble = src.(io.Seeker); seekAble {
+			size, err = seeker.Seek(0, io.SeekEnd)
+			if err != nil {
+				return handleError(c, &metrics, "cannot seek in zip", err)
+			}
+		}
 	}
 
-	// convert buf to io.ReaderAt
-	readerAt := bytes.NewReader(buf.Bytes())
+	if !seekAble || !readAtAble {
+		// read archive into buffer
+		size, err = buf.ReadFrom(src)
+		if err != nil {
+			return handleError(c, &metrics, "cannot read zip", err)
+		}
+		// convert buf to io.ReaderAt
+		readerAt = bytes.NewReader(buf.Bytes())
+	}
 
 	// get content of readerAt as io.Reader
 	zipReader, err := zip.NewReader(readerAt, size)
