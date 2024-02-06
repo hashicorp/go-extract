@@ -20,10 +20,7 @@ var magicBytesTar = [][]byte{
 }
 
 // Tar holds information that are needed for tar extraction.
-type Tar struct {
-	// target is the target of the extraction
-	target target.Target
-}
+type Tar struct{}
 
 func IsTar(data []byte) bool {
 	return matchesMagicBytes(data, offsetTar, magicBytesTar)
@@ -31,13 +28,9 @@ func IsTar(data []byte) bool {
 
 // NewTar creates a new untar object with config as configuration
 func NewTar() *Tar {
-	// configure target
-	target := target.NewOs()
 
 	// instantiate
-	tar := Tar{
-		target: target,
-	}
+	tar := Tar{}
 
 	// return the modified house instance
 	return &tar
@@ -115,7 +108,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		case tar.TypeDir:
 
 			// handle directory
-			if err := t.target.CreateSafeDir(c, dst, hdr.Name); err != nil {
+			if err := target.CreateSafeDir(c, dst, hdr.Name); err != nil {
 				msg := "failed to create safe directory"
 				if err := handleError(c, &metrics, msg, err); err != nil {
 					return err
@@ -140,7 +133,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			}
 
 			// create file
-			if err := t.target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+			if err := target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
 				// increase error counter, set error and end if necessary
 				msg := "failed to create safe file"
@@ -161,7 +154,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		case tar.TypeSymlink:
 
 			// create link
-			if err := t.target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
+			if err := target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
 				// increase error counter, set error and end if necessary
 				msg := "failed to create safe symlink"
