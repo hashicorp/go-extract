@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -56,47 +57,53 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// prepare
 	var readerAt io.ReaderAt
 	var size int64
-	var offersReaderAtAndSeek bool
 
-	// check if src is io.ReaderAt and io.Seeker
-	if ra, ok := src.(io.ReaderAt); ok {
-		if seeker, ok := ra.(io.Seeker); ok {
-			if s, err := seeker.Seek(0, io.SeekEnd); err != nil {
-				return handleError(c, &metrics, "cannot seek in zip", err)
-			} else {
-				size = s
-				readerAt = ra
-				offersReaderAtAndSeek = true
-			}
-		}
+	readerAt, size, err := readerToReaderAt(src)
+	if err != nil {
+		return handleError(c, &metrics, "cannot convert reader to readerAt", err)
 	}
 
-	// read src into tmp file
-	if !offersReaderAtAndSeek {
-		// read archive into tmp file
-		if tmpFile, err := readIntoTmpFile(src); err != nil {
-			return handleError(c, &metrics, "cannot read zip", err)
-		} else {
-			// close tmp file
-			defer os.Remove(tmpFile)
+	// var offersReaderAtAndSeek bool
 
-			// open tmp file
-			file, err := os.Open(tmpFile)
-			if err != nil {
-				return handleError(c, &metrics, "cannot open tmp file", err)
-			}
+	// // check if src is io.ReaderAt and io.Seeker
+	// if ra, ok := src.(io.ReaderAt); ok {
+	// 	if seeker, ok := ra.(io.Seeker); ok {
+	// 		if s, err := seeker.Seek(0, io.SeekEnd); err != nil {
+	// 			return handleError(c, &metrics, "cannot seek in zip", err)
+	// 		} else {
+	// 			size = s
+	// 			readerAt = ra
+	// 			offersReaderAtAndSeek = true
+	// 		}
+	// 	}
+	// }
 
-			// get file size
-			if s, err := file.Seek(0, io.SeekEnd); err != nil {
-				return handleError(c, &metrics, "cannot seek in tmp file", err)
-			} else {
-				size = s
-			}
+	// // read src into tmp file
+	// if !offersReaderAtAndSeek {
+	// 	// read archive into tmp file
+	// 	if tmpFile, err := readIntoTmpFile(src); err != nil {
+	// 		return handleError(c, &metrics, "cannot read zip", err)
+	// 	} else {
+	// 		// close tmp file
+	// 		defer os.Remove(tmpFile)
 
-			// convert file to io.ReaderAt
-			readerAt = file
-		}
-	}
+	// 		// open tmp file
+	// 		file, err := os.Open(tmpFile)
+	// 		if err != nil {
+	// 			return handleError(c, &metrics, "cannot open tmp file", err)
+	// 		}
+
+	// 		// get file size
+	// 		if s, err := file.Seek(0, io.SeekEnd); err != nil {
+	// 			return handleError(c, &metrics, "cannot seek in tmp file", err)
+	// 		} else {
+	// 			size = s
+	// 		}
+
+	// 		// convert file to io.ReaderAt
+	// 		readerAt = file
+	// 	}
+	// }
 
 	// get content of readerAt as io.Reader
 	zipReader, err := zip.NewReader(readerAt, size)
@@ -306,4 +313,14 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 
 	// return result
 	return symlinkTarget, nil
+}
+
+// readerToReaderAt converts a reader to a readerAt
+func readerToReaderAt(r io.Reader) (io.ReaderAt, int64, error) {
+	var buf bytes.Buffer
+	size, err := io.Copy(&buf, r)
+	if err != nil {
+		return nil, size, fmt.Errorf("cannot copy reader to buffer: %w", err)
+	}
+	return bytes.NewReader(buf.Bytes()), size, nil
 }
