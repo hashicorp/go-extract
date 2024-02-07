@@ -38,34 +38,23 @@ func NewZip() *Zip {
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// check if src is a file
-	if f, ok := src.(*os.File); ok {
+	// ensures extraction time is capturing
+	captureExtractionDuration(ctx, c)
 
-		// ensures extraction time is capturing
-		captureExtractionDuration(ctx, c)
-
-		// get file size
-		var size int64
-		if fstat, err := f.Stat(); err != nil {
-			return fmt.Errorf("cannot get file size: %w", err)
-		} else {
-			size = fstat.Size()
-		}
-
-		// check for maximum input size
-		if c.MaxInputSize() != -1 && size > c.MaxInputSize() {
-			return fmt.Errorf("file size exceeds maximum input size")
-		}
-
-		// perform extraction
-		return z.unpack(ctx, f, dst, t, c, size)
-	}
-
-	// read file into memory
-	ler := prepare(ctx, src, c)
-	reader, inputSize, err := readerToReaderAt(ler)
+	// prepare extraction
+	reader, inputSize, err := readerToReaderAt(src, c.MaxInputSize())
 	if err != nil {
 		return handleError(c, nil, "cannot read all from reader", err)
+	}
+
+	// check for maximum input size
+	if c.MaxInputSize() != -1 && inputSize > c.MaxInputSize() {
+		return fmt.Errorf("file size exceeds maximum input size")
+	} else {
+		// setup metric hook
+		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+			m.InputSize = inputSize
+		})
 	}
 
 	// perform extraction
@@ -292,9 +281,26 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 }
 
 // readerToReaderAt converts a reader to a readerAt
-func readerToReaderAt(r io.Reader) (io.ReaderAt, int64, error) {
-	// var buf bytes.Buffer
-	data, err := io.ReadAll(r)
+func readerToReaderAt(src io.Reader, inputLimit int64) (io.ReaderAt, int64, error) {
+
+	// check if src is a file
+	if f, ok := src.(*os.File); ok {
+
+		// get file size
+		var size int64
+		if fstat, err := f.Stat(); err != nil {
+			return nil, size, fmt.Errorf("cannot get file size: %w", err)
+		} else {
+			size = fstat.Size()
+		}
+
+		// return file and size
+		return f, size, nil
+	}
+
+	// read file into memory
+	ler := config.NewLimitErrorReader(src, inputLimit)
+	data, err := io.ReadAll(ler)
 	if err != nil {
 		return nil, int64(len(data)), fmt.Errorf("cannot copy reader to buffer: %w", err)
 	}
