@@ -38,15 +38,38 @@ func NewZip() *Zip {
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
-	// prepare limits input and ensures metrics capturing
-	reader := prepare(ctx, src, c)
+	// check if src is a file
+	if f, ok := src.(*os.File); ok {
+
+		// ensures extraction time is capturing
+		captureExtractionDuration(ctx, c)
+
+		fstat, err := f.Stat()
+		if err != nil {
+			return handleError(c, nil, "cannot stat file", err)
+		}
+		size := fstat.Size()
+
+		if size > c.MaxInputSize() {
+			return handleError(c, nil, "max input size exceeded", err)
+		}
+
+		return z.unpack(ctx, f, dst, t, c, size)
+	}
+
+	// read file into memory
+	ler := prepare(ctx, src, c)
+	reader, inputSize, err := readerToReaderAt(ler)
+	if err != nil {
+		return handleError(c, nil, "cannot read all from reader", err)
+	}
 
 	// perform extraction
-	return z.unpack(ctx, reader, dst, t, c)
+	return z.unpack(ctx, reader, dst, t, c, inputSize)
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.Target, c *config.Config, inputSize int64) error {
 
 	// object to store metrics
 	metrics := config.Metrics{ExtractedType: "zip"}
@@ -54,59 +77,8 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// emit metrics
 	defer c.MetricsHook(ctx, &metrics)
 
-	// prepare
-	var readerAt io.ReaderAt
-	var size int
-
-	readerAt, size, err := readerToReaderAt(src)
-	if err != nil {
-		return handleError(c, &metrics, "cannot convert reader to readerAt", err)
-	}
-
-	// var offersReaderAtAndSeek bool
-
-	// // check if src is io.ReaderAt and io.Seeker
-	// if ra, ok := src.(io.ReaderAt); ok {
-	// 	if seeker, ok := ra.(io.Seeker); ok {
-	// 		if s, err := seeker.Seek(0, io.SeekEnd); err != nil {
-	// 			return handleError(c, &metrics, "cannot seek in zip", err)
-	// 		} else {
-	// 			size = s
-	// 			readerAt = ra
-	// 			offersReaderAtAndSeek = true
-	// 		}
-	// 	}
-	// }
-
-	// // read src into tmp file
-	// if !offersReaderAtAndSeek {
-	// 	// read archive into tmp file
-	// 	if tmpFile, err := readIntoTmpFile(src); err != nil {
-	// 		return handleError(c, &metrics, "cannot read zip", err)
-	// 	} else {
-	// 		// close tmp file
-	// 		defer os.Remove(tmpFile)
-
-	// 		// open tmp file
-	// 		file, err := os.Open(tmpFile)
-	// 		if err != nil {
-	// 			return handleError(c, &metrics, "cannot open tmp file", err)
-	// 		}
-
-	// 		// get file size
-	// 		if s, err := file.Seek(0, io.SeekEnd); err != nil {
-	// 			return handleError(c, &metrics, "cannot seek in tmp file", err)
-	// 		} else {
-	// 			size = s
-	// 		}
-
-	// 		// convert file to io.ReaderAt
-	// 		readerAt = file
-	// 	}
-	// }
-
 	// get content of readerAt as io.Reader
-	zipReader, err := zip.NewReader(readerAt, int64(size))
+	zipReader, err := zip.NewReader(src, inputSize)
 
 	// check for errors, format and handle them
 	if err != nil {
@@ -316,12 +288,11 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 }
 
 // readerToReaderAt converts a reader to a readerAt
-func readerToReaderAt(r io.Reader) (io.ReaderAt, int, error) {
+func readerToReaderAt(r io.Reader) (io.ReaderAt, int64, error) {
 	// var buf bytes.Buffer
 	data, err := io.ReadAll(r)
-	// size, err := io.Copy(&buf, r)
 	if err != nil {
-		return nil, len(data), fmt.Errorf("cannot copy reader to buffer: %w", err)
+		return nil, int64(len(data)), fmt.Errorf("cannot copy reader to buffer: %w", err)
 	}
-	return bytes.NewReader(data), len(data), nil
+	return bytes.NewReader(data), int64(len(data)), nil
 }

@@ -23,17 +23,24 @@ type extractor interface {
 // functionality.
 func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 
-	// setup reader and timer
-	start := time.Now()                                      // capture start to calculate execution time
-	ler := config.NewLimitErrorReader(src, c.MaxInputSize()) // ensure input size and capture metrics
-
-	// extend metric collection
+	// ensure input size is limited and input size is captured
+	ler := config.NewLimitErrorReader(src, c.MaxInputSize())
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
-		m.ExtractionDuration = time.Since(start) // capture execution time
-		m.InputSize = int64(ler.ReadBytes())     // capture inputSize metric
+		m.InputSize = int64(ler.ReadBytes())
 	})
 
+	// capture extraction duration
+	captureExtractionDuration(ctx, c)
+
 	return ler
+}
+
+// captureExtractionDuration ensures that the extraction duration is captured
+func captureExtractionDuration(ctx context.Context, c *config.Config) {
+	start := time.Now()
+	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+		m.ExtractionDuration = time.Since(start) // capture execution time
+	})
 }
 
 // AvailableExtractors is collection of new extractor functions with
