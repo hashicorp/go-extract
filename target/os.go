@@ -184,7 +184,7 @@ func (o *Os) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	if cfg.MaxExtractionSize() >= 0 {
 
 		// encapsulate reader with limit reader
-		ler := config.NewLimitErrorReaderCounter(reader, cfg.MaxExtractionSize())
+		ler := config.NewLimitErrorReader(reader, cfg.MaxExtractionSize())
 		if _, err = io.Copy(dstFile, ler); err != nil {
 			return err
 		}
