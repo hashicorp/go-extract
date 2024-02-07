@@ -47,10 +47,10 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		// get file size
 		var size int64
 		if fstat, err := f.Stat(); err != nil {
-			return handleError(c, nil, "cannot stat file", err)
+			return fmt.Errorf("cannot get file size: %w", err)
 		} else {
 			if size = fstat.Size(); size > c.MaxInputSize() {
-				return handleError(c, nil, "max input size exceeded", err)
+				return fmt.Errorf("file size exceeds maximum input size")
 			}
 		}
 
