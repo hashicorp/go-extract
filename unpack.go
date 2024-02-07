@@ -15,18 +15,50 @@ import (
 func Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
 
 	// read headerReader to identify archive type
-	headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
+	header, reader, err := getHeader(src)
 	if err != nil {
 		return err
 	}
+
+	// find extractor for header
 	var ex Extractor
-	headerData := headerReader.PeekHeader()
-	if ex = findExtractor(headerData); ex == nil {
+	if ex = findExtractor(header); ex == nil {
 		return fmt.Errorf("archive type not supported")
 	}
 
 	// perform extraction with identified reader
-	return ex.Unpack(ctx, headerReader, dst, t, c)
+	return ex.Unpack(ctx, reader, dst, t, c)
+}
+
+// getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
+// directly from the reader and the reader gets reset. If src is not a io.Seeker, the header is read
+// and transformed into a HeaderReader, which is returned as the second return value. If an error
+// occurs, the header is nil and the error is returned as the third return value
+func getHeader(src io.Reader) ([]byte, io.Reader, error) {
+
+	// allocate buffer for header
+	header := make([]byte, extractor.MaxHeaderLength)
+
+	// check if source offers seek and preserve type of source
+	if s, ok := src.(io.Seeker); ok {
+		// read header from source
+		_, err := src.Read(header)
+		if err != nil {
+			return nil, nil, err
+		}
+		// reset reader
+		_, err = s.Seek(0, io.SeekStart)
+		if err != nil {
+			return nil, nil, err
+		}
+		return header, src, nil
+	}
+
+	headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
+	if err != nil {
+		return nil, nil, err
+	}
+	return headerReader.PeekHeader(), headerReader, nil
 }
 
 // findExtractor identifies the correct extractor based on magic bytes.

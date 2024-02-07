@@ -44,16 +44,17 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 		// ensures extraction time is capturing
 		captureExtractionDuration(ctx, c)
 
-		fstat, err := f.Stat()
-		if err != nil {
+		// get file size
+		var size int64
+		if fstat, err := f.Stat(); err != nil {
 			return handleError(c, nil, "cannot stat file", err)
+		} else {
+			if size = fstat.Size(); size > c.MaxInputSize() {
+				return handleError(c, nil, "max input size exceeded", err)
+			}
 		}
-		size := fstat.Size()
 
-		if size > c.MaxInputSize() {
-			return handleError(c, nil, "max input size exceeded", err)
-		}
-
+		// perform extraction
 		return z.unpack(ctx, f, dst, t, c, size)
 	}
 
@@ -72,7 +73,7 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.Target, c *config.Config, inputSize int64) error {
 
 	// object to store metrics
-	metrics := config.Metrics{ExtractedType: "zip"}
+	metrics := config.Metrics{ExtractedType: "zip", InputSize: inputSize}
 
 	// emit metrics
 	defer c.MetricsHook(ctx, &metrics)
