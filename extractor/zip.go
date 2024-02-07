@@ -56,7 +56,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// prepare
 	var readerAt io.ReaderAt
-	var size int64
+	var size int
 
 	readerAt, size, err := readerToReaderAt(src)
 	if err != nil {
@@ -106,7 +106,7 @@ func (z *Zip) unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// }
 
 	// get content of readerAt as io.Reader
-	zipReader, err := zip.NewReader(readerAt, size)
+	zipReader, err := zip.NewReader(readerAt, int64(size))
 
 	// check for errors, format and handle them
 	if err != nil {
@@ -316,11 +316,12 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 }
 
 // readerToReaderAt converts a reader to a readerAt
-func readerToReaderAt(r io.Reader) (io.ReaderAt, int64, error) {
-	var buf bytes.Buffer
-	size, err := io.Copy(&buf, r)
+func readerToReaderAt(r io.Reader) (io.ReaderAt, int, error) {
+	// var buf bytes.Buffer
+	data, err := io.ReadAll(r)
+	// size, err := io.Copy(&buf, r)
 	if err != nil {
-		return nil, size, fmt.Errorf("cannot copy reader to buffer: %w", err)
+		return nil, len(data), fmt.Errorf("cannot copy reader to buffer: %w", err)
 	}
-	return bytes.NewReader(buf.Bytes()), size, nil
+	return bytes.NewReader(data), len(data), nil
 }
