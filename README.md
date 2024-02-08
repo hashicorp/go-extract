@@ -20,7 +20,6 @@ import (
     ...
     "github.com/hashicorp/go-extract"
     "github.com/hashicorp/go-extract/config"
-    "github.com/hashicorp/go-extract/target"
     ...
 )
 
@@ -62,7 +61,7 @@ import (
     )
 
     // extract archive
-    if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
+    if err := extract.Unpack(ctx, archive, destinationPath, config); err != nil {
       // handle error
     }
 
@@ -156,7 +155,7 @@ Flags:
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
 - [ ] Extraction filter with file names
-- [ ] Cache input on disk
+- [x] Cache input on disk, if necessary
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target

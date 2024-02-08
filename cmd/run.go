@@ -14,7 +14,6 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -106,7 +105,7 @@ func Run(version, commit, date string) {
 	}
 
 	// extract archive
-	if err := extract.Unpack(ctx, archive, cli.Destination, target.NewOs(), config); err != nil {
+	if err := extract.Unpack(ctx, archive, cli.Destination, config); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}

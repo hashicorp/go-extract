@@ -294,8 +294,31 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	}
 }
 
-// TestUnpack is a test function
 func TestUnpack(t *testing.T) {
+
+	// create test zip
+	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+
+	// create test zip
+	f, _ := os.Open(createTestZip(testDir))
+	defer f.Close()
+
+	// perform actual tests
+	err = Unpack(context.Background(), f, testDir, config.NewConfig())
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
+// TestUnpack is a test function
+func TestUnpackOnTarget(t *testing.T) {
+
+	// test cases
 	cases := []struct {
 		name        string
 		fn          func(string) string
@@ -342,7 +365,7 @@ func TestUnpack(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			err = Unpack(
+			err = UnpackOnTarget(
 				context.Background(),
 				archive,
 				testDir,
@@ -681,7 +704,7 @@ func TestMetriksHook(t *testing.T) {
 			// perform actual tests
 			ctx := context.Background()
 			dstDir := filepath.Join(testDir, tc.dst)
-			err = Unpack(ctx, archive, dstDir, target.NewOs(), cfg)
+			err = UnpackOnTarget(ctx, archive, dstDir, target.NewOs(), cfg)
 
 			// check if error is expected
 			if tc.expectError != (err != nil) {
