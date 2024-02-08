@@ -70,6 +70,10 @@ import (
 
 ```
 
+**Remark**
+
+If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that `GOMEMLIMIT` is set in the execution environment to avoid `OOM` error.
+
 ## Cli Tool
 
 The library can also be used directly on the cli `extract`.
