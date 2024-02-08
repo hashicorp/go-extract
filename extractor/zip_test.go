@@ -122,9 +122,15 @@ func TestZipUnpack(t *testing.T) {
 			expectError:       true,
 		},
 		{
-			name:              "normal zip with symlink, but deny symlink extraction",
+			name:              "normal zip with symlink, but deny symlink extraction, but continue without error",
 			testFileGenerator: createTestZipWithSymlink,
 			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
+			expectError:       false,
+		},
+		{
+			name:              "normal zip with symlink, but deny symlink extraction, but skip unsupported files",
+			testFileGenerator: createTestZipWithSymlink,
+			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
 			expectError:       false,
 		},
 		{

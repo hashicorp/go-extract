@@ -18,10 +18,8 @@ type Os struct {
 
 // NewOs creates a new Os and applies provided options from opts
 func NewOs() *Os {
-
 	// create object
 	os := &Os{}
-
 	return os
 }
 

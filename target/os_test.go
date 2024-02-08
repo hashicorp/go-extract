@@ -317,6 +317,15 @@ func TestCreateSafeSymlink(t *testing.T) {
 			}{name: "test6", target: "C:\\windows\\Systems32"},
 			expectError: true,
 		},
+		{
+			name: "malicious link target with absolute path windows, but continue on error",
+			input: struct {
+				name   string
+				target string
+			}{name: "test6", target: "C:\\windows\\Systems32"},
+			cfg:         config.NewConfig(config.WithContinueOnError(true)),
+			expectError: false,
+		},
 	}
 
 	// run cases
@@ -347,6 +356,58 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 		})
 	}
+
+	// test creation of two symlinks
+	// create testing directory
+	testDir, err = os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		panic(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	defer os.RemoveAll(testDir)
+	target := &Os{}
+	target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar")
+
+	cases = []struct {
+		name  string
+		input struct {
+			name   string
+			target string
+		}
+		cfg         *config.Config
+		expectError bool
+	}{
+		{
+			name: "existing symlink overwritten",
+			input: struct {
+				name   string
+				target string
+			}{name: "foo", target: "baz"},
+			cfg:         config.NewConfig(config.WithOverwrite(true)),
+			expectError: false,
+		},
+		{
+			name: "existing symlink overwritten, but not configured",
+			input: struct {
+				name   string
+				target string
+			}{name: "foo", target: "baz"},
+			cfg:         config.NewConfig(),
+			expectError: true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expectError
+			err = target.CreateSafeSymlink(tc.cfg, testDir, tc.input.name, tc.input.target)
+			got := err != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+			}
+		})
+	}
+
 }
 
 func TestNewOs(t *testing.T) {
@@ -758,6 +819,8 @@ func TestGetStartOfAbsolutePath(t *testing.T) {
 			path: "/c:\\/d:\\test",
 		}, {
 			path: "a:\\/c:\\/test",
+		}, {
+			path: `\\test`,
 		},
 	}
 
