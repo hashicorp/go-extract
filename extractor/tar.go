@@ -153,6 +153,26 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		// its a symlink !!
 		case tar.TypeSymlink:
 
+			// check if symlinks are allowed
+			if !c.AllowSymlinks() {
+
+				// check for continue for unsupported files
+				if c.ContinueOnUnsupportedFiles() {
+					metrics.SkippedUnsupportedFiles++
+					metrics.LastSkippedUnsupportedFile = hdr.Name
+					continue
+				}
+
+				msg := "symlinks are not allowed"
+				err := fmt.Errorf("symlinks are not allowed")
+				if err := handleError(c, &metrics, msg, err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
 			// create link
 			if err := target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 

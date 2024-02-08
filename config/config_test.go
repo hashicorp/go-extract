@@ -64,6 +64,17 @@ func TestWithMetricsHook(t *testing.T) {
 	if hookExecuted == false {
 		t.Errorf("Expected MetricsHook to be executed, but it was not")
 	}
+
+	otherHookExecuted := false
+	otherHook := func(ctx context.Context, metrics *Metrics) {
+		otherHookExecuted = true
+	}
+	config.AddMetricsProcessor(otherHook)
+	config.MetricsHook(context.Background(), &Metrics{})
+	if otherHookExecuted == false {
+		t.Errorf("Expected MetricsHook to be executed, but it was not")
+	}
+
 }
 
 // TestWithMaxFiles implements test cases
@@ -75,6 +86,226 @@ func TestWithMaxInputSize(t *testing.T) {
 
 	if config.MaxInputSize() != maxInputSize {
 		t.Errorf("Expected MaxInputSize to be %d, but got %d", maxInputSize, config.MaxInputSize())
+	}
+}
+
+func TestContinueOnUnsupportedFiles(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{
+			name: "continueOnUnsupportedFiles is true",
+			cfg:  &Config{continueOnUnsupportedFiles: true},
+			want: true,
+		},
+		{
+			name: "continueOnUnsupportedFiles is false",
+			cfg:  &Config{continueOnUnsupportedFiles: false},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.ContinueOnUnsupportedFiles(); got != tt.want {
+				t.Errorf("ContinueOnUnsupportedFiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAddMetricsProcessor(t *testing.T) {
+	config := &Config{}
+	hook := func(ctx context.Context, m *Metrics) {}
+
+	if len(config.metricsProcessor) > 0 {
+		t.Errorf("Expected metricsProcessor to be empty, but it was not")
+	}
+
+	config.AddMetricsProcessor(hook)
+
+	if len(config.metricsProcessor) != 1 {
+		t.Errorf("AddMetricsProcessor() did not add hook to metricsProcessor")
+	}
+}
+
+func TestWithMaxExtractionSize(t *testing.T) {
+	tests := []struct {
+		name string
+		size int64
+		want int64
+	}{
+		{
+			name: "Set max extraction size to 100",
+			size: 100,
+			want: 100,
+		},
+		{
+			name: "Set max extraction size to -1 (disable check)",
+			size: -1,
+			want: -1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			option := WithMaxExtractionSize(tt.size)
+			option(config)
+
+			if config.maxExtractionSize != tt.want {
+				t.Errorf("WithMaxExtractionSize() set maxExtractionSize to %v, want %v", config.maxExtractionSize, tt.want)
+			}
+		})
+	}
+}
+
+func TestCacheInMemory(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{
+			name: "cacheInMemory is true",
+			cfg:  &Config{cacheInMemory: true},
+			want: true,
+		},
+		{
+			name: "cacheInMemory is false",
+			cfg:  &Config{cacheInMemory: false},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.CacheInMemory(); got != tt.want {
+				t.Errorf("CacheInMemory() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNoTarGzExtract(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  *Config
+		want bool
+	}{
+		{
+			name: "noTarGzExtract is true",
+			cfg:  &Config{noTarGzExtract: true},
+			want: true,
+		},
+		{
+			name: "noTarGzExtract is false",
+			cfg:  &Config{noTarGzExtract: false},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.cfg.NoTarGzExtract(); got != tt.want {
+				t.Errorf("NoTarGzExtract() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestWithContinueOnUnsupportedFiles(t *testing.T) {
+	tests := []struct {
+		name string
+		ctd  bool
+		want bool
+	}{
+		{
+			name: "Enable continue on unsupported files",
+			ctd:  true,
+			want: true,
+		},
+		{
+			name: "Disable continue on unsupported files",
+			ctd:  false,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			option := WithContinueOnUnsupportedFiles(tt.ctd)
+			option(config)
+
+			if config.continueOnUnsupportedFiles != tt.want {
+				t.Errorf("WithContinueOnUnsupportedFiles() set continueOnUnsupportedFiles to %v, want %v", config.continueOnUnsupportedFiles, tt.want)
+			}
+		})
+	}
+}
+
+func TestWithCacheInMemory(t *testing.T) {
+	tests := []struct {
+		name  string
+		cache bool
+		want  bool
+	}{
+		{
+			name:  "Enable cache in memory",
+			cache: true,
+			want:  true,
+		},
+		{
+			name:  "Disable cache in memory",
+			cache: false,
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			option := WithCacheInMemory(tt.cache)
+			option(config)
+
+			if config.cacheInMemory != tt.want {
+				t.Errorf("WithCacheInMemory() set cacheInMemory to %v, want %v", config.cacheInMemory, tt.want)
+			}
+		})
+	}
+}
+
+func TestWithNoTarGzExtract(t *testing.T) {
+	tests := []struct {
+		name     string
+		disabled bool
+		want     bool
+	}{
+		{
+			name:     "Disable tar.gz extraction",
+			disabled: true,
+			want:     true,
+		},
+		{
+			name:     "Enable tar.gz extraction",
+			disabled: false,
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			option := WithNoTarGzExtract(tt.disabled)
+			option(config)
+
+			if config.noTarGzExtract != tt.want {
+				t.Errorf("WithNoTarGzExtract() set noTarGzExtract to %v, want %v", config.noTarGzExtract, tt.want)
+			}
+		})
 	}
 }
 

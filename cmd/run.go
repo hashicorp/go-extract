@@ -20,6 +20,7 @@ import (
 // CLI are the cli parameters for go-extract binary
 type CLI struct {
 	Archive                    string           `arg:"" name:"archive" help:"Path to archive. (\"-\" for STDIN)" type:"existing file"`
+	CacheInMemory              bool             `short:"I" help:"Cache in memory instead of disc (only if necessary)."`
 	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
 	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
 	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
@@ -70,6 +71,7 @@ func Run(version, commit, date string) {
 	// process cli params
 	config := config.NewConfig(
 		config.WithAllowSymlinks(!cli.DenySymlinks),
+		config.WithCacheInMemory(cli.CacheInMemory),
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"syscall"
 	"testing"
@@ -32,12 +33,19 @@ func TestCreateSafeDir(t *testing.T) {
 		name        string
 		basePath    string
 		newDir      string
+		cfg         *config.Config
 		expectError bool
 	}{
 		{
 			name:        "legit directory name",
 			basePath:    ".",
 			newDir:      "test",
+			expectError: false,
+		},
+		{
+			name:        "legit directory name, remove start of absolute path",
+			basePath:    ".",
+			newDir:      "/test",
 			expectError: false,
 		},
 		{
@@ -63,6 +71,26 @@ func TestCreateSafeDir(t *testing.T) {
 			basePath:    ".",
 			newDir:      "../foo",
 			expectError: true,
+		},
+		{
+			name:        "non-existent base-dir",
+			basePath:    "foo",
+			newDir:      "bar",
+			expectError: true,
+		},
+		{
+			name:        "create sub-dir in non-existent base-dir",
+			basePath:    "foo",
+			newDir:      "bar",
+			cfg:         config.NewConfig(config.WithCreateDestination(true)),
+			expectError: false,
+		},
+		{
+			name:        "create sub-dir in non-existent base-dir including traversal",
+			basePath:    "../foo",
+			newDir:      "bar",
+			cfg:         config.NewConfig(config.WithCreateDestination(true)),
+			expectError: false,
 		},
 		{
 			name:        "more tricky traversal",
@@ -134,9 +162,17 @@ func TestCreateSafeDir(t *testing.T) {
 
 			target := &Os{}
 
+			// check config
+			var cfg *config.Config
+			if tc.cfg == nil {
+				cfg = config.NewConfig()
+			} else {
+				cfg = tc.cfg
+			}
+
 			// perform actual test
 			want := tc.expectError
-			err = target.CreateSafeDir(config.NewConfig(), fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
+			err = target.CreateSafeDir(cfg, fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -164,6 +200,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			name   string
 			target string
 		}
+		cfg         *config.Config
 		expectError bool
 	}{
 		{
@@ -172,6 +209,15 @@ func TestCreateSafeSymlink(t *testing.T) {
 				name   string
 				target string
 			}{name: "foo", target: "bar"},
+			expectError: false,
+		},
+		{
+			name: "legit link name",
+			input: struct {
+				name   string
+				target string
+			}{name: "foo", target: "bar"},
+			cfg:         config.NewConfig(config.WithAllowSymlinks(false)),
 			expectError: false,
 		},
 		{
@@ -286,16 +332,32 @@ func TestCreateSafeSymlink(t *testing.T) {
 			defer os.RemoveAll(testDir)
 
 			target := &Os{}
+			cfg := config.NewConfig()
+			if tc.cfg != nil {
+				cfg = tc.cfg
+			}
 
 			// perform actual tests
 			want := tc.expectError
-			err = target.CreateSafeSymlink(config.NewConfig(), testDir, tc.input.name, tc.input.target)
+			err = target.CreateSafeSymlink(cfg, testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
 
 		})
+	}
+}
+
+func TestNewOs(t *testing.T) {
+	os := NewOs()
+	if os == nil {
+		t.Errorf("NewOs() = nil, want *Os")
+	}
+
+	// Check if the returned object is of type *Os
+	if reflect.TypeOf(os).String() != "*target.Os" {
+		t.Errorf("NewOs() returned type %v, want *target.Os", reflect.TypeOf(os))
 	}
 }
 
@@ -326,6 +388,37 @@ func TestCreateSafeFile(t *testing.T) {
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
 		},
+		{
+			name: "legit file",
+			input: fnInput{
+				name:   "foo",
+				reader: bytes.NewReader([]byte("data")),
+				mode:   644,
+			},
+			config:      config.NewConfig(config.WithMaxExtractionSize(-1)), // Extraction without limit of dst size
+			expectError: false,
+		},
+		{
+			name: "legit file, without name",
+			input: fnInput{
+				name:   "",
+				reader: bytes.NewReader([]byte("data")),
+				mode:   644,
+			},
+			config:      config.NewConfig(), // default settings are fine
+			expectError: true,
+		},
+		{
+			name: "remove absolute path prefix from file",
+			input: fnInput{
+				name:   "/foo",
+				reader: bytes.NewReader([]byte("data")),
+				mode:   644,
+			},
+			config:      config.NewConfig(), // default settings are fine
+			expectError: false,
+		},
+
 		{
 			name: "legit file in sub-dir",
 			input: fnInput{
@@ -482,6 +575,61 @@ func TestOverwriteFile(t *testing.T) {
 
 }
 
+func TestIsSymlink(t *testing.T) {
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "temp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tempFile.Close()
+
+	// Create a symlink to the temporary file
+	symlinkPath := tempFile.Name() + ".symlink"
+	err = os.Symlink(tempFile.Name(), symlinkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remember to clean up afterwards
+	defer os.Remove(tempFile.Name())
+	defer os.Remove(symlinkPath)
+
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{
+			name: "Symlink path",
+			path: symlinkPath,
+			want: true,
+		},
+		{
+			name: "Non-symlink path",
+			path: tempFile.Name(),
+			want: false,
+		},
+		{
+			name: "Empty path",
+			path: "",
+			want: false,
+		},
+		{
+			name: "Current directory",
+			path: ".",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isSymlink(tt.path); got != tt.want {
+				t.Errorf("isSymlink() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // TestCreateTempDir implements a test case
 func TestCreateTempDir(t *testing.T) {
 	path := CreateTmpDir()
@@ -539,6 +687,52 @@ func TestSecurityCheckPath(t *testing.T) {
 			// perform actual test
 			want := tc.expectError
 			err = securityCheckPath(tc.config, tc.basePath, tc.newDir)
+			got := err != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s", i, tc.name)
+			}
+		})
+	}
+
+	// test with symlinks
+	// create testing directory with symlink to current dir
+	testDir, err = os.MkdirTemp(os.TempDir(), "test*")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	symlink := fmt.Sprintf("%s%ssymlink", testDir, string(os.PathSeparator))
+	if err := os.Symlink(testDir, symlink); err != nil {
+		t.Errorf(err.Error())
+	}
+	defer os.RemoveAll(testDir)
+
+	// perform actual test
+	cases = []struct {
+		name        string
+		basePath    string
+		newDir      string
+		config      *config.Config
+		expectError bool
+	}{
+		{
+			name:        "deny follow symlink",
+			newDir:      "symlink/deny",
+			config:      config.NewConfig(),
+			expectError: true,
+		},
+		{
+			name:        "deny follow symlink",
+			newDir:      "symlink/deny",
+			config:      config.NewConfig(config.WithFollowSymlinks(true)),
+			expectError: false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+			want := tc.expectError
+			err = securityCheckPath(tc.config, testDir, tc.newDir)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)

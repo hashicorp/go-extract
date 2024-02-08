@@ -3,6 +3,7 @@ package extract
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -355,6 +356,35 @@ func TestUnpack(t *testing.T) {
 			// success if both are nil and no engine found
 			if want != got {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+			}
+		})
+	}
+}
+
+func TestGetHeader(t *testing.T) {
+	tests := []struct {
+		name    string
+		src     io.Reader
+		wantErr bool
+	}{
+		{
+			name:    "Read header from bytes.Buffer (implements io.Seeker)",
+			src:     bytes.NewBuffer([]byte("test data")),
+			wantErr: false,
+		},
+		{
+			name:    "Read header from bytes.Reader (implements io.Seeker)",
+			src:     bytes.NewReader([]byte("test data")),
+			wantErr: false,
+		},
+		// Add more test cases as needed
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := getHeader(tt.src)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getHeader() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

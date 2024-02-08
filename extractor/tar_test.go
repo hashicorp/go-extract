@@ -16,17 +16,30 @@ import (
 
 // TestTarUnpack implements test cases
 func TestTarUnpack(t *testing.T) {
+
+	// generate cancled context
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
 	cases := []struct {
 		name              string
 		testFileGenerator func(string) string
 		opts              []config.ConfigOption
 		expectError       bool
+		ctx               context.Context
 	}{
 		{
 			name:              "unpack normal tar",
 			testFileGenerator: createTestTarNormal,
 			opts:              []config.ConfigOption{},
 			expectError:       false,
+		},
+		{
+			name:              "unpack normal tar, but context timeout",
+			testFileGenerator: createTestTarNormal,
+			opts:              []config.ConfigOption{},
+			ctx:               canceledCtx,
+			expectError:       true,
 		},
 		{
 			name:              "unpack normal tar with 5 files",
@@ -66,11 +79,42 @@ func TestTarUnpack(t *testing.T) {
 			expectError:       false,
 		},
 		{
+			name:              "unpack tar with traversal in directory",
+			testFileGenerator: createTestTarWithTraversalInDirectory,
+			opts:              []config.ConfigOption{},
+			expectError:       true,
+		},
+		{
+			name:              "unpack tar with traversal in directory",
+			testFileGenerator: createTestTarWithTraversalInDirectory,
+			opts:              []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError:       false,
+		},
+		{
 			name:              "unpack normal tar with traversal symlink",
 			testFileGenerator: createTestTarWithPathTraversalSymlink,
 			opts:              []config.ConfigOption{},
 			expectError:       true,
 		},
+		{
+			name:              "unpack normal tar with symlink, but symlinks are denied",
+			testFileGenerator: createTestTarWithSymlink,
+			opts:              []config.ConfigOption{config.WithAllowSymlinks(false)},
+			expectError:       true,
+		},
+		{
+			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on error",
+			testFileGenerator: createTestTarWithSymlink,
+			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
+			expectError:       false,
+		},
+		{
+			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on unsupported files",
+			testFileGenerator: createTestTarWithSymlink,
+			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
+			expectError:       false,
+		},
+
 		{
 			name:              "unpack normal tar with absolute path in symlink",
 			testFileGenerator: createTestTarWithAbsolutePathSymlink,
@@ -132,11 +176,15 @@ func TestTarUnpack(t *testing.T) {
 			defer os.RemoveAll(testDir)
 
 			untarer := NewTar()
+			if tc.ctx == nil {
+				tc.ctx = context.Background()
+			}
+			ctx := tc.ctx
 
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(testDir))
 			want := tc.expectError
-			err = untarer.Unpack(context.Background(), input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
+			err = untarer.Unpack(ctx, input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -164,6 +212,25 @@ func createTestTarNormal(dstDir string) string {
 
 	// Add file to tar
 	addFileToTarArchive(tarWriter, "test", f1)
+
+	// add empty dir to tar
+	addFileToTarArchive(tarWriter, "emptyDir/", nil)
+
+	// close zip
+	tarWriter.Close()
+
+	// return path to zip
+	return targetFile
+}
+
+func createTestTarWithTraversalInDirectory(dstDir string) string {
+	targetFile := filepath.Join(dstDir, "TarWithTraversalInDirectory.tar")
+
+	// prepare generated zip+writer
+	tarWriter := createTar(targetFile)
+
+	// add dir with traversal
+	addFileToTarArchive(tarWriter, "../test", nil)
 
 	// close zip
 	tarWriter.Close()
@@ -414,6 +481,23 @@ func createTestTarGzWithEmptyFileName(dstDir string) string {
 
 // addFileToTarArchive is a helper function to generate test content
 func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
+
+	if f1 == nil {
+
+		// create a new dir/file header
+		header := &tar.Header{
+			Name:     fileName,
+			Typeflag: tar.TypeDir,
+		}
+
+		// write the header
+		if err := tarWriter.WriteHeader(header); err != nil {
+			panic(err)
+		}
+
+		return
+	}
+
 	fileInfo, err := os.Lstat(f1.Name())
 	if err != nil {
 		panic(err)

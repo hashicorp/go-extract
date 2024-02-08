@@ -35,6 +35,12 @@ func TestGzipUnpack(t *testing.T) {
 			expectError:    false,
 		},
 		{
+			name:           "random file with no gzip",
+			inputGenerator: func(s string) io.Reader { return bytes.NewReader([]byte(RandStringBytes(1 << (10 * 2)))) },
+			outputFileName: "test-gziped-file",
+			expectError:    true,
+		},
+		{
 			name:           "gzip with compressed txt",
 			inputGenerator: createTestGzipWithText,
 			outputFileName: "",
@@ -172,6 +178,33 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+func TestIsGZIP(t *testing.T) {
+	tests := []struct {
+		name   string
+		header []byte
+		want   bool
+	}{
+		{
+			name:   "Valid GZIP header",
+			header: []byte{0x1f, 0x8b, 0x08},
+			want:   true,
+		},
+		{
+			name:   "Invalid GZIP header",
+			header: []byte{0x1f, 0x7b, 0x07},
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsGZIP(tt.header); got != tt.want {
+				t.Errorf("IsGZIP() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 // createTestGzipWithMoreContent creates a test gzip file in dstDir for testing

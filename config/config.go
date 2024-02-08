@@ -15,6 +15,9 @@ type Config struct {
 	// allowSymlinks offers the option to enable/disable the extraction of symlinks
 	allowSymlinks bool
 
+	// cacheInMemory offers the option to enable/disable caching in memory
+	cacheInMemory bool
+
 	// continueOnError decides if the extraction should be continued even if an error occurred
 	continueOnError bool
 
@@ -64,6 +67,7 @@ type Config struct {
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		allowSymlinks              = true
+		cacheInMemory              = false
 		continueOnError            = false
 		continueOnUnsupportedFiles = false
 		createDestination          = false
@@ -83,6 +87,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 	// setup default values
 	config := &Config{
 		allowSymlinks:              allowSymlinks,
+		cacheInMemory:              cacheInMemory,
 		continueOnError:            continueOnError,
 		createDestination:          createDestination,
 		followSymlinks:             followSymlinks,
@@ -126,6 +131,13 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 func WithNoTarGzExtract(disabled bool) ConfigOption {
 	return func(c *Config) {
 		c.noTarGzExtract = disabled
+	}
+}
+
+// WithCacheInMemory options pattern function to enable/disable caching in memory
+func WithCacheInMemory(cache bool) ConfigOption {
+	return func(c *Config) {
+		c.cacheInMemory = cache
 	}
 }
 
@@ -202,6 +214,10 @@ func (c *Config) MetricsHook(ctx context.Context, metrics *Metrics) {
 		// emit metrics
 		c.metricsHook(ctx, metrics)
 	}
+}
+
+func (c *Config) CacheInMemory() bool {
+	return c.cacheInMemory
 }
 
 func (c *Config) AddMetricsProcessor(hook MetricsHook) {
