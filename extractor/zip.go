@@ -300,7 +300,12 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, er
 		f.Close()
 		return nil, 0, fmt.Errorf("cannot copy reader to file: %w", err)
 	}
-	f.Seek(0, io.SeekStart)
+
+	// reset file
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		f.Close()
+		return nil, 0, fmt.Errorf("cannot seek to start of file: %w", err)
+	}
 
 	// return adjusted reader
 	return f, size, nil

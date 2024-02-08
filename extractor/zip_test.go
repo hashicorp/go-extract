@@ -226,7 +226,9 @@ func TestZipUnpack(t *testing.T) {
 			// perform actual tests
 			var buf bytes.Buffer
 			input, _ := os.Open(tc.testFileGenerator(testDir))
-			io.Copy(&buf, input)
+			if _, err := io.Copy(&buf, input); err != nil {
+				t.Errorf(err.Error())
+			}
 			want := tc.expectError
 			err = unziper.Unpack(context.Background(), &buf, testDir, target.NewOs(), config.NewConfig(tc.opts...))
 			got := err != nil
@@ -237,18 +239,6 @@ func TestZipUnpack(t *testing.T) {
 		})
 	}
 
-}
-
-type testFileGenerator func(string) string
-
-// openFile opens a file and returns a reader
-func generateAndOpenFile(testDir string, g testFileGenerator) io.Reader {
-	path := g(testDir)
-	file, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	return file
 }
 
 func generateRandomFile(testDir string) string {
@@ -372,44 +362,6 @@ func createTestZipWindows(dstDir string) string {
 		panic(err)
 	}
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
-	}
-
-	// close zip
-	zipWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createZipWithFifo creates a test zip with a fifo file in dstDir for testing
-func createZipWithFifo(dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "ZipWithFifo.zip")
-
-	// create a temporary dir for files in zip archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
-
-	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
-
-	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// write file into zip
-	w1, err := zipWriter.Create("test")
-	if err != nil {
-		panic(err)
-	}
-	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
-	}
-
-	// create fifo in zip
-	_, err = zipWriter.Create("fifo")
-	if err != nil {
 		panic(err)
 	}
 

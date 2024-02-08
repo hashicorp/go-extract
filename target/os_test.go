@@ -366,7 +366,9 @@ func TestCreateSafeSymlink(t *testing.T) {
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 	defer os.RemoveAll(testDir)
 	target := &Os{}
-	target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar")
+	if err := target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar"); err != nil {
+		t.Errorf(err.Error())
+	}
 
 	cases = []struct {
 		name  string
