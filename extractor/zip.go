@@ -283,19 +283,16 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 // readerToReaderAt converts a reader to a readerAt
 func readerToReaderAt(src io.Reader, inputLimit int64) (io.ReaderAt, int64, error) {
 
-	// check if src is a file
-	if f, ok := src.(*os.File); ok {
-
-		// get file size
-		var size int64
-		if fstat, err := f.Stat(); err != nil {
-			return nil, size, fmt.Errorf("cannot get file size: %w", err)
-		} else {
-			size = fstat.Size()
+	// 	check if src is a seekable reader and offers io.ReadAt
+	if s, ok := src.(io.Seeker); ok {
+		if r, ok := src.(io.ReaderAt); ok {
+			// get file size
+			size, err := s.Seek(0, io.SeekEnd)
+			if err != nil {
+				return nil, 0, fmt.Errorf("cannot seek to end of reader: %w", err)
+			}
+			return r, size, nil
 		}
-
-		// return file and size
-		return f, size, nil
 	}
 
 	// read file into memory
