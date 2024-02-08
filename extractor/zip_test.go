@@ -59,19 +59,11 @@ func TestZipUnpack(t *testing.T) {
 			opts:              []config.ConfigOption{config.WithMaxFiles(1)},
 			expectError:       true,
 		},
-
-		// TODO: use context for timeout
-		// {
-		// 	name:           "normal zip, but extraction time exceeded",
-		// 	inputGenerator: createTestZipNormalFiveFiles,
-		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-		// 	expectError:    true,
-		// },
 		{
-			name:              "zip with fifo",
+			name:              "zip with fifo (unix only)",
 			testFileGenerator: createTestZipWithFifo,
 			opts:              []config.ConfigOption{},
-			expectError:       true,
+			expectError:       !(runtime.GOOS == "windows"),
 		},
 		{
 			name:              "zip with fifo, skip continue on error",
@@ -644,8 +636,10 @@ func createTestZipWithFifo(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	// add fifo to archive
-	addFifoToZipArchive(zipWriter)
+	if runtime.GOOS != "windows" {
+		// add fifo to archive
+		addFifoToZipArchive(zipWriter)
+	}
 
 	// close zip
 	zipWriter.Close()
