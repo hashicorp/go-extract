@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -63,7 +63,7 @@ func TestZipUnpack(t *testing.T) {
 			name:              "zip with fifo (unix only)",
 			testFileGenerator: createTestZipWithFifo,
 			opts:              []config.ConfigOption{},
-			expectError:       !(runtime.GOOS == "windows"),
+			expectError:       true,
 		},
 		{
 			name:              "zip with fifo, skip continue on error",
@@ -636,10 +636,8 @@ func createTestZipWithFifo(dstDir string) string {
 	// prepare generated zip+writer
 	zipWriter := createZip(targetFile)
 
-	if runtime.GOOS != "windows" {
-		// add fifo to archive
-		addFifoToZipArchive(zipWriter)
-	}
+	// add fifo to archive
+	addFifoToZipArchive(zipWriter)
 
 	// close zip
 	zipWriter.Close()
@@ -655,20 +653,19 @@ func addFifoToZipArchive(zipWriter *zip.Writer) {
 	tmpDir := target.CreateTmpDir()
 	defer os.RemoveAll(tmpDir)
 
-	// create fifo
-	fifo := filepath.Join(tmpDir, "fifo")
-	if err := syscall.Mkfifo(fifo, 0666); err != nil {
+	// create dummy fifo to get data structure
+	tmpFile, err := os.CreateTemp(tmpDir, "fifo")
+	if err != nil {
 		panic(err)
 	}
-
-	// get file stats for testing operating system
-	info, err := os.Lstat(fifo)
+	info, err := os.Lstat(tmpFile.Name())
 	if err != nil {
 		panic(err)
 	}
 
 	// get file header
 	header, err := zip.FileInfoHeader(info)
+	header.SetMode(fs.ModeDevice)
 	if err != nil {
 		panic(err)
 	}

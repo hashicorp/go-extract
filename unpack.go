@@ -23,7 +23,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 
 // UnpackOnTarget reads data from src on a givin target, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config.
-func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, trgt target.Target, c *config.Config) error {
+func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, tgt target.Target, c *config.Config) error {
 
 	// read headerReader to identify archive type
 	header, reader, err := getHeader(src)
@@ -38,7 +38,7 @@ func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, trgt target.
 	}
 
 	// perform extraction with identified reader
-	return ex.Unpack(ctx, reader, dst, trgt, c)
+	return ex.Unpack(ctx, reader, dst, tgt, c)
 }
 
 // getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
