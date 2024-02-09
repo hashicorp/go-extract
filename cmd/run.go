@@ -82,7 +82,7 @@ func Run(version, commit, date string) {
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
 		config.WithOverwrite(cli.Overwrite),
-		config.WithPatterns(cli.Pattern),
+		config.WithPattern(cli.Pattern...),
 		config.WithNoTarGzExtract(cli.NoTarGz),
 	)
 
