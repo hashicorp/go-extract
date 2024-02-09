@@ -58,7 +58,7 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	overwrite bool
 
-	// Pattern is a list of regex patterns to match files to extract
+	// patterns is a list of file patterns to match files to extract
 	patterns []string
 
 	// verbose log extraction to stderr
@@ -168,7 +168,7 @@ func WithPattern(pattern ...string) ConfigOption {
 	}
 }
 
-// Pattern returns a list of regex patterns to match files to extract
+// Patterns returns a list of regex patterns to match files to extract
 func (c *Config) Patterns() []string {
 	return c.patterns
 }
