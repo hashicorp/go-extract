@@ -35,6 +35,12 @@ func TestTarUnpack(t *testing.T) {
 			expectError:       false,
 		},
 		{
+			name:              "unpack normal tar, but pattern mismatch",
+			testFileGenerator: createTestTarNormal,
+			opts:              []config.ConfigOption{config.WithPattern("*foo")},
+			expectError:       false,
+		},
+		{
 			name:              "unpack normal tar, but context timeout",
 			testFileGenerator: createTestTarNormal,
 			opts:              []config.ConfigOption{},

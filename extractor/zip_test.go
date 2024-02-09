@@ -31,6 +31,12 @@ func TestZipUnpack(t *testing.T) {
 			expectError:       false,
 		},
 		{
+			name:              "normal zip, but pattern miss match",
+			testFileGenerator: createTestZipNormal,
+			opts:              []config.ConfigOption{config.WithPattern("*foo")},
+			expectError:       false,
+		},
+		{
 			name:              "normal zip, cache in mem",
 			testFileGenerator: createTestZipNormal,
 			opts:              []config.ConfigOption{config.WithCacheInMemory(true)},
