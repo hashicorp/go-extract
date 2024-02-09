@@ -164,9 +164,7 @@ func (c *Config) ContinueOnError() bool {
 // WithPatterns options pattern function to set a regex pattern
 func WithPatterns(pattern []string) ConfigOption {
 	return func(c *Config) {
-		for _, p := range pattern {
-			c.patterns = append(c.patterns, p)
-		}
+		c.patterns = append(c.patterns, pattern...)
 	}
 }
 
