@@ -780,13 +780,13 @@ func TestSecurityCheckPath(t *testing.T) {
 	}{
 		{
 			name:        "deny follow symlink",
-			newDir:      "symlink/deny",
+			newDir:      fmt.Sprintf("symlink%sdeny", string(os.PathSeparator)),
 			config:      config.NewConfig(),
 			expectError: true,
 		},
 		{
-			name:        "deny follow symlink",
-			newDir:      "symlink/deny",
+			name:        "allow follow symlink",
+			newDir:      fmt.Sprintf("symlink%sallow", string(os.PathSeparator)),
 			config:      config.NewConfig(config.WithFollowSymlinks(true)),
 			expectError: false,
 		},
