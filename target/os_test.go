@@ -763,9 +763,8 @@ func TestSecurityCheckPath(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 	symlink := filepath.Join(testDir, "symlink")
-	if err := os.Symlink(testDir, symlink); err != nil {
+	if err := os.Symlink(".", symlink); err != nil {
 		t.Errorf(err.Error())
 	}
 	defer os.RemoveAll(testDir)
