@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
@@ -33,6 +34,26 @@ func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 	captureExtractionDuration(ctx, c)
 
 	return ler
+}
+
+// checkPatterns checks if the given path matches any of the given patterns.
+// If no patterns are given, the function returns true.
+func checkPatterns(patterns []string, path string) (bool, error) {
+
+	// no patterns given
+	if len(patterns) == 0 {
+		return true, nil
+	}
+
+	// check if path matches any pattern
+	for _, pattern := range patterns {
+		if match, err := filepath.Match(pattern, path); err != nil {
+			return false, err
+		} else if match {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // captureExtractionDuration ensures that the extraction duration is captured

@@ -99,7 +99,20 @@ func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.
 
 		// get next file
 		hdr := archiveFile.FileHeader
+
+		// check if file needs to match patterns
+		if match, err := checkPatterns(c.Patterns(), hdr.Name); err != nil {
+			msg := "cannot check pattern"
+			return handleError(c, m, msg, err)
+		} else if !match {
+			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
+			m.SkippedFiles++
+			m.LastSkippedFile = hdr.Name
+			continue
+		}
+
 		c.Logger().Info("extract", "name", hdr.Name)
+
 		switch hdr.Mode() & os.ModeType {
 
 		case os.ModeDir: // handle directory

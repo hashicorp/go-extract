@@ -116,6 +116,21 @@ func TestContinueOnUnsupportedFiles(t *testing.T) {
 	}
 }
 
+func TestWithPattern(t *testing.T) {
+	patterns := []string{"test1", "test2"}
+	cfg := NewConfig(WithPatterns(patterns))
+
+	if len(cfg.patterns) != len(patterns) {
+		t.Errorf("WithPattern() = %v, want %v", len(cfg.patterns), len(patterns))
+	}
+
+	for i, p := range patterns {
+		if cfg.Patterns()[i] != p {
+			t.Errorf("WithPattern() pattern = %v, want %v", cfg.Patterns()[i], p)
+		}
+	}
+}
+
 func TestAddMetricsProcessor(t *testing.T) {
 	config := &Config{}
 	hook := func(ctx context.Context, m *Metrics) {}

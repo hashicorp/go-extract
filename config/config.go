@@ -58,6 +58,9 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	overwrite bool
 
+	// Pattern is a list of regex patterns to match files to extract
+	patterns []string
+
 	// verbose log extraction to stderr
 	verbose bool
 }
@@ -156,6 +159,20 @@ func (c *Config) AllowSymlinks() bool {
 // ContinueOnError returns true if the extraction should continue on error
 func (c *Config) ContinueOnError() bool {
 	return c.continueOnError
+}
+
+// WithPatterns options pattern function to set a regex pattern
+func WithPatterns(pattern []string) ConfigOption {
+	return func(c *Config) {
+		for _, p := range pattern {
+			c.patterns = append(c.patterns, p)
+		}
+	}
+}
+
+// Pattern returns a list of regex patterns to match files to extract
+func (c *Config) Patterns() []string {
+	return c.patterns
 }
 
 // CreateDestination returns true if the destination directory should be created if it does not exist
