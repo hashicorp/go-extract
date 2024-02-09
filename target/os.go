@@ -34,7 +34,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	}
 
 	// check each dir in path
-	targetPathElements := strings.Split(targetDirectory, "/")
+	targetPathElements := strings.Split(targetDirectory, string(os.PathSeparator))
 	for i := 0; i < len(targetPathElements); i++ {
 
 		// assemble path
