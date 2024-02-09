@@ -764,7 +764,7 @@ func TestSecurityCheckPath(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	symlink := fmt.Sprintf("%s%ssymlink", testDir, string(os.PathSeparator))
+	symlink := filepath.Join(testDir, "symlink")
 	if err := os.Symlink(testDir, symlink); err != nil {
 		t.Errorf(err.Error())
 	}
@@ -798,7 +798,7 @@ func TestSecurityCheckPath(t *testing.T) {
 			err = securityCheckPath(tc.config, testDir, tc.newDir)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s", i, tc.name)
+				t.Errorf("test case %d failed: %s (%v)", i, tc.name, err)
 			}
 		})
 	}
