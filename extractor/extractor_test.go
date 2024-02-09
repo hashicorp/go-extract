@@ -77,3 +77,55 @@ func TestHandleError(t *testing.T) {
 		t.Error("handleError should return nil when continueOnError is true")
 	}
 }
+
+func TestCheckPatterns(t *testing.T) {
+	tests := []struct {
+		name     string
+		patterns []string
+		path     string
+		want     bool
+		wantErr  bool
+	}{
+		{
+			name:     "No patterns given",
+			patterns: []string{},
+			path:     "test/path",
+			want:     true,
+			wantErr:  false,
+		},
+		{
+			name:     "Path matches pattern",
+			patterns: []string{"test/*"},
+			path:     "test/path",
+			want:     true,
+			wantErr:  false,
+		},
+		{
+			name:     "Path does not match pattern",
+			patterns: []string{"other/*"},
+			path:     "test/path",
+			want:     false,
+			wantErr:  false,
+		},
+		{
+			name:     "Invalid pattern",
+			patterns: []string{"["},
+			path:     "test/path",
+			want:     false,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := checkPatterns(tt.patterns, tt.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("checkPatterns() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("checkPatterns() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
