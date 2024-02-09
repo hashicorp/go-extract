@@ -58,6 +58,7 @@ import (
         config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
         config.WithNoTarGzExtract(true),                     // extract tar.gz combined
         config.WithOverwrite(false),                         // don't replace existing files
+        config.WithPatterns([]string),                       // no patterns predefined
     )
 
     // extract archive
@@ -120,6 +121,7 @@ Flags:
   -M, --metrics                           Print metrics to log after extraction.
   -N, --no-tar-gz                         Disable combined extraction of tar.gz.
   -O, --overwrite                         Overwrite if exist.
+  -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```
@@ -154,7 +156,7 @@ Flags:
 - [x] check for windows
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
-- [ ] Extraction filter with file names
+- [x] Extraction filter with file name patterns
 - [x] Cache input on disk, if necessary
 - [ ] Handle passwords
 - [ ] recursive extraction
