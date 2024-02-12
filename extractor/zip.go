@@ -49,7 +49,14 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	captureExtractionDuration(ctx, cfg)
 
 	// prepare extraction
-	reader, inputSize, err := readerToReaderAt(src, cfg)
+	reader, inputSize, tmpFile, err := readerToReaderAt(src, cfg)
+	// clean up tmpFile
+	defer func() {
+		if tmpFile != nil {
+			tmpFile.Close()
+			os.Remove(tmpFile.Name())
+		}
+	}()
 	if err != nil {
 		return handleError(cfg, m, "cannot read all from reader", err)
 	}
@@ -275,7 +282,7 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 }
 
 // readerToReaderAt converts a reader to a readerAt
-func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, error) {
+func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, *os.File, error) {
 
 	// 	check if src is a seekable reader and offers io.ReadAt
 	if s, ok := src.(io.Seeker); ok {
@@ -283,9 +290,9 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, er
 			// get file size
 			size, err := s.Seek(0, io.SeekEnd)
 			if err != nil {
-				return nil, 0, fmt.Errorf("cannot seek to end of reader: %w", err)
+				return nil, 0, nil, fmt.Errorf("cannot seek to end of reader: %w", err)
 			}
-			return r, size, nil
+			return r, size, nil, nil
 		}
 	}
 
@@ -296,30 +303,30 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, er
 	if cfg.CacheInMemory() {
 		data, err := io.ReadAll(ler)
 		if err != nil {
-			return nil, int64(len(data)), fmt.Errorf("cannot copy reader to buffer: %w", err)
+			return nil, int64(len(data)), nil, fmt.Errorf("cannot copy reader to buffer: %w", err)
 		}
-		return bytes.NewReader(data), int64(len(data)), nil
+		return bytes.NewReader(data), int64(len(data)), nil, nil
 	}
 
 	// create tmp file
 	f, err := os.CreateTemp("", "extractor-*.zip")
 	if err != nil {
-		return nil, 0, fmt.Errorf("cannot create tmp file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot create tmp file: %w", err)
 	}
 
 	// copy ler into file
 	size, err := io.Copy(f, ler)
 	if err != nil {
 		f.Close()
-		return nil, 0, fmt.Errorf("cannot copy reader to file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot copy reader to file: %w", err)
 	}
 
 	// reset file
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		f.Close()
-		return nil, 0, fmt.Errorf("cannot seek to start of file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot seek to start of file: %w", err)
 	}
 
 	// return adjusted reader
-	return f, size, nil
+	return f, size, f, nil
 }

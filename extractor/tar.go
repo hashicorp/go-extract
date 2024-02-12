@@ -72,9 +72,9 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		switch {
 
-		// if no more files are found return
+		// if no more files are found exit loop
 		case err == io.EOF:
-			// reached end of archive
+			// extraction finished
 			return nil
 
 		// return any other error
