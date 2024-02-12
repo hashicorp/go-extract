@@ -18,6 +18,9 @@ type extractor interface {
 	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
 }
 
+// now is a function point that returns time.Now to the caller.
+var now = time.Now
+
 // prepare ensures limited read and generic metric capturing
 // remark: this preparation is located in the extractor package so that the
 // different extractor engines can be used independently and keep their
@@ -58,7 +61,7 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 
 // captureExtractionDuration ensures that the extraction duration is captured
 func captureExtractionDuration(ctx context.Context, c *config.Config) {
-	start := time.Now()
+	start := now()
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.ExtractionDuration = time.Since(start) // capture execution time
 	})
