@@ -575,7 +575,7 @@ func TestReaderToReaderAt(t *testing.T) {
 
 		// read data and check if result is  correct
 		var p = make([]byte, size)
-		ra.ReadAt(p, 0)
+		_, _ = ra.ReadAt(p, 0)
 		if !bytes.Equal(data, p) {
 			t.Errorf("[%v] %s: read data does not match!", i, tc.name)
 		}
