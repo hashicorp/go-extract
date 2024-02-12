@@ -198,7 +198,7 @@ func TestZipUnpack(t *testing.T) {
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(testDir))
 			want := tc.expectError
-			err = unziper.Unpack(context.Background(), input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
+			err = unziper.Unpack(context.Background(), input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -228,7 +228,7 @@ func TestZipUnpack(t *testing.T) {
 				t.Errorf(err.Error())
 			}
 			want := tc.expectError
-			err = unziper.Unpack(context.Background(), &buf, testDir, target.NewOs(), config.NewConfig(tc.opts...))
+			err = unziper.Unpack(context.Background(), &buf, testDir, target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -396,7 +396,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 
 	// test reserved names and forbidden chars
 	unziper := NewZip()
-	unzipTarget := target.NewOs()
+	unzipTarget := target.NewOS()
 	for i, name := range append(reservedNames, forbiddenCharacters...) {
 		t.Run(fmt.Sprintf("test %d %x", i, name), func(t *testing.T) {
 

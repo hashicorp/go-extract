@@ -12,14 +12,14 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// Os is the struct type that holds all information for interacting with the filesystem
-type Os struct {
+// OS is the struct type that holds all information for interacting with the filesystem
+type OS struct {
 }
 
-// NewOs creates a new Os and applies provided options from opts
-func NewOs() *Os {
+// NewOS creates a new Os and applies provided options from opts
+func NewOS() *OS {
 	// create object
-	os := &Os{}
+	os := &OS{}
 	return os
 }
 
@@ -101,7 +101,7 @@ func isSymlink(path string) bool {
 }
 
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
-func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
 	// check if dst exist
 	if len(dstBase) > 0 {
@@ -143,7 +143,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 // CreateSafeFile creates newFileName in dstBase with content from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
+func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
 
 	// check if a name is provided
 	if len(newFileName) == 0 {
@@ -199,7 +199,7 @@ func (o *Os) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 }
 
 // CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
-func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
+func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
 	// check if symlink extraction is denied
 	if !config.AllowSymlinks() {

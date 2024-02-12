@@ -95,7 +95,7 @@ func TestGzipUnpack(t *testing.T) {
 			// perform actual tests
 			input := tc.inputGenerator(testDir)
 			want := tc.expectError
-			err = gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOs(), config.NewConfig(tc.opts...))
+			err = gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)

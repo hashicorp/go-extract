@@ -160,7 +160,7 @@ func TestCreateSafeDir(t *testing.T) {
 				t.Errorf(err.Error())
 			}
 
-			target := &Os{}
+			target := &OS{}
 
 			// check config
 			var cfg *config.Config
@@ -340,7 +340,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 			defer os.RemoveAll(testDir)
 
-			target := &Os{}
+			target := &OS{}
 			cfg := config.NewConfig()
 			if tc.cfg != nil {
 				cfg = tc.cfg
@@ -365,7 +365,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 	}
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
 	defer os.RemoveAll(testDir)
-	target := &Os{}
+	target := &OS{}
 	if err := target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar"); err != nil {
 		t.Errorf(err.Error())
 	}
@@ -413,7 +413,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 }
 
 func TestNewOs(t *testing.T) {
-	os := NewOs()
+	os := NewOS()
 	if os == nil {
 		t.Errorf("NewOs() = nil, want *Os")
 	}
@@ -557,7 +557,7 @@ func TestCreateSafeFile(t *testing.T) {
 			}()
 
 			// perform actual tests
-			target := &Os{}
+			target := &OS{}
 			want := tc.expectError
 			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
@@ -623,7 +623,7 @@ func TestOverwriteFile(t *testing.T) {
 			defer os.RemoveAll(testDir)
 
 			// perform actual tests
-			target := &Os{}
+			target := &OS{}
 			want := tc.expectError
 			// double extract
 			err1 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)

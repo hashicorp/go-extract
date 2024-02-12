@@ -190,7 +190,7 @@ func TestTarUnpack(t *testing.T) {
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(testDir))
 			want := tc.expectError
-			err = untarer.Unpack(ctx, input, testDir, target.NewOs(), config.NewConfig(tc.opts...))
+			err = untarer.Unpack(ctx, input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)

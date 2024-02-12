@@ -15,7 +15,7 @@ import (
 func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// default target
-	target := target.NewOs()
+	target := target.NewOS()
 
 	// perform extraction with identified reader
 	return UnpackOnTarget(ctx, src, dst, target, c)

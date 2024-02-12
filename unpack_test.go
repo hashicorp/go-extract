@@ -369,7 +369,7 @@ func TestUnpackOnTarget(t *testing.T) {
 				context.Background(),
 				archive,
 				testDir,
-				target.NewOs(),
+				target.NewOS(),
 				config.NewConfig(
 					config.WithOverwrite(true),
 				),
@@ -704,7 +704,7 @@ func TestMetriksHook(t *testing.T) {
 			// perform actual tests
 			ctx := context.Background()
 			dstDir := filepath.Join(testDir, tc.dst)
-			err = UnpackOnTarget(ctx, archive, dstDir, target.NewOs(), cfg)
+			err = UnpackOnTarget(ctx, archive, dstDir, target.NewOS(), cfg)
 
 			// check if error is expected
 			if tc.expectError != (err != nil) {
