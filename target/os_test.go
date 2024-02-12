@@ -412,7 +412,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 }
 
-func TestNewOs(t *testing.T) {
+func TestNewOS(t *testing.T) {
 	os := NewOS()
 	if os == nil {
 		t.Errorf("NewOs() = nil, want *Os")
@@ -420,7 +420,7 @@ func TestNewOs(t *testing.T) {
 
 	// Check if the returned object is of type *Os
 	if reflect.TypeOf(os).String() != "*target.OS" {
-		t.Errorf("NewOs() returned type %v, want *target.Os", reflect.TypeOf(os))
+		t.Errorf("NewOs() returned type %v, want *target.OS", reflect.TypeOf(os))
 	}
 }
 
