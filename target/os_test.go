@@ -419,7 +419,7 @@ func TestNewOs(t *testing.T) {
 	}
 
 	// Check if the returned object is of type *Os
-	if reflect.TypeOf(os).String() != "*target.Os" {
+	if reflect.TypeOf(os).String() != "*target.OS" {
 		t.Errorf("NewOs() returned type %v, want *target.Os", reflect.TypeOf(os))
 	}
 }
