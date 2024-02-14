@@ -11,11 +11,11 @@ default: build
 # endif
 
 build:
-	@cd ./cmd/extract && go build -o extract .
-	@mv ./cmd/extract/extract extract
+	@cd ./cmd/goextract && go build -o goextract .
+	@mv ./cmd/goextract/goextract goextract
 
 install: build
-	@mv extract $(GOPATH)/bin/extract
+	@mv extract $(GOPATH)/bin/goextract
 
 clean:
 	@go clean

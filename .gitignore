@@ -26,5 +26,5 @@ test/test-dir-*
 .vscode/
 
 # the binary
-extract
+goextract
 go.work.sum

@@ -81,7 +81,7 @@ The library can also be used directly on the cli `extract`.
 ### Installation
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/extract@latest
+GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/goextract@latest
 ```
 
 ### Manual Build and Installation
@@ -97,8 +97,8 @@ make install
 ### Usage
 
 ```cli
-$ extract -h
-Usage: extract <archive> [<destination>]
+$ goextract -h
+Usage: goextract <archive> [<destination>]
 
 A secure extraction utility
 
