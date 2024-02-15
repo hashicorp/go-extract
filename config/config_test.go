@@ -118,7 +118,7 @@ func TestContinueOnUnsupportedFiles(t *testing.T) {
 
 func TestWithPattern(t *testing.T) {
 	patterns := []string{"test1", "test2"}
-	cfg := NewConfig(WithPattern(patterns...))
+	cfg := NewConfig(WithPatterns(patterns...))
 
 	if len(cfg.patterns) != len(patterns) {
 		t.Errorf("WithPattern() = %v, want %v", len(cfg.patterns), len(patterns))

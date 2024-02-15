@@ -33,7 +33,7 @@ func TestZipUnpack(t *testing.T) {
 		{
 			name:              "normal zip, but pattern miss match",
 			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{config.WithPattern("*foo")},
+			opts:              []config.ConfigOption{config.WithPatterns("*foo")},
 			expectError:       false,
 		},
 		{

@@ -37,7 +37,7 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:              "unpack normal tar, but pattern mismatch",
 			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{config.WithPattern("*foo")},
+			opts:              []config.ConfigOption{config.WithPatterns("*foo")},
 			expectError:       false,
 		},
 		{

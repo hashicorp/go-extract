@@ -161,8 +161,8 @@ func (c *Config) ContinueOnError() bool {
 	return c.continueOnError
 }
 
-// WithPattern options pattern function to set filepath pattern
-func WithPattern(pattern ...string) ConfigOption {
+// WithPatterns options pattern function to set filepath pattern
+func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
 		c.patterns = append(c.patterns, pattern...)
 	}

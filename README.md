@@ -58,7 +58,7 @@ import (
         config.WithMetricsHook(metricsToLog),         // adjust hook to receive metrics from extraction
         config.WithNoTarGzExtract(true),              // extract tar.gz combined
         config.WithOverwrite(false),                  // don't replace existing files
-        config.WithPattern("*.tf","modules/*.tf"),    // no patterns predefined
+        config.WithPatterns("*.tf","modules/*.tf"),   // no patterns predefined
     )
 
     // extract archive
