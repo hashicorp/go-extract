@@ -168,7 +168,8 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// Patterns returns a list of regex patterns to match files to extract
+// Patterns returns a list of unix-filepath patterns to match files to extract
+// Patterns are matched using [filepath.Match](https://golang.org/pkg/path/filepath/#Match)
 func (c *Config) Patterns() []string {
 	return c.patterns
 }
@@ -231,10 +232,12 @@ func (c *Config) MetricsHook(ctx context.Context, metrics *Metrics) {
 	}
 }
 
+// CacheInMemory returns true if caching in memory is enabled
 func (c *Config) CacheInMemory() bool {
 	return c.cacheInMemory
 }
 
+// AddMetricsProcessor adds a metrics processor to the config
 func (c *Config) AddMetricsProcessor(hook MetricsHook) {
 	c.metricsProcessor = append(c.metricsProcessor, hook)
 }
