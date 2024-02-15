@@ -160,8 +160,9 @@ Flags:
 - [x] check for windows
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
-- [x] Extraction filter with file name patterns
-- [x] Cache input on disk, if necessary
+- [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
+- [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
+- [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target
