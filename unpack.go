@@ -56,11 +56,12 @@ func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, tgt target.T
 // occurs, the header is nil and the error is returned as the third return value
 func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 
-	// allocate buffer for header
-	header := make([]byte, extractor.MaxHeaderLength)
-
 	// check if source offers seek and preserve type of source
 	if s, ok := src.(io.Seeker); ok {
+
+		// allocate buffer for header
+		header := make([]byte, extractor.MaxHeaderLength)
+
 		// read header from source
 		_, err := src.Read(header)
 		if err != nil {
