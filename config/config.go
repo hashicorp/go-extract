@@ -15,7 +15,8 @@ type Config struct {
 	// allowSymlinks offers the option to enable/disable the extraction of symlinks
 	allowSymlinks bool
 
-	// cacheInMemory offers the option to enable/disable caching in memory
+	// cacheInMemory offers the option to enable/disable caching in memory. This applies only
+	// to the extraction of zip archives, which are provided as a stream.
 	cacheInMemory bool
 
 	// continueOnError decides if the extraction should be continued even if an error occurred
@@ -137,7 +138,8 @@ func WithNoTarGzExtract(disabled bool) ConfigOption {
 	}
 }
 
-// WithCacheInMemory options pattern function to enable/disable caching in memory
+// WithCacheInMemory options pattern function to enable/disable caching in memory.
+// This applies only to the extraction of zip archives, which are provided as a stream.
 func WithCacheInMemory(cache bool) ConfigOption {
 	return func(c *Config) {
 		c.cacheInMemory = cache
@@ -169,7 +171,7 @@ func WithPatterns(pattern ...string) ConfigOption {
 }
 
 // Patterns returns a list of unix-filepath patterns to match files to extract
-// Patterns are matched using [filepath.Match](https://golang.org/pkg/path/filepath/#Match)
+// Patterns are matched using [filepath.Match](https://golang.org/pkg/path/filepath/#Match).
 func (c *Config) Patterns() []string {
 	return c.patterns
 }
