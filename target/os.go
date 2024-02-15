@@ -107,7 +107,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
 			if config.CreateDestination() {
 				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
-					return err
+					return fmt.Errorf("failed to create destination directory %s", err)
 				}
 				config.Logger().Info("created destination directory", "path", dstBase)
 			} else {
@@ -128,13 +128,13 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	}
 
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return err
+		return fmt.Errorf("path traversal detected (%s)", err)
 	}
 
 	// create dirs
 	finalDirectoryPath := filepath.Join(dstBase, newDir)
 	if err := os.MkdirAll(finalDirectoryPath, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create directory (%s)", err)
 	}
 
 	return nil
@@ -157,7 +157,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 
 	// create target dir && check for path traversal // zip-slip
 	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName)); err != nil {
-		return err
+		return fmt.Errorf("cannot create directory for file (%s)", err)
 	}
 
 	// Check for file existence//overwrite
@@ -171,7 +171,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	// create dst file
 	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file (%s)", err)
 	}
 	defer func() {
 		dstFile.Close()
@@ -183,14 +183,14 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 		// encapsulate reader with limit reader
 		ler := config.NewLimitErrorReader(reader, cfg.MaxExtractionSize())
 		if _, err = io.Copy(dstFile, ler); err != nil {
-			return err
+			return fmt.Errorf("failed to write file (%s)", err)
 		}
 
 	} else {
 
 		// write data straight to file
 		if _, err = io.Copy(dstFile, reader); err != nil {
-			return err
+			return fmt.Errorf("failed to write file (%s)", err)
 		}
 	}
 
@@ -230,7 +230,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 	// create target dir && check for traversal in file name
 	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory); err != nil {
-		return err
+		return fmt.Errorf("cannot create directory for symlink (%s)", newLinkDirectory)
 	}
 
 	// check link target for traversal
@@ -250,13 +250,13 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		// delete existing link
 		config.Logger().Warn("overwrite symlink", "name", newLinkName)
 		if err := os.Remove(targetFile); err != nil {
-			return err
+			return fmt.Errorf("failed to remove existing symlink (%s)", err)
 		}
 	}
 
 	// create link
 	if err := os.Symlink(linkTarget, targetFile); err != nil {
-		return err
+		return fmt.Errorf("failed to create symlink (%s)", err)
 	}
 
 	return nil

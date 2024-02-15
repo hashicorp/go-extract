@@ -28,13 +28,22 @@ func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, tgt target.T
 	// read headerReader to identify archive type
 	header, reader, err := getHeader(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read header: %s", err)
 	}
 
 	// find extractor for header
 	var ex Extractor
 	if ex = findExtractor(header); ex == nil {
 		return fmt.Errorf("archive type not supported")
+	}
+
+	switch ex.(type) {
+	case *extractor.Tar:
+		c.Logger().Info("extracting tar")
+	case *extractor.Zip:
+		c.Logger().Info("extracting zip")
+	case *extractor.Gzip:
+		c.Logger().Info("extracting gzip")
 	}
 
 	// perform extraction with identified reader
@@ -55,19 +64,19 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 		// read header from source
 		_, err := src.Read(header)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to read header: %s", err)
 		}
 		// reset reader
 		_, err = s.Seek(0, io.SeekStart)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to reset reader: %s", err)
 		}
 		return header, src, nil
 	}
 
 	headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create header reader: %s", err)
 	}
 	return headerReader.PeekHeader(), headerReader, nil
 }

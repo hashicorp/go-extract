@@ -51,7 +51,7 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 	// check if path matches any pattern
 	for _, pattern := range patterns {
 		if match, err := filepath.Match(pattern, path); err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to match pattern: %s", err)
 		} else if match {
 			return true, nil
 		}

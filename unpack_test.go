@@ -48,12 +48,13 @@ func TestFindExtractor(t *testing.T) {
 		},
 	}
 
-	// create testing directory
-	testDir := t.TempDir()
-
 	// run cases
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// create testing directory
+			testDir := t.TempDir()
+
 			// prepare vars
 			want := tc.expected
 

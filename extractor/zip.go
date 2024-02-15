@@ -266,7 +266,7 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	// read content to determine symlink destination
 	rc, err := symlinkFile.Open()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot open file in archive: %s", err)
 	}
 	defer func() {
 		rc.Close()
@@ -275,7 +275,7 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	// read link target
 	data, err := io.ReadAll(rc)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot read symlink target: %s", err)
 	}
 	symlinkTarget := string(data)
 
@@ -292,7 +292,7 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, *o
 			// get file size
 			size, err := s.Seek(0, io.SeekEnd)
 			if err != nil {
-				return nil, 0, nil, fmt.Errorf("cannot seek to end of reader: %w", err)
+				return nil, 0, nil, fmt.Errorf("cannot seek to end of reader: %s", err)
 			}
 			return r, size, nil, nil
 		}
@@ -305,7 +305,7 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, *o
 	if cfg.CacheInMemory() {
 		data, err := io.ReadAll(ler)
 		if err != nil {
-			return nil, int64(len(data)), nil, fmt.Errorf("cannot copy reader to buffer: %w", err)
+			return nil, int64(len(data)), nil, fmt.Errorf("cannot copy reader to buffer: %s", err)
 		}
 		return bytes.NewReader(data), int64(len(data)), nil, nil
 	}
@@ -313,20 +313,20 @@ func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, *o
 	// create tmp file
 	f, err := os.CreateTemp("", "extractor-*.zip")
 	if err != nil {
-		return nil, 0, f, fmt.Errorf("cannot create tmp file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot create tmp file: %s", err)
 	}
 
 	// copy ler into file
 	size, err := io.Copy(f, ler)
 	if err != nil {
 		f.Close()
-		return nil, 0, f, fmt.Errorf("cannot copy reader to file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot copy reader to file: %s", err)
 	}
 
 	// reset file
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		f.Close()
-		return nil, 0, f, fmt.Errorf("cannot seek to start of file: %w", err)
+		return nil, 0, f, fmt.Errorf("cannot seek to start of file: %s", err)
 	}
 
 	// return adjusted reader
