@@ -288,11 +288,14 @@ func TestUnpack(t *testing.T) {
 	testDir := t.TempDir()
 
 	// create test zip
-	f, _ := os.Open(createTestZip(t, testDir))
+	f, err := os.Open(createTestZip(t, testDir))
+	if err != nil {
+		panic(err)
+	}
 	defer f.Close()
 
 	// perform actual tests
-	err := Unpack(context.Background(), f, testDir, config.NewConfig())
+	err = Unpack(context.Background(), f, testDir, config.NewConfig())
 	if err != nil {
 		t.Errorf(err.Error())
 	}
