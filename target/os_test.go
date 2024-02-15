@@ -712,7 +712,7 @@ func TestSecurityCheckPath(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			want := tc.expectError
 			err := securityCheckPath(tc.config, testDir, tc.newDir)
 			got := err != nil
