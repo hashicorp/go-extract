@@ -71,7 +71,7 @@ import (
 ```
 
 > [!TIP]
-> If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that `[GOMEMLIMIT](https://pkg.go.dev/runtime#:~:text=GOMEMLIMIT%20is%20a%20numeric%20value%20in%20bytes%20with%20an%20optional%20unit%20suffix.%20The%20supported%20suffixes%20include%20B%2C%20KiB%2C%20MiB%2C%20GiB%2C%20and%20TiB)` is set in the execution environment to avoid `OOM` error.
+> If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that [`GOMEMLIMIT`](https://pkg.go.dev/runtime) is set in the execution environment to avoid `OOM` error.
 > 
 > Example:
 > ```
