@@ -102,10 +102,12 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		}
 
 		// check if file needs to match patterns
-		if match, err := checkPatterns(c.Patterns(), hdr.Name); err != nil {
+		match, err := checkPatterns(c.Patterns(), hdr.Name)
+		if err != nil {
 			msg := "cannot check pattern"
 			return handleError(c, m, msg, err)
-		} else if !match {
+		}
+		if !match {
 			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
 			m.SkippedFiles++
 			m.LastSkippedFile = hdr.Name
