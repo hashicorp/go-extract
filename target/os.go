@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -261,15 +260,6 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	}
 
 	return nil
-}
-
-// CreateTmpDir creates a temporary directory and returns its path
-func CreateTmpDir() string {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		log.Printf("%s", err)
-	}
-	return tmpDir
 }
 
 func GetStartOfAbsolutePath(path string) string {

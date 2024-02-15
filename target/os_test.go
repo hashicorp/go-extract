@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"syscall"
 	"testing"
@@ -19,12 +18,10 @@ import (
 // TestCreateSafeDir implements test cases
 func TestCreateSafeDir(t *testing.T) {
 
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	t.TempDir()
+
+	testDir := t.TempDir()
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
 	if err := syscall.Chdir(testDir); err != nil {
 		t.Errorf(err.Error())
 	}
@@ -147,15 +144,10 @@ func TestCreateSafeDir(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			testDir := t.TempDir()
 
 			// create a sub dir for path traversal testing
-			testDir = fmt.Sprintf("%s%sbase", testDir, string(os.PathSeparator))
+			testDir = filepath.Join(testDir, "base")
 			if err := os.Mkdir(testDir, os.ModePerm); err != nil {
 				t.Errorf(err.Error())
 			}
@@ -172,7 +164,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			err = target.CreateSafeDir(cfg, fmt.Sprintf("%s/%s", testDir, tc.basePath), tc.newDir)
+			err := target.CreateSafeDir(cfg, filepath.Join(testDir, tc.basePath), tc.newDir)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -183,12 +175,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 func TestCreateSafeSymlink(t *testing.T) {
 
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 	if err := syscall.Chdir(testDir); err != nil {
 		t.Errorf(err.Error())
 	}
@@ -333,12 +320,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				panic(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			testDir := t.TempDir()
 
 			target := &OS{}
 			cfg := config.NewConfig()
@@ -348,7 +330,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
-			err = target.CreateSafeSymlink(cfg, testDir, tc.input.name, tc.input.target)
+			err := target.CreateSafeSymlink(cfg, testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -359,12 +341,8 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 	// test creation of two symlinks
 	// create testing directory
-	testDir, err = os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		panic(err.Error())
-	}
+	testDir = t.TempDir()
 	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
 	target := &OS{}
 	if err := target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar"); err != nil {
 		t.Errorf(err.Error())
@@ -402,7 +380,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			err = target.CreateSafeSymlink(tc.cfg, testDir, tc.input.name, tc.input.target)
+			err := target.CreateSafeSymlink(tc.cfg, testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -410,18 +388,6 @@ func TestCreateSafeSymlink(t *testing.T) {
 		})
 	}
 
-}
-
-func TestNewOS(t *testing.T) {
-	os := NewOS()
-	if os == nil {
-		t.Errorf("NewOs() = nil, want *Os")
-	}
-
-	// Check if the returned object is of type *Os
-	if reflect.TypeOf(os).String() != "*target.OS" {
-		t.Errorf("NewOs() returned type %v, want *target.OS", reflect.TypeOf(os))
-	}
 }
 
 // TestCreateSafeFile implements test cases
@@ -544,22 +510,12 @@ func TestCreateSafeFile(t *testing.T) {
 			dir, _ := os.Getwd()
 			log.Printf("test-start-dir: %s", dir)
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer func() {
-				log.Printf("clean tmp: %s", testDir)
-				if err := os.RemoveAll(testDir); err != nil {
-					t.Errorf("mimimi: %s", err)
-				}
-			}()
+			testDir := t.TempDir()
 
 			// perform actual tests
 			target := &OS{}
 			want := tc.expectError
-			err = target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -615,12 +571,7 @@ func TestOverwriteFile(t *testing.T) {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			testDir := t.TempDir()
 
 			// perform actual tests
 			target := &OS{}
@@ -630,7 +581,7 @@ func TestOverwriteFile(t *testing.T) {
 			err2 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
 			got := err1 != nil || err2 != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+				t.Errorf("test case %d failed: %s\n%s\n%s", i, tc.name, err1, err2)
 			}
 
 		})
@@ -693,26 +644,7 @@ func TestIsSymlink(t *testing.T) {
 	}
 }
 
-// TestCreateTempDir implements a test case
-func TestCreateTempDir(t *testing.T) {
-	path := CreateTmpDir()
-	defer os.RemoveAll(path)
-
-	if stat, err := os.Stat(path); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
-		t.Errorf("creation of temp directory failed")
-	}
-}
-
 func TestSecurityCheckPath(t *testing.T) {
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
-	if err := syscall.Chdir(testDir); err != nil {
-		t.Errorf(err.Error())
-	}
 
 	cases := []struct {
 		name        string
@@ -739,17 +671,9 @@ func TestSecurityCheckPath(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
-
 			// perform actual test
 			want := tc.expectError
-			err = securityCheckPath(tc.config, tc.basePath, tc.newDir)
+			err := securityCheckPath(tc.config, tc.basePath, tc.newDir)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
@@ -759,15 +683,11 @@ func TestSecurityCheckPath(t *testing.T) {
 
 	// test with symlinks
 	// create testing directory with symlink to current dir
-	testDir, err = os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	testDir := t.TempDir()
 	symlink := filepath.Join(testDir, "symlink")
 	if err := os.Symlink(".", symlink); err != nil {
 		t.Errorf(err.Error())
 	}
-	defer os.RemoveAll(testDir)
 
 	// perform actual test
 	cases = []struct {
@@ -779,13 +699,13 @@ func TestSecurityCheckPath(t *testing.T) {
 	}{
 		{
 			name:        "deny follow symlink",
-			newDir:      fmt.Sprintf("symlink%sdeny", string(os.PathSeparator)),
+			newDir:      filepath.Join("symlink", "deny"),
 			config:      config.NewConfig(),
 			expectError: true,
 		},
 		{
 			name:        "allow follow symlink",
-			newDir:      fmt.Sprintf("symlink%sallow", string(os.PathSeparator)),
+			newDir:      filepath.Join("symlink", "allow"),
 			config:      config.NewConfig(config.WithFollowSymlinks(true)),
 			expectError: false,
 		},
@@ -794,7 +714,7 @@ func TestSecurityCheckPath(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			err = securityCheckPath(tc.config, testDir, tc.newDir)
+			err := securityCheckPath(tc.config, testDir, tc.newDir)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s (%v)", i, tc.name, err)

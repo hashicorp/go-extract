@@ -23,7 +23,7 @@ func TestFindExtractor(t *testing.T) {
 	// test cases
 	cases := []struct {
 		name           string
-		createTestFile func(string) string
+		createTestFile func(*testing.T, string) string
 		expected       Extractor
 	}{
 		{
@@ -49,12 +49,7 @@ func TestFindExtractor(t *testing.T) {
 	}
 
 	// create testing directory
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	// run cases
 	for _, tc := range cases {
@@ -63,7 +58,7 @@ func TestFindExtractor(t *testing.T) {
 			want := tc.expected
 
 			// perform actual tests
-			f, err := os.Open(tc.createTestFile(testDir))
+			f, err := os.Open(tc.createTestFile(t, testDir))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -105,14 +100,13 @@ func createGzip(dstFile string, input io.Reader) {
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestGzipWithFile(dstDir string) string {
+func createTestGzipWithFile(t *testing.T, dstDir string) string {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
 
 	// create a temporary dir for files in zip archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// prepare test file for be added to zip
 	testFilePath := filepath.Join(tmpDir, "test")
@@ -160,13 +154,12 @@ func createGzipFromFile(dstFile string, srcFile string) {
 }
 
 // createTestZip is a helper function to generate test data
-func createTestZip(dstDir string) string {
+func createTestZip(t *testing.T, dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TestZip.zip")
 
 	// create a temporary dir for files in zip archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
 	archive, _ := os.Create(targetFile)
@@ -193,7 +186,7 @@ func createTestZip(dstDir string) string {
 }
 
 // createTestNonArchive is a helper function to generate test data
-func createTestNonArchive(dstDir string) string {
+func createTestNonArchive(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "test.txt")
 	createTestFile(targetFile, "foo bar test")
 	return targetFile
@@ -209,13 +202,12 @@ func createTestFile(path string, content string) {
 }
 
 // createTestTar is a helper function to generate test data
-func createTestTar(dstDir string) string {
+func createTestTar(t *testing.T, dstDir string) string {
 
 	targetFile := filepath.Join(dstDir, "TarNormal.tar")
 
 	// create a temporary dir for files in tar archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
 
@@ -243,12 +235,7 @@ func createTestTar(dstDir string) string {
 
 func createTestTarWithFiles(dst string, files map[string]string) {
 
-	// create a temporary dir for files in tar archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
-
 	// prepare generated zip+writer
-
 	f, _ := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 	tarWriter := tar.NewWriter(f)
 
@@ -297,19 +284,14 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 func TestUnpack(t *testing.T) {
 
 	// create test zip
-	testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	defer os.RemoveAll(testDir)
+	testDir := t.TempDir()
 
 	// create test zip
-	f, _ := os.Open(createTestZip(testDir))
+	f, _ := os.Open(createTestZip(t, testDir))
 	defer f.Close()
 
 	// perform actual tests
-	err = Unpack(context.Background(), f, testDir, config.NewConfig())
+	err := Unpack(context.Background(), f, testDir, config.NewConfig())
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -321,7 +303,7 @@ func TestUnpackOnTarget(t *testing.T) {
 	// test cases
 	cases := []struct {
 		name        string
-		fn          func(string) string
+		fn          func(*testing.T, string) string
 		expectError bool
 	}{
 		{
@@ -350,18 +332,13 @@ func TestUnpackOnTarget(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "fooo*")
-			if err != nil {
-				panic(err)
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			testDir := t.TempDir()
 
 			// prepare vars
 			want := tc.expectError
 
 			// perform actual tests
-			archive, err := os.Open(tc.fn(testDir))
+			archive, err := os.Open(tc.fn(t, testDir))
 			if err != nil {
 				panic(err)
 			}
@@ -413,16 +390,15 @@ func TestGetHeader(t *testing.T) {
 	}
 }
 
-func gen1024ByteGzip(dstDir string) string {
+func gen1024ByteGzip(t *testing.T, dstDir string) string {
 	testFile := filepath.Join(dstDir, "GzipWithFile.gz")
 	createGzip(testFile, strings.NewReader(strings.Repeat("A", 1024)))
 	return testFile
 }
 
-func genSingleFileTar(dstDir string) string {
+func genSingleFileTar(t *testing.T, dstDir string) string {
 	// create a temporary dir for files in tar archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// create test file
 	testFile := filepath.Join(tmpDir, "testFile")
@@ -433,10 +409,9 @@ func genSingleFileTar(dstDir string) string {
 	return tarFileName
 }
 
-func genTarGzWith5Files(dstDir string) string {
+func genTarGzWith5Files(t *testing.T, dstDir string) string {
 	// create a temporary dir for files in tar archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// create test files
 	for i := 0; i < 5; i++ {
@@ -461,7 +436,7 @@ func genTarGzWith5Files(dstDir string) string {
 func TestMetriksHook(t *testing.T) {
 	cases := []struct {
 		name                  string
-		inputGenerator        func(string) string
+		inputGenerator        func(*testing.T, string) string
 		inputName             string
 		dst                   string
 		WithContinueOnError   bool
@@ -672,15 +647,10 @@ func TestMetriksHook(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "extraction_test_dir*")
-			if err != nil {
-				panic(err)
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
+			testDir := t.TempDir()
 
 			// open file
-			archive, err := os.Open(tc.inputGenerator(testDir))
+			archive, err := os.Open(tc.inputGenerator(t, testDir))
 			if err != nil {
 				panic(err)
 			}
