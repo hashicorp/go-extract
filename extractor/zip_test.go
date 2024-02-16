@@ -276,7 +276,8 @@ func createTestZipNormal(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -310,7 +311,8 @@ func createTestZipWithDirTraversal(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "ZipWithDir.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// create directory in zip
 	_, err := zipWriter.Create("sub/../../outside/")
@@ -334,7 +336,8 @@ func createTestZipWindows(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// prepare test file that will be added to the zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -414,7 +417,8 @@ func createTestZipWithCompressedFilename(t *testing.T, dstDir, filenameInsideThe
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -444,7 +448,8 @@ func createTestZipPathTraversal(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -573,7 +578,8 @@ func createTestZipNormalFiveFiles(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	for i := 0; i < 5; i++ {
 		// prepare test file for be added to zip
@@ -604,7 +610,8 @@ func createTestZipWithSymlink(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "ZipNormalWithSymlink.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// add link to archive
 	addLinkToZipArchive(t, zipWriter, "legitLinkName", "legitLinkTarget")
@@ -622,7 +629,8 @@ func createTestZipWithSymlinkPathTraversalName(t *testing.T, dstDir string) stri
 	targetFile := filepath.Join(dstDir, "createTestZipWithSymlinkPathTraversalName.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// add link to archive
 	addLinkToZipArchive(t, zipWriter, "../maliciousLink", "nirvana")
@@ -640,7 +648,8 @@ func createTestZipWithSymlinkAbsolutePath(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetAbsolutePath.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// add link to archive
 	addLinkToZipArchive(t, zipWriter, "maliciousLink", "/etc/passwd")
@@ -658,7 +667,8 @@ func createTestZipWithSymlinkTargetPathTraversal(t *testing.T, dstDir string) st
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetPathTraversal.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// add link to archive
 	addLinkToZipArchive(t, zipWriter, "maliciousLink", "../maliciousLinkTarget")
@@ -716,7 +726,8 @@ func createTestZipWithFifo(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "ZipWithFifo.zip")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(targetFile)
+	defer f.Close()
 
 	// add fifo to archive
 	addFifoToZipArchive(t, zipWriter)
@@ -768,13 +779,13 @@ func addFifoToZipArchive(t *testing.T, zipWriter *zip.Writer) {
 }
 
 // createZip creates a new zip file in filePath
-func createZip(filePath string) *zip.Writer {
+func createZip(filePath string) (*os.File, *zip.Writer) {
 	targetFile := filepath.Join(filePath)
 	archive, err := os.Create(targetFile)
 	if err != nil {
 		panic(err)
 	}
-	return zip.NewWriter(archive)
+	return archive, zip.NewWriter(archive)
 }
 
 // createTestFile creates a file under path containing content
@@ -797,7 +808,8 @@ func createTestZipWithZipSlip(t *testing.T, dstDir string) string {
 	zipFile := filepath.Join(dstDir, "ZipWithZipSlip.tar")
 
 	// prepare generated zip+writer
-	zipWriter := createZip(zipFile)
+	f, zipWriter := createZip(zipFile)
+	defer f.Close()
 
 	// add symlinks
 	addLinkToZipArchive(t, zipWriter, "sub/to-parent", "../")

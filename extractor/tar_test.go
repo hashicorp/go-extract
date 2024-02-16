@@ -252,7 +252,9 @@ func createTestTarWithFIFO(t *testing.T, dstDir string) string {
 
 	// create fifo and add
 	path := path.Join(dstDir, "testFIFO")
-	createTestFile(path, "ignored anyway")
+	fifo := createTestFile(path, "ignored anyway")
+	defer fifo.Close()
+
 	addFifoToTarArchive(tarWriter, "fifo", path)
 
 	// close zip
