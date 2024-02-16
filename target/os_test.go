@@ -291,15 +291,9 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 func TestCreateSafeSymlink_overwriteTest(t *testing.T) {
 
-	testDir := t.TempDir()
-	if err := syscall.Chdir(testDir); err != nil {
-		t.Errorf(err.Error())
-	}
-
 	// test creation of two symlinks
 	// create testing directory
-	testDir = t.TempDir()
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
+	testDir := t.TempDir()
 	target := &OS{}
 	if err := target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar"); err != nil {
 		t.Errorf(err.Error())
