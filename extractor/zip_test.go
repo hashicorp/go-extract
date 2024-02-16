@@ -750,6 +750,7 @@ func addFifoToZipArchive(t *testing.T, zipWriter *zip.Writer) {
 	if err != nil {
 		panic(err)
 	}
+	defer tmpFile.Close()
 	info, err := os.Lstat(tmpFile.Name())
 	if err != nil {
 		panic(err)
