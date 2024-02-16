@@ -180,136 +180,93 @@ func TestCreateSafeSymlink(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
+	type fnInput struct {
+		name   string
+		target string
+	}
+
 	// test cases
 	cases := []struct {
-		name  string
-		input struct {
-			name   string
-			target string
-		}
+		name        string
+		input       fnInput
 		cfg         *config.Config
 		expectError bool
 	}{
 		{
-			name: "legit link name",
-			input: struct {
-				name   string
-				target string
-			}{name: "foo", target: "bar"},
+			name:        "legit link name",
+			input:       fnInput{name: "foo", target: "bar"},
 			expectError: false,
 		},
 		{
-			name: "legit link name",
-			input: struct {
-				name   string
-				target string
-			}{name: "foo", target: "bar"},
+			name:        "legit link name",
+			input:       fnInput{name: "foo", target: "bar"},
 			cfg:         config.NewConfig(config.WithAllowSymlinks(false)),
 			expectError: false,
 		},
 		{
-			name: "legit link in sub dir",
-			input: struct {
-				name   string
-				target string
-			}{name: "te/bar", target: "baz"},
+			name:        "legit link in sub dir",
+			input:       fnInput{name: "te/bar", target: "baz"},
 			expectError: false,
 		},
 		{
-			name: "legit link name with path with traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "test/../bar", target: "baz"},
+			name:        "legit link name with path with traversal",
+			input:       fnInput{name: "test/../bar", target: "baz"},
 			expectError: false,
 		},
 		{
-			name: "malicious link name with path traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "../test", target: "baz"},
+			name:        "malicious link name with path traversal",
+			input:       fnInput{name: "../test", target: "baz"},
 			expectError: true,
 		},
 		{
-			name: "malicious link name with more complex path traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "./foo/bar/../test/../../../outside", target: "baz"},
+			name:        "malicious link name with more complex path traversal",
+			input:       fnInput{name: "./foo/bar/../test/../../../outside", target: "baz"},
 			expectError: true,
 		},
 		{
-			name: "legit link target",
-			input: struct {
-				name   string
-				target string
-			}{name: "test0", target: "foo"},
+			name:        "legit link target",
+			input:       fnInput{name: "test0", target: "foo"},
 			expectError: false,
 		},
 		{
-			name: "legit link target in sub-dir",
-			input: struct {
-				name   string
-				target string
-			}{name: "test1", target: "foo/bar"},
+			name:        "legit link target in sub-dir",
+			input:       fnInput{name: "test1", target: "foo/bar"},
 			expectError: false,
 		},
 		{
-			name: "legit link target with path with traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "test2", target: "test/../bar"},
+			name:        "legit link target with path with traversal",
+			input:       fnInput{name: "test2", target: "test/../bar"},
 			expectError: false,
 		},
 		{
-			name: "malicious link target with path traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "test3", target: "../baz"},
+			name:        "malicious link target with path traversal",
+			input:       fnInput{name: "test3", target: "../baz"},
 			expectError: true,
 		},
 		{
-			name: "legit link",
-			input: struct {
-				name   string
-				target string
-			}{name: "foo/test3", target: "../baz"},
+			name:        "legit link",
+			input:       fnInput{name: "foo/test3", target: "../baz"},
 			expectError: false,
 		},
 
 		{
-			name: "malicious link target with more complex path traversal",
-			input: struct {
-				name   string
-				target string
-			}{name: "test4", target: "./foo/bar/../test/../../../outside"},
+			name:        "malicious link target with more complex path traversal",
+			input:       fnInput{name: "test4", target: "./foo/bar/../test/../../../outside"},
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolute path linux",
-			input: struct {
-				name   string
-				target string
-			}{name: "test5", target: "/etc/passwd"},
+			name:        "malicious link target with absolute path linux",
+			input:       fnInput{name: "test5", target: "/etc/passwd"},
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolute path windows",
-			input: struct {
-				name   string
-				target string
-			}{name: "test6", target: "C:\\windows\\Systems32"},
+			name:        "malicious link target with absolute path windows",
+			input:       fnInput{name: "test6", target: "C:\\windows\\Systems32"},
 			expectError: true,
 		},
 		{
-			name: "malicious link target with absolute path windows, but continue on error",
-			input: struct {
-				name   string
-				target string
-			}{name: "test6", target: "C:\\windows\\Systems32"},
+			name:        "malicious link target with absolute path windows, but continue on error",
+			input:       fnInput{name: "test6", target: "C:\\windows\\Systems32"},
 			cfg:         config.NewConfig(config.WithContinueOnError(true)),
 			expectError: false,
 		},
@@ -338,6 +295,14 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 		})
 	}
+}
+
+func TestCreateSafeSymlink_overwriteTest(t *testing.T) {
+
+	testDir := t.TempDir()
+	if err := syscall.Chdir(testDir); err != nil {
+		t.Errorf(err.Error())
+	}
 
 	// test creation of two symlinks
 	// create testing directory
@@ -348,30 +313,27 @@ func TestCreateSafeSymlink(t *testing.T) {
 		t.Errorf(err.Error())
 	}
 
-	cases = []struct {
-		name  string
-		input struct {
-			name   string
-			target string
-		}
+	type fnInput struct {
+		name   string
+		target string
+	}
+
+	// test cases
+	cases := []struct {
+		name        string
+		input       fnInput
 		cfg         *config.Config
 		expectError bool
 	}{
 		{
-			name: "existing symlink overwritten",
-			input: struct {
-				name   string
-				target string
-			}{name: "foo", target: "baz"},
+			name:        "existing symlink overwritten",
+			input:       fnInput{name: "foo", target: "baz"},
 			cfg:         config.NewConfig(config.WithOverwrite(true)),
 			expectError: false,
 		},
 		{
-			name: "existing symlink overwritten, but not configured",
-			input: struct {
-				name   string
-				target string
-			}{name: "foo", target: "baz"},
+			name:        "existing symlink overwritten, but not configured",
+			input:       fnInput{name: "foo", target: "baz"},
 			cfg:         config.NewConfig(),
 			expectError: true,
 		},
@@ -387,7 +349,6 @@ func TestCreateSafeSymlink(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // TestCreateSafeFile implements test cases
