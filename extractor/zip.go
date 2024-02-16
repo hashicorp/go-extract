@@ -64,12 +64,12 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 	// check for maximum input size
 	if cfg.MaxInputSize() != -1 && inputSize > cfg.MaxInputSize() {
 		return handleError(cfg, m, "file size exceeds maximum input size", err)
-	} else {
-		// setup metric hook
-		cfg.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
-			m.InputSize = inputSize
-		})
 	}
+
+	// setup metric hook
+	cfg.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+		m.InputSize = inputSize
+	})
 
 	// perform extraction
 	return z.unpack(ctx, reader, dst, t, cfg, m, inputSize)
@@ -208,6 +208,7 @@ func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.
 
 			// open stream
 			fileInArchive, err := archiveFile.Open()
+			defer fileInArchive.Close()
 
 			// check for errors, format and handle them
 			if err != nil {
