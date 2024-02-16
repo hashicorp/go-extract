@@ -232,7 +232,8 @@ func TestZipUnpack(t *testing.T) {
 
 func generateRandomFile(t *testing.T, testDir string) string {
 	targetFile := filepath.Join(testDir, "randomFile")
-	createTestFile(targetFile, "foobar content")
+	f := createTestFile(targetFile, "foobar content")
+	defer f.Close()
 	return targetFile
 }
 
