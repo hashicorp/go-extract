@@ -240,6 +240,7 @@ func createTestTarWithFiles(dst string, files map[string]string) {
 
 	// prepare generated zip+writer
 	f, _ := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	f.Close()
 	tarWriter := tar.NewWriter(f)
 
 	for nameInArchive, origFile := range files {
