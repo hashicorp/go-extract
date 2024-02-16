@@ -412,7 +412,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   644,
+				mode:   0644,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
@@ -422,7 +422,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   644,
+				mode:   0644,
 			},
 			config:      config.NewConfig(config.WithMaxExtractionSize(-1)), // Extraction without limit of dst size
 			expectError: false,
@@ -432,7 +432,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   644,
+				mode:   0644,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: true,
@@ -442,7 +442,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "/foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   644,
+				mode:   0644,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
