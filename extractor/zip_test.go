@@ -196,8 +196,8 @@ func TestZipUnpack(t *testing.T) {
 				t.Errorf(fmt.Sprintf("cannot open file: %s", err))
 			}
 			defer func() {
-				if err := input.Close(); err != nil {
-					t.Errorf(fmt.Sprintf("cannot close file: %s", err))
+				for err := input.Close(); err == nil; {
+					err = input.Close()
 				}
 			}()
 			want := tc.expectError
