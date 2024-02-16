@@ -61,14 +61,16 @@ func TestFindExtractor(t *testing.T) {
 			// perform actual tests
 			f, err := os.Open(tc.createTestFile(t, testDir))
 			if err != nil {
+				f.Close()
 				t.Fatal(err)
 			}
-			defer f.Close()
 			input, err := io.ReadAll(f)
 			if err != nil {
+				f.Close()
 				t.Fatal(err)
 			}
 			got := findExtractor(input)
+			f.Close()
 
 			// success if both are nil and no engine found
 			if fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
@@ -661,7 +663,6 @@ func TestMetriksHook(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			defer archive.Close()
 
 			// prepare config
 			var collectedMetrics *config.Metrics
@@ -683,6 +684,7 @@ func TestMetriksHook(t *testing.T) {
 			ctx := context.Background()
 			dstDir := filepath.Join(testDir, tc.dst)
 			err = UnpackOnTarget(ctx, archive, dstDir, target.NewOS(), cfg)
+			archive.Close()
 
 			// check if error is expected
 			if tc.expectError != (err != nil) {
