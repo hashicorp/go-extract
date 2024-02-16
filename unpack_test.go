@@ -63,6 +63,7 @@ func TestFindExtractor(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			defer f.Close()
 			input, err := io.ReadAll(f)
 			if err != nil {
 				t.Fatal(err)
@@ -164,6 +165,7 @@ func createTestZip(t *testing.T, dstDir string) string {
 
 	// prepare generated zip+writer
 	archive, _ := os.Create(targetFile)
+	defer archive.Close()
 	zipWriter := zip.NewWriter(archive)
 	defer zipWriter.Close()
 
@@ -346,6 +348,7 @@ func TestUnpackOnTarget(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
+			defer archive.Close()
 			err = UnpackOnTarget(
 				context.Background(),
 				archive,
@@ -658,6 +661,7 @@ func TestMetriksHook(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
+			defer archive.Close()
 
 			// prepare config
 			var collectedMetrics *config.Metrics

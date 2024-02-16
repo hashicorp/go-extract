@@ -192,6 +192,7 @@ func TestZipUnpack(t *testing.T) {
 
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			defer input.Close()
 			want := tc.expectError
 			err := unziper.Unpack(context.Background(), input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
@@ -390,6 +391,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 			// perform actual tests
 			tFile := createTestZipWithCompressedFilename(t, testDir, name)
 			input, _ := os.Open(tFile)
+			defer input.Close()
 			// perform test
 			err := unziper.Unpack(context.Background(), input, testDir, unzipTarget, config.NewConfig())
 			if err == nil {

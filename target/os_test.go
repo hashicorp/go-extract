@@ -18,14 +18,6 @@ import (
 // TestCreateSafeDir implements test cases
 func TestCreateSafeDir(t *testing.T) {
 
-	t.TempDir()
-
-	testDir := t.TempDir()
-	testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-	if err := syscall.Chdir(testDir); err != nil {
-		t.Errorf(err.Error())
-	}
-
 	cases := []struct {
 		name        string
 		basePath    string

@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// TestZipUnpack test with various test cases the implementation of zip.Unpack
+// TestGzipUnpack test with various test cases the implementation of zip.Unpack
 func TestGzipUnpack(t *testing.T) {
 
 	type TestFileGenerator func(*testing.T, string) io.Reader
@@ -89,6 +89,11 @@ func TestGzipUnpack(t *testing.T) {
 
 			// perform actual tests
 			input := tc.inputGenerator(t, testDir)
+			defer func() {
+				if closer, ok := input.(io.Closer); ok {
+					closer.Close()
+				}
+			}()
 			want := tc.expectError
 			err := gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil

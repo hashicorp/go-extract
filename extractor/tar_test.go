@@ -184,6 +184,7 @@ func TestTarUnpack(t *testing.T) {
 
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			defer input.Close()
 			want := tc.expectError
 			err := untarer.Unpack(ctx, input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
 			got := err != nil
