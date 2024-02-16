@@ -225,19 +225,16 @@ func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.
 			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				msg := "failed to create safe file"
 				if err := handleError(c, m, msg, err); err != nil {
-					fileInArchive.Close()
 					return err
 				}
 
 				// don't collect metrics on failure
-				fileInArchive.Close()
 				continue
 			}
 
 			// next item
 			m.ExtractionSize = int64(extractionSize)
 			m.ExtractedFiles++
-			fileInArchive.Close()
 			continue
 
 		default: // catch all for unsupported file modes
