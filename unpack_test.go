@@ -218,6 +218,7 @@ func createTestTar(t *testing.T, dstDir string) string {
 
 	f, _ := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 	tarWriter := tar.NewWriter(f)
+	defer f.Close()
 
 	// prepare testfile for be added to tar
 	testFilePath := filepath.Join(tmpDir, "test")
@@ -242,6 +243,7 @@ func createTestTarWithFiles(dst string, files map[string]string) {
 
 	// prepare generated zip+writer
 	f, _ := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	defer f.Close()
 	tarWriter := tar.NewWriter(f)
 
 	for nameInArchive, origFile := range files {

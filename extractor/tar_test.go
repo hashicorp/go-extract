@@ -205,7 +205,8 @@ func createTestTarNormal(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -228,7 +229,8 @@ func createTestTarWithTraversalInDirectory(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithTraversalInDirectory.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add dir with traversal
 	addFileToTarArchive(tarWriter, "../test", nil)
@@ -245,7 +247,8 @@ func createTestTarWithFIFO(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithFIFO.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// create fifo and add
 	path := path.Join(dstDir, "testFIFO")
@@ -268,7 +271,8 @@ func createTestTarDotDotFilename(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -290,7 +294,8 @@ func createTestTarWithSymlink(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithSymlink.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add symlink
 	addLinkToTarArchive(t, tarWriter, "testLink", "testTarget")
@@ -308,7 +313,8 @@ func createTestTarWithZipSlip(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithZipSlip.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add symlinks
 	addLinkToTarArchive(t, tarWriter, "sub/to-parent", "../")
@@ -327,7 +333,8 @@ func createTestTarWithTraversalInSymlinkName(t *testing.T, dstDir string) string
 	targetFile := filepath.Join(dstDir, "TarWithTraversalInSymlinkName.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add symlink
 	addLinkToTarArchive(t, tarWriter, "../testLink", "testTarget")
@@ -345,7 +352,8 @@ func createTestTarWithPathTraversalSymlink(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithPathTraversalSymlink.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add symlink
 	addLinkToTarArchive(t, tarWriter, "testLink", "../testTarget")
@@ -363,7 +371,8 @@ func createTestTarWithAbsolutePathSymlink(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "TarWithAbsolutePathSymlink.tar")
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// add symlink
 	addLinkToTarArchive(t, tarWriter, "testLink", "/tmp/test")
@@ -384,7 +393,8 @@ func createTestTarWithPathTraversalInFile(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -409,7 +419,8 @@ func createTestTarFiveFiles(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	for i := 0; i < 5; i++ {
 
@@ -436,7 +447,8 @@ func createTestTarGzWithEmptyFileName(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -553,12 +565,12 @@ func addLinkToTarArchive(t *testing.T, tarWriter *tar.Writer, fileName string, l
 }
 
 // createTar is a helper function to generate test content
-func createTar(filePath string) *tar.Writer {
+func createTar(filePath string) (*os.File, *tar.Writer) {
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 	if err != nil {
 		panic(err)
 	}
-	return tar.NewWriter(f)
+	return f, tar.NewWriter(f)
 }
 
 // createTestTarWithAbsolutePathInFilename is a helper function to generate test content
@@ -570,7 +582,8 @@ func createTestTarWithAbsolutePathInFilename(t *testing.T, dstDir string) string
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -595,7 +608,8 @@ func createTestTarWithAbsolutePathInFilenameWindows(t *testing.T, dstDir string)
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	tarWriter := createTar(targetFile)
+	f, tarWriter := createTar(targetFile)
+	defer f.Close()
 
 	// prepare test file for be added to tar
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
