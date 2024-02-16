@@ -193,11 +193,13 @@ func TestZipUnpack(t *testing.T) {
 			// perform actual tests
 			input, err := os.Open(tc.testFileGenerator(t, testDir))
 			if err != nil {
-				t.Errorf(err.Error())
+				t.Errorf(fmt.Sprintf("cannot open file: %s", err))
 			}
 			want := tc.expectError
 			err = unziper.Unpack(context.Background(), input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
-			input.Close()
+			if err := input.Close(); err != nil {
+				t.Errorf(fmt.Sprintf("cannot close file: %s", err))
+			}
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
