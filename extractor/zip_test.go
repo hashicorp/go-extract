@@ -203,10 +203,6 @@ func TestZipUnpack_file(t *testing.T) {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 				defer input.Close()
 			}
-			for err := os.RemoveAll(testDir); err != nil; {
-				t.Logf("cannot remove test directory: %s", err)
-				err = os.RemoveAll(testDir)
-			}
 		})
 	}
 }
