@@ -205,6 +205,9 @@ func TestZipUnpack(t *testing.T) {
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 			}
+			if err := input.Close(); err != nil {
+				t.Errorf(fmt.Sprintf("cannot close file: %s", err))
+			}
 			for err := os.RemoveAll(testDir); err != nil; {
 				t.Logf("cannot remove test directory: %s", err)
 				err = os.RemoveAll(testDir)
