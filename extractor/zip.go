@@ -39,65 +39,111 @@ func NewZip() *Zip {
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
 func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, cfg *config.Config) error {
 
-	// object to store m
+	// prepare metrics collection and emit
 	m := &config.Metrics{ExtractedType: "zip"}
-
-	// emit metrics
 	defer cfg.MetricsHook(ctx, m)
-
-	// ensures extraction time is capturing
 	captureExtractionDuration(ctx, cfg)
 
-	// prepare extraction
-	reader, inputSize, tmpFile, err := readerToReaderAt(src, cfg)
-	// clean up tmpFile
-	defer func() {
-		if tmpFile != nil {
-			tmpFile.Close()
-			os.Remove(tmpFile.Name())
+	// check if src is a file, if so - use it directly
+	if inf, ok := src.(*os.File); ok {
+		return z.unpackZipFile(ctx, inf, dst, t, cfg, m)
+	}
+
+	return z.unpackZipReader(ctx, src, dst, t, cfg, m)
+}
+
+func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t target.Target, cfg *config.Config, m *config.Metrics) error {
+
+	// check if src is a readerAt and an io.Seeker
+	if seeker, ok := src.(io.Seeker); ok {
+		if ra, ok := src.(io.ReaderAt); ok {
+			size, err := seeker.Seek(0, io.SeekEnd)
+			if err != nil {
+				return handleError(cfg, m, "cannot seek to end of reader", err)
+			}
+			// create zip reader
+			reader, err := zip.NewReader(ra, size)
+			if err != nil {
+				return handleError(cfg, m, "cannot create zip reader", err)
+			}
+
+			// perform extraction
+			return z.unpack(ctx, reader, dst, t, cfg, m)
 		}
-	}()
+	}
+
+	// create limit error reader for src
+	ler := config.NewLimitErrorReader(src, cfg.MaxInputSize())
+
+	// cache src in temp file for extraction
+	if !cfg.CacheInMemory() {
+		// copy src to tmp file
+		tmpFile, err := os.CreateTemp("", "extractor-*.zip")
+		if err != nil {
+			return handleError(cfg, m, "cannot create tmp file", err)
+		}
+		defer tmpFile.Close()
+		defer os.Remove(tmpFile.Name())
+		if _, err := io.Copy(tmpFile, ler); err != nil {
+			return handleError(cfg, m, "cannot copy reader to file", err)
+		}
+		return z.unpackZipFile(ctx, tmpFile, dst, t, cfg, m)
+	}
+
+	// cache src in memory before starting extraction
+	data, err := io.ReadAll(ler)
 	if err != nil {
 		return handleError(cfg, m, "cannot read all from reader", err)
 	}
+	m.InputSize = int64(len(data))
+	// create zip reader
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return handleError(cfg, m, "cannot create zip reader", err)
+	}
+	// perform extraction
+	return z.unpack(ctx, reader, dst, t, cfg, m)
+}
+
+// unpackZipFile checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// It also sets the input size in the metrics.
+func (z *Zip) unpackZipFile(ctx context.Context, src *os.File, dst string, t target.Target, cfg *config.Config, m *config.Metrics) error {
+	// get file size
+	stat, err := src.Stat()
+	if err != nil {
+		return handleError(cfg, m, "cannot stat file", err)
+	}
+	m.InputSize = stat.Size()
 
 	// check for maximum input size
-	if cfg.MaxInputSize() != -1 && inputSize > cfg.MaxInputSize() {
-		return handleError(cfg, m, "file size exceeds maximum input size", err)
+	if cfg.MaxInputSize() != -1 && stat.Size() > cfg.MaxInputSize() {
+		return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
 	}
 
-	// setup metric hook
-	cfg.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
-		m.InputSize = inputSize
-	})
+	// open zip file
+	reader, err := zip.OpenReader(src.Name())
+	if err != nil {
+		return handleError(cfg, m, "cannot open zip file", err)
+	}
+	defer reader.Close()
 
 	// perform extraction
-	return z.unpack(ctx, reader, dst, t, cfg, m, inputSize)
+	return z.unpack(ctx, &reader.Reader, dst, t, cfg, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-func (z *Zip) unpack(ctx context.Context, src io.ReaderAt, dst string, t target.Target, c *config.Config, m *config.Metrics, inputSize int64) error {
-
-	// get content of readerAt as io.Reader
-	zipReader, err := zip.NewReader(src, inputSize)
-
-	// check for errors, format and handle them
-	if err != nil {
-		msg := "cannot read zip"
-		return handleError(c, m, msg, err)
-	}
+func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.Target, c *config.Config, m *config.Metrics) error {
 
 	// check for to many files in archive
-	if err := c.CheckMaxObjects(int64(len(zipReader.File))); err != nil {
-		msg := "max objects check failed"
-		return handleError(c, m, msg, err)
+	if err := c.CheckMaxObjects(int64(len(src.File))); err != nil {
+		return handleError(c, m, "max objects check failed", err)
 	}
 
 	// summarize file-sizes
 	var extractionSize uint64
 
 	// walk over archive
-	for _, archiveFile := range zipReader.File {
+	for _, archiveFile := range src.File {
 
 		// check if context is canceled
 		if ctx.Err() != nil {
