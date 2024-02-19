@@ -228,6 +228,7 @@ func TestZipUnpack_mem(t *testing.T) {
 			// perform actual tests
 			var buf bytes.Buffer
 			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			defer input.Close()
 			if _, err := io.Copy(&buf, input); err != nil {
 				t.Errorf(err.Error())
 			}
