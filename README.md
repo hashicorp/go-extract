@@ -46,7 +46,7 @@ import (
     // prepare config (these are the default values)
     config := config.NewConfig(
         config.WithAllowSymlinks(true),               // allow symlink creation
-        config.WithCacheInMemory(false),              // cache to disk if necessary
+        config.WithCacheInMemory(false),              // cache to disk if input is a zip in a stream
         config.WithContinueOnError(false),            // fail on error
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
@@ -112,7 +112,6 @@ Arguments:
 
 Flags:
   -h, --help                              Show context-sensitive help.
-  -I, --cache-in-memory                   Cache in memory instead of disc (only if necessary).
   -C, --continue-on-error                 Continue extraction on error.
   -S, --continue-on-unsupported-files     Skip extraction of unsupported files.
   -c, --create-destination                Create destination directory if it does not exist.
