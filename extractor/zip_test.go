@@ -187,6 +187,12 @@ func TestZipUnpack(t *testing.T) {
 
 			// create testing directory
 			testDir := t.TempDir()
+			defer func() {
+				for err := os.RemoveAll(testDir); err != nil; {
+					t.Logf("cannot remove test directory: %s", err)
+					err = os.RemoveAll(testDir)
+				}
+			}()
 
 			unziper := NewZip()
 
