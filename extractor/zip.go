@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
@@ -19,25 +18,13 @@ var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
-// Zip is implements the Extractor interface to extract zip archives.
-type Zip struct{}
-
 // IsZip checks if data is a zip archive.
 func IsZip(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesZIP)
 }
 
-// NewZip returns a new zip object with config as configuration.
-func NewZip() *Zip {
-	// instantiate
-	zip := Zip{}
-
-	// return
-	return &zip
-}
-
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
-func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, cfg *config.Config) error {
+func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
 	m := &config.Metrics{ExtractedType: "zip"}
@@ -46,13 +33,13 @@ func (z *Zip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Ta
 
 	// check if src is a file, if so - use it directly
 	if inf, ok := src.(*os.File); ok {
-		return z.unpackZipFile(ctx, inf, dst, t, cfg, m)
+		return unpackZipFile(ctx, inf, dst, cfg, m)
 	}
 
-	return z.unpackZipReader(ctx, src, dst, t, cfg, m)
+	return unpackZipReader(ctx, src, dst, cfg, m)
 }
 
-func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t target.Target, cfg *config.Config, m *config.Metrics) error {
+func unpackZipReader(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *config.Metrics) error {
 
 	// check if src is a readerAt and an io.Seeker
 	if seeker, ok := src.(io.Seeker); ok {
@@ -72,7 +59,7 @@ func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t 
 			}
 
 			// perform extraction
-			return z.unpack(ctx, reader, dst, t, cfg, m)
+			return unpackZip(ctx, reader, dst, cfg, m)
 		}
 	}
 
@@ -91,7 +78,7 @@ func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t 
 		if _, err := io.Copy(tmpFile, ler); err != nil {
 			return handleError(cfg, m, "cannot copy reader to file", err)
 		}
-		return z.unpackZipFile(ctx, tmpFile, dst, t, cfg, m)
+		return unpackZipFile(ctx, tmpFile, dst, cfg, m)
 	}
 
 	// cache src in memory before starting extraction
@@ -106,12 +93,12 @@ func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t 
 		return handleError(cfg, m, "cannot create zip reader", err)
 	}
 	// perform extraction
-	return z.unpack(ctx, reader, dst, t, cfg, m)
+	return unpackZip(ctx, reader, dst, cfg, m)
 }
 
 // unpackZipFile checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // It also sets the input size in the metrics.
-func (z *Zip) unpackZipFile(ctx context.Context, src *os.File, dst string, t target.Target, cfg *config.Config, m *config.Metrics) error {
+func unpackZipFile(ctx context.Context, src *os.File, dst string, cfg *config.Config, m *config.Metrics) error {
 	// get file size
 	stat, err := src.Stat()
 	if err != nil {
@@ -132,11 +119,11 @@ func (z *Zip) unpackZipFile(ctx context.Context, src *os.File, dst string, t tar
 	defer reader.Close()
 
 	// perform extraction
-	return z.unpack(ctx, &reader.Reader, dst, t, cfg, m)
+	return unpackZip(ctx, &reader.Reader, dst, cfg, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.Target, c *config.Config, m *config.Metrics) error {
+func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *config.Metrics) error {
 
 	// check for to many files in archive
 	if err := c.CheckMaxObjects(int64(len(src.File))); err != nil {
@@ -181,7 +168,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 			}
 
 			// create dir and check for errors, format and handle them
-			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
+			if err := unpackTarget.CreateSafeDir(c, dst, hdr.Name); err != nil {
 				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
 					return err
 				}
@@ -228,7 +215,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 			}
 
 			// create link
-			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
+			if err := unpackTarget.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
 				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {
 					return err
 				}
@@ -264,7 +251,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 			}
 
 			// create the file
-			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
+			if err := unpackTarget.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
 				if err := handleError(c, m, "failed to create safe file", err); err != nil {
 					return err
 				}

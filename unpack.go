@@ -7,23 +7,11 @@ import (
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config.
 func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// default target
-	target := target.NewOS()
-
-	// perform extraction with identified reader
-	return UnpackOnTarget(ctx, src, dst, target, c)
-}
-
-// UnpackOnTarget reads data from src on a givin target, identifies if its a known archive type. If so, dst is unpacked
-// in dst. opts can be given to adjust the config.
-func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, tgt target.Target, c *config.Config) error {
 
 	// read headerReader to identify archive type
 	header, reader, err := getHeader(src)
@@ -32,22 +20,13 @@ func UnpackOnTarget(ctx context.Context, src io.Reader, dst string, tgt target.T
 	}
 
 	// find extractor for header
-	var ex Extractor
-	if ex = findExtractor(header); ex == nil {
+	var unpacker extractor.UnpackFkt
+	if unpacker = findExtractor(header); unpacker == nil {
 		return fmt.Errorf("archive type not supported")
 	}
 
-	switch ex.(type) {
-	case *extractor.Tar:
-		c.Logger().Info("extracting tar")
-	case *extractor.Zip:
-		c.Logger().Info("extracting zip")
-	case *extractor.Gzip:
-		c.Logger().Info("extracting gzip")
-	}
-
 	// perform extraction with identified reader
-	return ex.Unpack(ctx, reader, dst, tgt, c)
+	return unpacker(ctx, reader, dst, c)
 }
 
 // getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
@@ -83,11 +62,11 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 }
 
 // findExtractor identifies the correct extractor based on magic bytes.
-func findExtractor(data []byte) Extractor {
+func findExtractor(data []byte) extractor.UnpackFkt {
 	// find extractor with longest suffix match
 	for _, ex := range extractor.AvailableExtractors {
 		if ex.HeaderCheck(data) {
-			return ex.NewExtractor()
+			return ex.Unpacker
 		}
 	}
 

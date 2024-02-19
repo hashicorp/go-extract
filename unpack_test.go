@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // TestFindExtractor implements test cases
@@ -24,22 +23,22 @@ func TestFindExtractor(t *testing.T) {
 	cases := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
-		expected       Extractor
+		expected       extractor.UnpackFkt
 	}{
 		{
 			name:           "get zip extractor from file",
 			createTestFile: createTestZip,
-			expected:       extractor.NewZip(),
+			expected:       extractor.UnpackZip,
 		},
 		{
 			name:           "get tar extractor from file",
 			createTestFile: createTestTar,
-			expected:       extractor.NewTar(),
+			expected:       extractor.UnpackTar,
 		},
 		{
 			name:           "get gzip extractor from file",
 			createTestFile: createTestGzipWithFile,
-			expected:       extractor.NewGzip(),
+			expected:       extractor.UnpackGZip,
 		},
 		{
 			name:           "get nil extractor fot textfile",
@@ -288,27 +287,8 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	}
 }
 
-func TestUnpack(t *testing.T) {
-
-	// create test zip
-	testDir := t.TempDir()
-
-	// create test zip
-	f, err := os.Open(createTestZip(t, testDir))
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-
-	// perform actual tests
-	err = Unpack(context.Background(), f, testDir, config.NewConfig())
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-}
-
 // TestUnpack is a test function
-func TestUnpackOnTarget(t *testing.T) {
+func TestUnpack(t *testing.T) {
 
 	// test cases
 	cases := []struct {
@@ -353,11 +333,10 @@ func TestUnpackOnTarget(t *testing.T) {
 				panic(err)
 			}
 			defer archive.Close()
-			err = UnpackOnTarget(
+			err = Unpack(
 				context.Background(),
 				archive,
 				testDir,
-				target.NewOS(),
 				config.NewConfig(
 					config.WithOverwrite(true),
 				),
@@ -685,7 +664,7 @@ func TestMetriksHook(t *testing.T) {
 			// perform actual tests
 			ctx := context.Background()
 			dstDir := filepath.Join(testDir, tc.dst)
-			err = UnpackOnTarget(ctx, archive, dstDir, target.NewOS(), cfg)
+			err = Unpack(ctx, archive, dstDir, cfg)
 			archive.Close()
 
 			// check if error is expected

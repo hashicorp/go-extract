@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 const offsetTar = 257
@@ -26,27 +25,17 @@ func IsTar(data []byte) bool {
 	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }
 
-// NewTar creates a new untar object with config as configuration
-func NewTar() *Tar {
-
-	// instantiate
-	tar := Tar{}
-
-	// return the modified house instance
-	return &tar
-}
-
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func (t *Tar) Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
+func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare limits input and ensures metrics capturing
 	reader := prepare(ctx, src, c)
 
-	return t.unpack(ctx, reader, dst, target, c)
+	return unpackTar(ctx, reader, dst, c)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target target.Target, c *config.Config) error {
+func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// object to store m
 	m := &config.Metrics{ExtractedType: "tar"}
@@ -118,7 +107,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		case tar.TypeDir:
 
 			// handle directory
-			if err := target.CreateSafeDir(c, dst, hdr.Name); err != nil {
+			if err := unpackTarget.CreateSafeDir(c, dst, hdr.Name); err != nil {
 				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
 					return err
 				}
@@ -141,7 +130,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			}
 
 			// create file
-			if err := target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
+			if err := unpackTarget.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, m, "failed to create safe file", err); err != nil {
@@ -179,7 +168,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			}
 
 			// create link
-			if err := target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
+			if err := unpackTarget.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {

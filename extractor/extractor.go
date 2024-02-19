@@ -15,11 +15,13 @@ import (
 // extractor is a private interface and defines all functions that needs to be implemented by an extraction engine.
 type extractor interface {
 	// Unpack is the main entrypoint to an extraction engine that takes the contents from src and extracts them to dst.
-	Unpack(ctx context.Context, src io.Reader, dst string, target target.Target, config *config.Config) error
+	Unpack(ctx context.Context, src io.Reader, dst string, config *config.Config) error
 }
 
 // now is a function point that returns time.Now to the caller.
 var now = time.Now
+
+var unpackTarget target.Target
 
 // prepare ensures limited read and generic metric capturing
 // remark: this preparation is located in the extractor package so that the
@@ -67,35 +69,35 @@ func captureExtractionDuration(ctx context.Context, c *config.Config) {
 	})
 }
 
+// UnpackFkt is a function that extracts the contents from src and extracts them to dst.
+type UnpackFkt func(context.Context, io.Reader, string, *config.Config) error
+
+// HeaderCheck is a function that checks if the given header matches the expected magic bytes.
+type HeaderCheck func([]byte) bool
+
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = []struct {
-	NewExtractor func() extractor
-	HeaderCheck  func([]byte) bool
-	MagicBytes   [][]byte
-	Offset       int
+	Unpacker    UnpackFkt
+	HeaderCheck HeaderCheck
+	MagicBytes  [][]byte
+	Offset      int
 }{
 	{
-		NewExtractor: func() extractor {
-			return NewTar()
-		},
+		Unpacker:    UnpackTar,
 		HeaderCheck: IsTar,
 		MagicBytes:  magicBytesTar,
 		Offset:      offsetTar,
 	},
 	{
-		NewExtractor: func() extractor {
-			return NewZip()
-		},
+		Unpacker:    UnpackZip,
 		HeaderCheck: IsZip,
 		MagicBytes:  magicBytesZIP,
 	},
 	{
-		NewExtractor: func() extractor {
-			return NewGzip()
-		},
-		HeaderCheck: IsGZIP,
-		MagicBytes:  magicBytesGZIP,
+		Unpacker:    UnpackGZip,
+		HeaderCheck: IsGZip,
+		MagicBytes:  magicBytesGZip,
 	},
 }
 
@@ -114,6 +116,9 @@ func init() {
 			MaxHeaderLength = needs
 		}
 	}
+
+	// set default target
+	unpackTarget = target.NewOS()
 }
 
 func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // TestTarUnpack implements test cases
@@ -176,7 +175,6 @@ func TestTarUnpack(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
-			untarer := NewTar()
 			if tc.ctx == nil {
 				tc.ctx = context.Background()
 			}
@@ -185,7 +183,7 @@ func TestTarUnpack(t *testing.T) {
 			// perform actual tests
 			input, _ := os.Open(tc.testFileGenerator(t, testDir))
 			want := tc.expectError
-			err := untarer.Unpack(ctx, input, testDir, target.NewOS(), config.NewConfig(tc.opts...))
+			err := UnpackTar(ctx, input, testDir, config.NewConfig(tc.opts...))
 			input.Close()
 			got := err != nil
 			if got != want {

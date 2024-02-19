@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // TestGzipUnpack test with various test cases the implementation of zip.Unpack
@@ -85,8 +84,6 @@ func TestGzipUnpack(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
-			gziper := NewGzip()
-
 			// perform actual tests
 			input := tc.inputGenerator(t, testDir)
 			defer func() {
@@ -95,7 +92,7 @@ func TestGzipUnpack(t *testing.T) {
 				}
 			}()
 			want := tc.expectError
-			err := gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOS(), config.NewConfig(tc.opts...))
+			err := UnpackGZip(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -199,7 +196,7 @@ func TestIsGZIP(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsGZIP(tt.header); got != tt.want {
+			if got := IsGZip(tt.header); got != tt.want {
 				t.Errorf("IsGZIP() = %v, want %v", got, tt.want)
 			}
 		})
