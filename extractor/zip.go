@@ -61,6 +61,10 @@ func (z *Zip) unpackZipReader(ctx context.Context, src io.Reader, dst string, t 
 			if err != nil {
 				return handleError(cfg, m, "cannot seek to end of reader", err)
 			}
+			m.InputSize = size
+			if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
+				return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
+			}
 			// create zip reader
 			reader, err := zip.NewReader(ra, size)
 			if err != nil {
@@ -156,8 +160,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 		// check if file needs to match patterns
 		match, err := checkPatterns(c.Patterns(), hdr.Name)
 		if err != nil {
-			msg := "cannot check pattern"
-			return handleError(c, m, msg, err)
+			return handleError(c, m, "cannot check pattern", err)
 		}
 		if !match {
 			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
@@ -179,8 +182,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 
 			// create dir and check for errors, format and handle them
 			if err := t.CreateSafeDir(c, dst, hdr.Name); err != nil {
-				msg := "failed to create safe directory"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
 					return err
 				}
 
@@ -204,9 +206,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 					continue
 				}
 
-				msg := "symlinks are not allowed"
-				err := fmt.Errorf("symlinks are not allowed")
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "cannot extract symlink", fmt.Errorf("symlinks are not allowed")); err != nil {
 					return err
 				}
 
@@ -219,8 +219,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 
 			// check for errors, format and handle them
 			if err != nil {
-				msg := "failed to read symlink target"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to read symlink target", err); err != nil {
 					return err
 				}
 
@@ -230,8 +229,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 
 			// create link
 			if err := t.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
-				msg := "failed to create safe symlink"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {
 					return err
 				}
 
@@ -248,8 +246,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 			// check for file size
 			extractionSize = extractionSize + archiveFile.UncompressedSize64
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				msg := "maximum extraction size exceeded"
-				return handleError(c, m, msg, err)
+				return handleError(c, m, "maximum extraction size exceeded", err)
 			}
 
 			// open stream
@@ -258,8 +255,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 
 			// check for errors, format and handle them
 			if err != nil {
-				msg := "cannot open file in archive"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "cannot open file in archive", err); err != nil {
 					return err
 				}
 
@@ -269,8 +265,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 
 			// create the file
 			if err := t.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
-				msg := "failed to create safe file"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe file", err); err != nil {
 					return err
 				}
 
@@ -293,9 +288,7 @@ func (z *Zip) unpack(ctx context.Context, src *zip.Reader, dst string, t target.
 			}
 
 			// increase error counter, set error and end if necessary
-			err := fmt.Errorf("unsupported file mode (%x)", hdr.Mode())
-			msg := "cannot extract file"
-			if err := handleError(c, m, msg, err); err != nil {
+			if err := handleError(c, m, "cannot extract file", fmt.Errorf("unsupported file mode (%x)", hdr.Mode())); err != nil {
 				return err
 			}
 		}
@@ -325,54 +318,4 @@ func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 
 	// return result
 	return symlinkTarget, nil
-}
-
-// readerToReaderAt converts a reader to a readerAt
-func readerToReaderAt(src io.Reader, cfg *config.Config) (io.ReaderAt, int64, *os.File, error) {
-
-	// 	check if src is a seekable reader and offers io.ReadAt
-	if s, ok := src.(io.Seeker); ok {
-		if r, ok := src.(io.ReaderAt); ok {
-			// get file size
-			size, err := s.Seek(0, io.SeekEnd)
-			if err != nil {
-				return nil, 0, nil, fmt.Errorf("cannot seek to end of reader: %s", err)
-			}
-			return r, size, nil, nil
-		}
-	}
-
-	// read file into memory
-	ler := config.NewLimitErrorReader(src, cfg.MaxInputSize())
-
-	// check if in memory caching is enabled
-	if cfg.CacheInMemory() {
-		data, err := io.ReadAll(ler)
-		if err != nil {
-			return nil, int64(len(data)), nil, fmt.Errorf("cannot copy reader to buffer: %s", err)
-		}
-		return bytes.NewReader(data), int64(len(data)), nil, nil
-	}
-
-	// create tmp file
-	f, err := os.CreateTemp("", "extractor-*.zip")
-	if err != nil {
-		return nil, 0, f, fmt.Errorf("cannot create tmp file: %s", err)
-	}
-
-	// copy ler into file
-	size, err := io.Copy(f, ler)
-	if err != nil {
-		f.Close()
-		return nil, 0, f, fmt.Errorf("cannot copy reader to file: %s", err)
-	}
-
-	// reset file
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		f.Close()
-		return nil, 0, f, fmt.Errorf("cannot seek to start of file: %s", err)
-	}
-
-	// return adjusted reader
-	return f, size, f, nil
 }

@@ -79,8 +79,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// return any other error
 		case err != nil:
-			msg := "error reading tar"
-			return handleError(c, m, msg, err)
+			return handleError(c, m, "error reading tar", err)
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case hdr == nil:
@@ -92,8 +91,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
-			msg := "max objects check failed"
-			return handleError(c, m, msg, err)
+			return handleError(c, m, "max objects check failed", err)
 		}
 
 		// check if name is just current working dir
@@ -104,8 +102,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 		// check if file needs to match patterns
 		match, err := checkPatterns(c.Patterns(), hdr.Name)
 		if err != nil {
-			msg := "cannot check pattern"
-			return handleError(c, m, msg, err)
+			return handleError(c, m, "cannot check pattern", err)
 		}
 		if !match {
 			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
@@ -122,8 +119,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 
 			// handle directory
 			if err := target.CreateSafeDir(c, dst, hdr.Name); err != nil {
-				msg := "failed to create safe directory"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
 					return err
 				}
 
@@ -141,16 +137,14 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			// check extraction size
 			extractionSize = extractionSize + uint64(hdr.Size)
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				msg := "max extraction size exceeded"
-				return handleError(c, m, msg, err)
+				return handleError(c, m, "max extraction size exceeded", err)
 			}
 
 			// create file
 			if err := target.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
 				// increase error counter, set error and end if necessary
-				msg := "failed to create safe file"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe file", err); err != nil {
 					return err
 				}
 
@@ -176,9 +170,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 					continue
 				}
 
-				msg := "symlinks are not allowed"
-				err := fmt.Errorf("symlinks are not allowed")
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
 					return err
 				}
 
@@ -190,8 +182,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			if err := target.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
 				// increase error counter, set error and end if necessary
-				msg := "failed to create safe symlink"
-				if err := handleError(c, m, msg, err); err != nil {
+				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {
 					return err
 				}
 
@@ -213,9 +204,7 @@ func (t *Tar) unpack(ctx context.Context, src io.Reader, dst string, target targ
 			}
 
 			// increase error counter, set error and end if necessary
-			err := fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)
-			msg := "cannot extract file"
-			if err := handleError(c, m, msg, err); err != nil {
+			if err := handleError(c, m, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)); err != nil {
 				return err
 			}
 

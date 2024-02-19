@@ -238,6 +238,38 @@ func TestZipUnpack_mem(t *testing.T) {
 
 }
 
+// TestZipUnpack_seeker test with various test cases the implementation of zip.Unpack
+func TestZipUnpack_seeker(t *testing.T) {
+
+	// run cases with read from memory
+	for i, tc := range casesZip {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// create testing directory
+			testDir := t.TempDir()
+			var buf bytes.Buffer
+			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			defer input.Close()
+			if _, err := io.Copy(&buf, input); err != nil {
+				t.Errorf(err.Error())
+			}
+			// to readerAt
+			br := bytes.NewReader(buf.Bytes())
+
+			// perform actual tests
+			unzipper := NewZip()
+			want := tc.expectError
+			err := unzipper.Unpack(context.Background(), br, testDir, target.NewOS(), config.NewConfig(tc.opts...))
+			got := err != nil
+			if got != want {
+				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+			}
+
+		})
+	}
+
+}
+
 func generateRandomFile(t *testing.T, testDir string) string {
 	targetFile := filepath.Join(testDir, "randomFile")
 	f := createTestFile(targetFile, "foobar content")
@@ -477,104 +509,6 @@ func createTestZipPathTraversal(t *testing.T, dstDir string) string {
 
 	// return path to zip
 	return targetFile
-}
-
-func TestReaderToReaderAt(t *testing.T) {
-	// Create a buffer with some data
-	data := []byte("Hello, World!")
-	tmpFile, _ := os.CreateTemp("", "testReaderToReaderAt*.raw")
-	_, err := tmpFile.Write(data)
-	_, _ = tmpFile.Seek(0, io.SeekStart)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		_ = tmpFile.Close()
-		_ = os.Remove(tmpFile.Name())
-	}()
-
-	cases := []struct {
-		name      string
-		generator func() io.Reader
-		cfg       *config.Config
-		err       bool
-	}{
-		{
-			name: "default (cache on disk)",
-			generator: func() io.Reader {
-				return bytes.NewReader(data)
-			},
-			cfg: config.NewConfig(),
-			err: false,
-		},
-		{
-			name: "cache in memory",
-			generator: func() io.Reader {
-				return bytes.NewReader(data)
-			},
-			cfg: config.NewConfig(config.WithCacheInMemory(true)),
-			err: false,
-		},
-		{
-			name: "cache on disc",
-			generator: func() io.Reader {
-				return bytes.NewReader(data)
-			},
-			cfg: config.NewConfig(config.WithCacheInMemory(false)),
-			err: false,
-		},
-		{
-			name: "don't cache use file direct",
-			generator: func() io.Reader {
-				return tmpFile
-			},
-			cfg: config.NewConfig(config.WithCacheInMemory(false)),
-			err: false,
-		},
-	}
-
-	// perform tests
-	for i, tc := range cases {
-		r := tc.generator()
-		ra, size, tmpFile, err := readerToReaderAt(r, tc.cfg)
-		defer func() {
-			if tmpFile != nil {
-				tmpFile.Close()
-				os.Remove(tmpFile.Name())
-			}
-		}()
-
-		if err != nil {
-			t.Errorf("[%v] %s: no error expected, but got error (%s)", i, tc.name, err)
-		}
-
-		// check if input is forwarded into temp file
-		if tc.cfg.CacheInMemory() && tmpFile != nil {
-			t.Errorf("[%v] %s: expected memory caching no temp file, but got %s", i, tc.name, tmpFile.Name())
-		}
-
-		// check if input reader is a file, if so, we don't need caching
-		if _, ok := r.(*os.File); ok {
-
-			if tmpFile != nil {
-				t.Errorf("[%v] %s: got tmpFile but input was already a file", i, tc.name)
-			}
-		}
-
-		// check size
-		if size != int64(len(data)) {
-			t.Errorf("[%v] %s: size mismatch", i, tc.name)
-		}
-
-		// read data and check if result is  correct
-		var p = make([]byte, size)
-		_, _ = ra.ReadAt(p, 0)
-		if !bytes.Equal(data, p) {
-			t.Errorf("[%v] %s: read data does not match!", i, tc.name)
-		}
-
-	}
-
 }
 
 // createTestZipNormalFiveFiles creates a test zip file with five files in dstDir for testing
