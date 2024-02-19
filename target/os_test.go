@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -166,11 +165,6 @@ func TestCreateSafeDir(t *testing.T) {
 }
 
 func TestCreateSafeSymlink(t *testing.T) {
-
-	testDir := t.TempDir()
-	if err := syscall.Chdir(testDir); err != nil {
-		t.Errorf(err.Error())
-	}
 
 	type fnInput struct {
 		name   string
