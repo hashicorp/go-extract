@@ -12,15 +12,10 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// extractor is a private interface and defines all functions that needs to be implemented by an extraction engine.
-type extractor interface {
-	// Unpack is the main entrypoint to an extraction engine that takes the contents from src and extracts them to dst.
-	Unpack(ctx context.Context, src io.Reader, dst string, config *config.Config) error
-}
-
 // now is a function point that returns time.Now to the caller.
 var now = time.Now
 
+// unpackTarget is the target that is used for extraction
 var unpackTarget target.Target
 
 // prepare ensures limited read and generic metric capturing
