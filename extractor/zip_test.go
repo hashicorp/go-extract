@@ -16,173 +16,174 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// TestZipUnpack test with various test cases the implementation of zip.Unpack
-func TestZipUnpack(t *testing.T) {
-	cases := []struct {
-		name              string
-		testFileGenerator func(*testing.T, string) string
-		opts              []config.ConfigOption
-		expectError       bool
-	}{
-		{
-			name:              "normal zip",
-			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip, but pattern miss match",
-			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{config.WithPatterns("*foo")},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip, cache in mem",
-			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{config.WithCacheInMemory(true)},
-			expectError:       false,
-		},
-		{
-			name:              "windows zip",
-			testFileGenerator: createTestZipWindows,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip with 5 files",
-			testFileGenerator: createTestZipNormalFiveFiles,
-			opts:              []config.ConfigOption{},
-			expectError:       false},
-		{
-			name:              "normal zip with 5 files",
-			testFileGenerator: createTestZipNormalFiveFiles,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip with 5 files, but extraction limit",
-			testFileGenerator: createTestZipNormalFiveFiles,
-			opts:              []config.ConfigOption{config.WithMaxFiles(1)},
-			expectError:       true,
-		},
-		{
-			name:              "zip with fifo (unix only)",
-			testFileGenerator: createTestZipWithFifo,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "zip with fifo, skip continue on error",
-			testFileGenerator: createTestZipWithFifo,
-			opts:              []config.ConfigOption{config.WithContinueOnError(true)},
-			expectError:       false,
-		},
-		{
-			name:              "zip with fifo, skip unsupported files",
-			testFileGenerator: createTestZipWithFifo,
-			opts:              []config.ConfigOption{config.WithContinueOnUnsupportedFiles(true)},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip, but limited extraction size of 1 byte",
-			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{config.WithMaxExtractionSize(1)},
-			expectError:       true,
-		},
-		{
-			name:              "normal zip, but limited input size of 1 byte",
-			testFileGenerator: createTestZipNormal,
-			opts:              []config.ConfigOption{config.WithMaxInputSize(1)},
-			expectError:       true,
-		},
-		{
-			name:              "zip with dir traversal",
-			testFileGenerator: createTestZipWithDirTraversal,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with path traversal",
-			testFileGenerator: createTestZipPathTraversal,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "normal zip with symlink",
-			testFileGenerator: createTestZipWithSymlink,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip with symlink, but deny symlink extraction",
-			testFileGenerator: createTestZipWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false)},
-			expectError:       true,
-		},
-		{
-			name:              "normal zip with symlink, but deny symlink extraction, but continue without error",
-			testFileGenerator: createTestZipWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
-			expectError:       false,
-		},
-		{
-			name:              "normal zip with symlink, but deny symlink extraction, but skip unsupported files",
-			testFileGenerator: createTestZipWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
-			expectError:       false,
-		},
-		{
-			name:              "test max objects",
-			testFileGenerator: createTestZipNormalFiveFiles,
-			opts:              []config.ConfigOption{config.WithMaxFiles(1)},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with symlink target containing path traversal",
-			testFileGenerator: createTestZipWithSymlinkTargetPathTraversal,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with symlink target referring absolute path",
-			testFileGenerator: createTestZipWithSymlinkAbsolutePath,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with symlink name path traversal",
-			testFileGenerator: createTestZipWithSymlinkPathTraversalName,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with zip slip attack",
-			testFileGenerator: createTestZipWithZipSlip,
-			opts:              []config.ConfigOption{config.WithContinueOnError(false)},
-			expectError:       true,
-		},
-		{
-			name:              "malicious zip with zip slip attack, but continue without error",
-			testFileGenerator: createTestZipWithZipSlip,
-			opts:              []config.ConfigOption{config.WithContinueOnError(true)},
-			expectError:       false,
-		},
-		{
-			name:              "malicious zip with zip slip attack, but follow sub-links",
-			testFileGenerator: createTestZipWithZipSlip,
-			opts:              []config.ConfigOption{config.WithFollowSymlinks(true)},
-			expectError:       false,
-		},
-		{
-			name:              "file thats not zip",
-			testFileGenerator: generateRandomFile,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
-		},
-	}
+var casesZip = []struct {
+	name              string
+	testFileGenerator func(*testing.T, string) string
+	opts              []config.ConfigOption
+	expectError       bool
+}{
+	{
+		name:              "normal zip",
+		testFileGenerator: createTestZipNormal,
+		opts:              []config.ConfigOption{},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip, but pattern miss match",
+		testFileGenerator: createTestZipNormal,
+		opts:              []config.ConfigOption{config.WithPatterns("*foo")},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip, cache in mem",
+		testFileGenerator: createTestZipNormal,
+		opts:              []config.ConfigOption{config.WithCacheInMemory(true)},
+		expectError:       false,
+	},
+	{
+		name:              "windows zip",
+		testFileGenerator: createTestZipWindows,
+		opts:              []config.ConfigOption{},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip with 5 files",
+		testFileGenerator: createTestZipNormalFiveFiles,
+		opts:              []config.ConfigOption{},
+		expectError:       false},
+	{
+		name:              "normal zip with 5 files",
+		testFileGenerator: createTestZipNormalFiveFiles,
+		opts:              []config.ConfigOption{},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip with 5 files, but extraction limit",
+		testFileGenerator: createTestZipNormalFiveFiles,
+		opts:              []config.ConfigOption{config.WithMaxFiles(1)},
+		expectError:       true,
+	},
+	{
+		name:              "zip with fifo (unix only)",
+		testFileGenerator: createTestZipWithFifo,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "zip with fifo, skip continue on error",
+		testFileGenerator: createTestZipWithFifo,
+		opts:              []config.ConfigOption{config.WithContinueOnError(true)},
+		expectError:       false,
+	},
+	{
+		name:              "zip with fifo, skip unsupported files",
+		testFileGenerator: createTestZipWithFifo,
+		opts:              []config.ConfigOption{config.WithContinueOnUnsupportedFiles(true)},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip, but limited extraction size of 1 byte",
+		testFileGenerator: createTestZipNormal,
+		opts:              []config.ConfigOption{config.WithMaxExtractionSize(1)},
+		expectError:       true,
+	},
+	{
+		name:              "normal zip, but limited input size of 1 byte",
+		testFileGenerator: createTestZipNormal,
+		opts:              []config.ConfigOption{config.WithMaxInputSize(1)},
+		expectError:       true,
+	},
+	{
+		name:              "zip with dir traversal",
+		testFileGenerator: createTestZipWithDirTraversal,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with path traversal",
+		testFileGenerator: createTestZipPathTraversal,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "normal zip with symlink",
+		testFileGenerator: createTestZipWithSymlink,
+		opts:              []config.ConfigOption{},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip with symlink, but deny symlink extraction",
+		testFileGenerator: createTestZipWithSymlink,
+		opts:              []config.ConfigOption{config.WithAllowSymlinks(false)},
+		expectError:       true,
+	},
+	{
+		name:              "normal zip with symlink, but deny symlink extraction, but continue without error",
+		testFileGenerator: createTestZipWithSymlink,
+		opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
+		expectError:       false,
+	},
+	{
+		name:              "normal zip with symlink, but deny symlink extraction, but skip unsupported files",
+		testFileGenerator: createTestZipWithSymlink,
+		opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
+		expectError:       false,
+	},
+	{
+		name:              "test max objects",
+		testFileGenerator: createTestZipNormalFiveFiles,
+		opts:              []config.ConfigOption{config.WithMaxFiles(1)},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with symlink target containing path traversal",
+		testFileGenerator: createTestZipWithSymlinkTargetPathTraversal,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with symlink target referring absolute path",
+		testFileGenerator: createTestZipWithSymlinkAbsolutePath,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with symlink name path traversal",
+		testFileGenerator: createTestZipWithSymlinkPathTraversalName,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with zip slip attack",
+		testFileGenerator: createTestZipWithZipSlip,
+		opts:              []config.ConfigOption{config.WithContinueOnError(false)},
+		expectError:       true,
+	},
+	{
+		name:              "malicious zip with zip slip attack, but continue without error",
+		testFileGenerator: createTestZipWithZipSlip,
+		opts:              []config.ConfigOption{config.WithContinueOnError(true)},
+		expectError:       false,
+	},
+	{
+		name:              "malicious zip with zip slip attack, but follow sub-links",
+		testFileGenerator: createTestZipWithZipSlip,
+		opts:              []config.ConfigOption{config.WithFollowSymlinks(true)},
+		expectError:       false,
+	},
+	{
+		name:              "file thats not zip",
+		testFileGenerator: generateRandomFile,
+		opts:              []config.ConfigOption{},
+		expectError:       true,
+	},
+}
+
+// TestZipUnpack_file test with various test cases the implementation of zip.Unpack
+func TestZipUnpack_file(t *testing.T) {
 
 	// run cases with read from disk
-	for i, tc := range cases {
+	for i, tc := range casesZip {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
@@ -210,9 +211,13 @@ func TestZipUnpack(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestZipUnpack_mem test with various test cases the implementation of zip.Unpack
+func TestZipUnpack_mem(t *testing.T) {
 
 	// run cases with read from memory
-	for i, tc := range cases {
+	for i, tc := range casesZip {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
