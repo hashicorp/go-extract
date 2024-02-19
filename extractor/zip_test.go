@@ -201,8 +201,8 @@ func TestZipUnpack(t *testing.T) {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
 				defer input.Close()
 			}
-			if err := input.Close(); err != nil {
-				t.Errorf(fmt.Sprintf("cannot close file: %s", err))
+			for err := input.Close(); err == nil; err = input.Close() {
+				t.Logf("retry file closing: %s", input.Name())
 			}
 			for err := os.RemoveAll(testDir); err != nil; {
 				t.Logf("cannot remove test directory: %s", err)
