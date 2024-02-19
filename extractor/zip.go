@@ -151,8 +151,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 		}
 		if !match {
 			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
-			m.SkippedFiles++
-			m.LastSkippedFile = hdr.Name
+			m.PatternMismatches++
 			continue
 		}
 
@@ -188,8 +187,8 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 
 				// check for continue for unsupported files
 				if c.ContinueOnUnsupportedFiles() {
-					m.SkippedUnsupportedFiles++
-					m.LastSkippedUnsupportedFile = hdr.Name
+					m.UnsupportedFiles++
+					m.LastUnsupportedFile = hdr.Name
 					continue
 				}
 
@@ -269,8 +268,8 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 
 			// check if unsupported files should be skipped
 			if c.ContinueOnUnsupportedFiles() {
-				m.SkippedUnsupportedFiles++
-				m.LastSkippedUnsupportedFile = hdr.Name
+				m.UnsupportedFiles++
+				m.LastUnsupportedFile = hdr.Name
 				continue
 			}
 
