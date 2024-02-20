@@ -14,16 +14,18 @@ import (
 
 // base reference: https://golang.cafe/blog/golang-unzip-file-example.html
 
+// magicBytesZIP contains the magic bytes for a zip archive.
+// reference: https://golang.org/pkg/archive/zip/
 var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
-// IsZip checks if data is a zip archive.
+// IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func IsZip(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesZIP)
 }
 
-// Unpack sets a timeout for the ctx and starts the zip extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
@@ -31,37 +33,45 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 	defer cfg.MetricsHook(ctx, m)
 	captureExtractionDuration(ctx, cfg)
 
-	// check if src is a file, if so - use it directly
-	if inf, ok := src.(*os.File); ok {
-		return unpackZipFile(ctx, inf, dst, cfg, m)
-	}
-
-	return unpackZipReader(ctx, src, dst, cfg, m)
-}
-
-func unpackZipReader(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *config.Metrics) error {
-
 	// check if src is a readerAt and an io.Seeker
 	if seeker, ok := src.(io.Seeker); ok {
 		if ra, ok := src.(io.ReaderAt); ok {
-			size, err := seeker.Seek(0, io.SeekEnd)
-			if err != nil {
-				return handleError(cfg, m, "cannot seek to end of reader", err)
-			}
-			m.InputSize = size
-			if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
-				return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
-			}
-			// create zip reader
-			reader, err := zip.NewReader(ra, size)
-			if err != nil {
-				return handleError(cfg, m, "cannot create zip reader", err)
-			}
-
-			// perform extraction
-			return unpackZip(ctx, reader, dst, cfg, m)
+			return unpackZipReaderAtSeeker(ctx, ra, seeker, dst, cfg, m)
 		}
 	}
+
+	return unpackZipCached(ctx, src, dst, cfg, m)
+}
+
+// unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from ra and extracts the contents to dst.
+// It uses the io.Seeker to determine the size of the input. If the input is larger than the maximum input size, the function
+// returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
+// to dst.
+func unpackZipReaderAtSeeker(ctx context.Context, ra io.ReaderAt, s io.Seeker, dst string, cfg *config.Config, m *config.Metrics) error {
+
+	// get size of input and check if it exceeds maximum input size
+	size, err := s.Seek(0, io.SeekEnd)
+	if err != nil {
+		return handleError(cfg, m, "cannot seek to end of reader", err)
+	}
+	m.InputSize = size
+	if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
+		return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
+	}
+
+	// create zip reader and extract
+	reader, err := zip.NewReader(ra, size)
+	if err != nil {
+		return handleError(cfg, m, "cannot create zip reader", err)
+	}
+	return unpackZip(ctx, reader, dst, cfg, m)
+}
+
+// unpackZipCached checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
+// returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
+// to dst.
+func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *config.Metrics) error {
 
 	// create limit error reader for src
 	ler := config.NewLimitErrorReader(src, cfg.MaxInputSize())
@@ -78,7 +88,8 @@ func unpackZipReader(ctx context.Context, src io.Reader, dst string, cfg *config
 		if _, err := io.Copy(tmpFile, ler); err != nil {
 			return handleError(cfg, m, "cannot copy reader to file", err)
 		}
-		return unpackZipFile(ctx, tmpFile, dst, cfg, m)
+		// provide tmpFile as readerAt and seeker
+		return unpackZipReaderAtSeeker(ctx, tmpFile, tmpFile, dst, cfg, m)
 	}
 
 	// cache src in memory before starting extraction
@@ -87,42 +98,23 @@ func unpackZipReader(ctx context.Context, src io.Reader, dst string, cfg *config
 		return handleError(cfg, m, "cannot read all from reader", err)
 	}
 	m.InputSize = int64(len(data))
-	// create zip reader
+
+	// create zip reader and extract
 	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return handleError(cfg, m, "cannot create zip reader", err)
 	}
-	// perform extraction
 	return unpackZip(ctx, reader, dst, cfg, m)
 }
 
-// unpackZipFile checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-// It also sets the input size in the metrics.
-func unpackZipFile(ctx context.Context, src *os.File, dst string, cfg *config.Config, m *config.Metrics) error {
-	// get file size
-	stat, err := src.Stat()
-	if err != nil {
-		return handleError(cfg, m, "cannot stat file", err)
-	}
-	m.InputSize = stat.Size()
-
-	// check for maximum input size
-	if cfg.MaxInputSize() != -1 && stat.Size() > cfg.MaxInputSize() {
-		return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
-	}
-
-	// open zip file
-	reader, err := zip.OpenReader(src.Name())
-	if err != nil {
-		return handleError(cfg, m, "cannot open zip file", err)
-	}
-	defer reader.Close()
-
-	// perform extraction
-	return unpackZip(ctx, &reader.Reader, dst, cfg, m)
-}
-
-// unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst. It uses the zip.Reader
+// to extract the contents to dst. It checks if the file names match the patterns given in the config. If a file name does not match
+// the patterns, the file is skipped. If a file name matches the patterns, the file is extracted to dst. If the file is a directory,
+// the directory is created in dst. If the file is a symlink, the symlink is created in dst. If the file is a regular file, the file
+// is created in dst. If the file is a unsupported file mode, the file is skipped. If the file is a unsupported file mode and the
+// config allows unsupported files, the file is skipped. If the file is a unsupported file mode and the config does not allow unsupported
+// files, the function returns an error. If the extraction size exceeds the maximum extraction size, the function returns an error.
+// If the extraction size does not exceed the maximum extraction size, the function returns nil.
 func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *config.Metrics) error {
 
 	// check for to many files in archive
@@ -284,7 +276,8 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 	return nil
 }
 
-// readLinkTargetFromZip extracts the symlink destination for symlinkFile
+// readLinkTargetFromZip extracts the symlink destination for symlinkFile from the zip archive.
+// It returns the symlink destination or an error if the symlink destination could not be extracted.
 func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
 	// read content to determine symlink destination
 	rc, err := symlinkFile.Open()
