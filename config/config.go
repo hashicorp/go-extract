@@ -53,8 +53,8 @@ type Config struct {
 	// Important: do not adjust this value after extraction started
 	metricsHook MetricsHook
 
-	// noTarGzExtract offers the option to enable/disable the combined extraction of tar.gz archives
-	noTarGzExtract bool
+	// untarAfterDecompression offers the option to enable/disable combined tar.gz
+	untarAfterDecompression bool
 
 	// Define if files should be overwritten in the destination
 	overwrite bool
@@ -80,7 +80,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize          = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime          = 60            // 1 minute
 		maxInputSize               = 1 << (10 * 3) // 1 Gb
-		noTarGzExtract             = false
+		untarAfterDecompression    = true
 		overwrite                  = false
 		verbose                    = false
 	)
@@ -100,7 +100,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize:          maxExtractionSize,
 		maxInputSize:               maxInputSize,
 		overwrite:                  overwrite,
-		noTarGzExtract:             noTarGzExtract,
+		untarAfterDecompression:    untarAfterDecompression,
 		continueOnUnsupportedFiles: continueOnUnsupportedFiles,
 		verbose:                    verbose,
 	}
@@ -131,10 +131,10 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 	}
 }
 
-// WithNoTarGzExtract options pattern function to enable/disable combined tar.gz extraction
-func WithNoTarGzExtract(disabled bool) ConfigOption {
+// WithUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction
+func WithUntarAfterDecompression(enable bool) ConfigOption {
 	return func(c *Config) {
-		c.noTarGzExtract = disabled
+		c.untarAfterDecompression = enable
 	}
 }
 
@@ -210,9 +210,9 @@ func (c *Config) Overwrite() bool {
 	return c.overwrite
 }
 
-// NoTarGzExtract returns true if tar.gz combined extraction is disabled
-func (c *Config) NoTarGzExtract() bool {
-	return c.noTarGzExtract
+// UntarAfterDecompression returns true if tar.gz should be untarred after decompression
+func (c *Config) UntarAfterDecompression() bool {
+	return c.untarAfterDecompression
 }
 
 // ContinueOnUnsupportedFiles returns true if unsupported files should be skipped
