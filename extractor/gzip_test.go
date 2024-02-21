@@ -12,13 +12,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
-// TestZipUnpack test with various test cases the implementation of zip.Unpack
+// TestGzipUnpack test with various test cases the implementation of zip.Unpack
 func TestGzipUnpack(t *testing.T) {
 
-	type TestFileGenerator func(string) io.Reader
+	type TestFileGenerator func(*testing.T, string) io.Reader
 
 	cases := []struct {
 		name           string
@@ -33,6 +32,12 @@ func TestGzipUnpack(t *testing.T) {
 			outputFileName: "test-gziped-file",
 			opts:           []config.ConfigOption{config.WithOverwrite(true)},
 			expectError:    false,
+		},
+		{
+			name:           "random file with no gzip",
+			inputGenerator: func(t *testing.T, s string) io.Reader { return bytes.NewReader([]byte(RandStringBytes(1 << (10 * 2)))) },
+			outputFileName: "test-gziped-file",
+			expectError:    true,
 		},
 		{
 			name:           "gzip with compressed txt",
@@ -77,19 +82,17 @@ func TestGzipUnpack(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 
 			// create testing directory
-			testDir, err := os.MkdirTemp(os.TempDir(), "test*")
-			if err != nil {
-				t.Errorf(err.Error())
-			}
-			testDir = filepath.Clean(testDir) + string(os.PathSeparator)
-			defer os.RemoveAll(testDir)
-
-			gziper := NewGzip()
+			testDir := t.TempDir()
 
 			// perform actual tests
-			input := tc.inputGenerator(testDir)
+			input := tc.inputGenerator(t, testDir)
+			defer func() {
+				if closer, ok := input.(io.Closer); ok {
+					closer.Close()
+				}
+			}()
 			want := tc.expectError
-			err = gziper.Unpack(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), target.NewOs(), config.NewConfig(tc.opts...))
+			err := UnpackGZip(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -123,14 +126,13 @@ func createGzip(dstFile string, input io.Reader) {
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestGzipWithFile(dstDir string) io.Reader {
+func createTestGzipWithFile(t *testing.T, dstDir string) io.Reader {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
 
 	// create a temporary dir for files in zip archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// prepare test file for be added to zip
 	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
@@ -148,7 +150,7 @@ func createTestGzipWithFile(dstDir string) io.Reader {
 }
 
 // createTestGzipWithText creates a test gzip file in dstDir for testing
-func createTestGzipWithText(dstDir string) io.Reader {
+func createTestGzipWithText(t *testing.T, dstDir string) io.Reader {
 
 	content := "some random content"
 	// Initialize gzip
@@ -174,8 +176,35 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
+func TestIsGZIP(t *testing.T) {
+	tests := []struct {
+		name   string
+		header []byte
+		want   bool
+	}{
+		{
+			name:   "Valid GZIP header",
+			header: []byte{0x1f, 0x8b, 0x08},
+			want:   true,
+		},
+		{
+			name:   "Invalid GZIP header",
+			header: []byte{0x1f, 0x7b, 0x07},
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsGZip(tt.header); got != tt.want {
+				t.Errorf("IsGZIP() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // createTestGzipWithMoreContent creates a test gzip file in dstDir for testing
-func createTestGzipWithMoreContent(dstDir string) io.Reader {
+func createTestGzipWithMoreContent(t *testing.T, dstDir string) io.Reader {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithMoreContent.gz")
@@ -196,17 +225,16 @@ func createTestGzipWithMoreContent(dstDir string) io.Reader {
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestTarGzipWithFile(dstDir string) io.Reader {
+func createTestTarGzipWithFile(t *testing.T, dstDir string) io.Reader {
 
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithTarGz.tar.gz")
 
 	// create a temporary dir for files in zip archive
-	tmpDir := target.CreateTmpDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// get test tar
-	tarFile := createTestTarNormal(tmpDir)
+	tarFile := createTestTarNormal(t, tmpDir)
 
 	tarReader, err := os.Open(tarFile)
 	if err != nil {

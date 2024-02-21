@@ -1,11 +1,9 @@
 package target
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,16 +11,14 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// Os is the struct type that holds all information for interacting with the filesystem
-type Os struct {
+// OS is the struct type that holds all information for interacting with the filesystem
+type OS struct {
 }
 
-// NewOs creates a new Os and applies provided options from opts
-func NewOs() *Os {
-
+// NewOS creates a new Os and applies provided options from opts
+func NewOS() *OS {
 	// create object
-	os := &Os{}
-
+	os := &OS{}
 	return os
 }
 
@@ -37,7 +33,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	}
 
 	// check each dir in path
-	targetPathElements := strings.Split(targetDirectory, "/")
+	targetPathElements := strings.Split(targetDirectory, string(os.PathSeparator))
 	for i := 0; i < len(targetPathElements); i++ {
 
 		// assemble path
@@ -104,14 +100,14 @@ func isSymlink(path string) bool {
 }
 
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
-func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
 	// check if dst exist
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
 			if config.CreateDestination() {
 				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
-					return err
+					return fmt.Errorf("failed to create destination directory %s", err)
 				}
 				config.Logger().Info("created destination directory", "path", dstBase)
 			} else {
@@ -132,13 +128,13 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	}
 
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return err
+		return fmt.Errorf("path traversal detected (%s)", err)
 	}
 
 	// create dirs
 	finalDirectoryPath := filepath.Join(dstBase, newDir)
 	if err := os.MkdirAll(finalDirectoryPath, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create directory (%s)", err)
 	}
 
 	return nil
@@ -146,7 +142,7 @@ func (o *Os) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 // CreateSafeFile creates newFileName in dstBase with content from reader and file
 // headers as provided in mode
-func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
+func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
 
 	// check if a name is provided
 	if len(newFileName) == 0 {
@@ -155,69 +151,54 @@ func (o *Os) CreateSafeFile(config *config.Config, dstBase string, newFileName s
 
 	// Check if newFileName starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		config.Logger().Debug("remove absolute path prefix", "prefix", start)
+		cfg.Logger().Debug("remove absolute path prefix", "prefix", start)
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
 	// create target dir && check for path traversal // zip-slip
-	if err := o.CreateSafeDir(config, dstBase, filepath.Dir(newFileName)); err != nil {
-		return err
+	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName)); err != nil {
+		return fmt.Errorf("cannot create directory for file (%s)", err)
 	}
 
 	// Check for file existence//overwrite
 	targetFile := filepath.Join(dstBase, newFileName)
 	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
-		if !config.Overwrite() {
+		if !cfg.Overwrite() {
 			return fmt.Errorf("file already exists (%s)", newFileName)
 		}
-	}
-
-	// finally copy the data
-	var sumRead int64
-	p := make([]byte, 1024)
-	var bytesBuffer bytes.Buffer
-
-	for {
-		n, err := reader.Read(p)
-		if err != nil && err != io.EOF {
-			return err
-		}
-
-		// nothing left to read, finished
-		if n == 0 {
-			break
-		}
-
-		// filesize check
-		if err := config.CheckExtractionSize(sumRead + int64(n)); err != nil {
-			return err
-		}
-
-		// store in buffer
-		bytesBuffer.Write(p[:n])
-		sumRead = sumRead + int64(n)
 	}
 
 	// create dst file
 	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create file (%s)", err)
 	}
 	defer func() {
 		dstFile.Close()
 	}()
 
-	// write data
-	_, err = io.Copy(dstFile, &bytesBuffer)
-	if err != nil {
-		return err
+	// check if a max extraction size is set
+	if cfg.MaxExtractionSize() >= 0 {
+
+		// encapsulate reader with limit reader
+		ler := config.NewLimitErrorReader(reader, cfg.MaxExtractionSize())
+		if _, err = io.Copy(dstFile, ler); err != nil {
+			return fmt.Errorf("failed to write file (%s)", err)
+		}
+
+	} else {
+
+		// write data straight to file
+		if _, err = io.Copy(dstFile, reader); err != nil {
+			return fmt.Errorf("failed to write file (%s)", err)
+		}
 	}
 
 	return nil
 }
 
 // CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
-func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
+func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
 	// check if symlink extraction is denied
 	if !config.AllowSymlinks() {
@@ -249,7 +230,7 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 	// create target dir && check for traversal in file name
 	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory); err != nil {
-		return err
+		return fmt.Errorf("cannot create directory for symlink (%s)", newLinkDirectory)
 	}
 
 	// check link target for traversal
@@ -269,25 +250,16 @@ func (o *Os) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 		// delete existing link
 		config.Logger().Warn("overwrite symlink", "name", newLinkName)
 		if err := os.Remove(targetFile); err != nil {
-			return err
+			return fmt.Errorf("failed to remove existing symlink (%s)", err)
 		}
 	}
 
 	// create link
 	if err := os.Symlink(linkTarget, targetFile); err != nil {
-		return err
+		return fmt.Errorf("failed to create symlink (%s)", err)
 	}
 
 	return nil
-}
-
-// CreateTmpDir creates a temporary directory and returns its path
-func CreateTmpDir() string {
-	tmpDir, err := os.MkdirTemp(os.TempDir(), "test*")
-	if err != nil {
-		log.Printf("%s", err)
-	}
-	return tmpDir
 }
 
 func GetStartOfAbsolutePath(path string) string {

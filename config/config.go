@@ -15,6 +15,10 @@ type Config struct {
 	// allowSymlinks offers the option to enable/disable the extraction of symlinks
 	allowSymlinks bool
 
+	// cacheInMemory offers the option to enable/disable caching in memory. This applies only
+	// to the extraction of zip archives, which are provided as a stream.
+	cacheInMemory bool
+
 	// continueOnError decides if the extraction should be continued even if an error occurred
 	continueOnError bool
 
@@ -55,6 +59,9 @@ type Config struct {
 	// Define if files should be overwritten in the destination
 	overwrite bool
 
+	// patterns is a list of file patterns to match files to extract
+	patterns []string
+
 	// verbose log extraction to stderr
 	verbose bool
 }
@@ -64,6 +71,7 @@ type Config struct {
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
 		allowSymlinks              = true
+		cacheInMemory              = false
 		continueOnError            = false
 		continueOnUnsupportedFiles = false
 		createDestination          = false
@@ -83,6 +91,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 	// setup default values
 	config := &Config{
 		allowSymlinks:              allowSymlinks,
+		cacheInMemory:              cacheInMemory,
 		continueOnError:            continueOnError,
 		createDestination:          createDestination,
 		followSymlinks:             followSymlinks,
@@ -129,6 +138,14 @@ func WithNoTarGzExtract(disabled bool) ConfigOption {
 	}
 }
 
+// WithCacheInMemory options pattern function to enable/disable caching in memory.
+// This applies only to the extraction of zip archives, which are provided as a stream.
+func WithCacheInMemory(cache bool) ConfigOption {
+	return func(c *Config) {
+		c.cacheInMemory = cache
+	}
+}
+
 // WithContinueOnUnsupportedFiles options pattern function to enable/disable skipping unsupported files
 func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 	return func(c *Config) {
@@ -144,6 +161,19 @@ func (c *Config) AllowSymlinks() bool {
 // ContinueOnError returns true if the extraction should continue on error
 func (c *Config) ContinueOnError() bool {
 	return c.continueOnError
+}
+
+// WithPatterns options pattern function to set filepath pattern
+func WithPatterns(pattern ...string) ConfigOption {
+	return func(c *Config) {
+		c.patterns = append(c.patterns, pattern...)
+	}
+}
+
+// Patterns returns a list of unix-filepath patterns to match files to extract
+// Patterns are matched using [filepath.Match](https://golang.org/pkg/path/filepath/#Match).
+func (c *Config) Patterns() []string {
+	return c.patterns
 }
 
 // CreateDestination returns true if the destination directory should be created if it does not exist
@@ -204,6 +234,12 @@ func (c *Config) MetricsHook(ctx context.Context, metrics *Metrics) {
 	}
 }
 
+// CacheInMemory returns true if caching in memory is enabled
+func (c *Config) CacheInMemory() bool {
+	return c.cacheInMemory
+}
+
+// AddMetricsProcessor adds a metrics processor to the config
 func (c *Config) AddMetricsProcessor(hook MetricsHook) {
 	c.metricsProcessor = append(c.metricsProcessor, hook)
 }

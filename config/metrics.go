@@ -35,11 +35,14 @@ type Metrics struct {
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
 
-	// SkippedUnsupportedFiles is the number of skipped unsupported files
-	SkippedUnsupportedFiles int64
+	// PatternMismatches is the number of skipped files
+	PatternMismatches int64
 
-	// LastSkippedUnsupportedFile is the last skipped unsupported file
-	LastSkippedUnsupportedFile string
+	// UnsupportedFiles is the number of skipped unsupported files
+	UnsupportedFiles int64
+
+	// LastUnsupportedFile is the last skipped unsupported file
+	LastUnsupportedFile string
 }
 
 // String returns a string representation of the metrics

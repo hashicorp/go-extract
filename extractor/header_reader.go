@@ -1,6 +1,9 @@
 package extractor
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 // HeaderReader is an implementation of io.Reader that allows the first bytes of
 // the reader to be read twice. This is useful for identifying the archive type
@@ -15,7 +18,7 @@ func NewHeaderReader(r io.Reader, headerSize int) (*HeaderReader, error) {
 	buf := make([]byte, headerSize)
 	n, err := io.ReadFull(r, buf)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, err
+		return nil, fmt.Errorf("cannot read header: %s", err)
 	}
 	return &HeaderReader{r, buf[:n]}, nil
 }

@@ -20,7 +20,6 @@ import (
     ...
     "github.com/hashicorp/go-extract"
     "github.com/hashicorp/go-extract/config"
-    "github.com/hashicorp/go-extract/target"
     ...
 )
 
@@ -46,22 +45,24 @@ import (
 
     // prepare config (these are the default values)
     config := config.NewConfig(
-        config.WithAllowSymlinks(true),                      // allow symlink creation
-        config.WithContinueOnError(false),                   // fail on error
-        config.WithContinueOnUnsupportedFiles(false),        // don't on unsupported files
-        config.WithCreateDestination(false),                 // do not try to create specified destination
-        config.WithFollowSymlinks(false),                    // do not follow symlinks during creation
-        config.WithLogger(logger),                           // adjust logger (default: io.Discard)
-        config.WithMaxExtractionSize(1 << (10 * 3)),         // limit to 1 Gb (disable check: -1)
-        config.WithMaxFiles(1000),                           // only 1k files maximum (disable check: -1)
-        config.WithMaxInputSize(1 << (10 * 3)),              // limit to 1 Gb (disable check: -1)
-        config.WithMetricsHook(metricsToLog),                // adjust hook to receive metrics from extraction
-        config.WithNoTarGzExtract(true),                     // extract tar.gz combined
-        config.WithOverwrite(false),                         // don't replace existing files
+        config.WithAllowSymlinks(true),               // allow symlink creation
+        config.WithCacheInMemory(false),              // cache to disk if input is a zip in a stream
+        config.WithContinueOnError(false),            // fail on error
+        config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
+        config.WithCreateDestination(false),          // do not try to create specified destination
+        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
+        config.WithLogger(logger),                    // adjust logger (default: io.Discard)
+        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
+        config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
+        config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
+        config.WithMetricsHook(metricsToLog),         // adjust hook to receive metrics from extraction
+        config.WithNoTarGzExtract(true),              // extract tar.gz combined
+        config.WithOverwrite(false),                  // don't replace existing files
+        config.WithPatterns("*.tf","modules/*.tf"),   // no patterns predefined
     )
 
     // extract archive
-    if err := extract.Unpack(ctx, archive, destinationPath, target.NewOs(), config); err != nil {
+    if err := extract.Unpack(ctx, archive, destinationPath, config); err != nil {
       // handle error
     }
 
@@ -69,14 +70,23 @@ import (
 
 ```
 
-## Cli Tool
+> [!TIP]
+> If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that [`GOMEMLIMIT`](https://pkg.go.dev/runtime) is set in the execution environment to avoid `OOM` error.
+>
+> Example:
+>
+> ```shell
+> $ export GOMEMLIMIT=1GiB
+> ```
 
-The library can also be used directly on the cli `extract`.
+## CLI Tool
+
+You can use this library on the command line with the `goextract` command.
 
 ### Installation
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/extract@latest
+GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/goextract@latest
 ```
 
 ### Manual Build and Installation
@@ -92,8 +102,8 @@ make install
 ### Usage
 
 ```cli
-$ extract -h
-Usage: extract <archive> [<destination>]
+$ goextract -h
+Usage: goextract <archive> [<destination>]
 
 A secure extraction utility
 
@@ -115,6 +125,7 @@ Flags:
   -M, --metrics                           Print metrics to log after extraction.
   -N, --no-tar-gz                         Disable combined extraction of tar.gz.
   -O, --overwrite                         Overwrite if exist.
+  -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```
@@ -149,8 +160,9 @@ Flags:
 - [x] check for windows
 - [x] Allow/deny symlinks in general
 - [x] Metrics call back function
-- [ ] Extraction filter with file names
-- [ ] Cache input on disk
+- [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
+- [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
+- [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
 - [ ] Handle passwords
 - [ ] recursive extraction
 - [ ] virtual fs as target

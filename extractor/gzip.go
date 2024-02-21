@@ -9,45 +9,30 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/target"
 )
 
 // reference https://socketloop.com/tutorials/golang-gunzip-file
 
-var magicBytesGZIP = [][]byte{
+var magicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
 
-// Gzip is a struct type that holds all information to perform an gzip decompression
-type Gzip struct{}
-
-// NewGzip returns a new Gzip object with config as configuration.
-func NewGzip() *Gzip {
-	// instantiate
-	gzip := Gzip{}
-
-	// return the modified house instance
-	return &gzip
-}
-
-type HeaderCheck (func([]byte) bool)
-
-func IsGZIP(header []byte) bool {
-	return matchesMagicBytes(header, 0, magicBytesGZIP)
+func IsGZip(header []byte) bool {
+	return matchesMagicBytes(header, 0, magicBytesGZip)
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func (g *Gzip) Unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare limits input and ensures metrics capturing
 	reader := prepare(ctx, src, c)
 
-	return g.unpack(ctx, reader, dst, t, c)
+	return unpackGZip(ctx, reader, dst, c)
 }
 
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
 // the tar archive is extracted
-func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.Target, c *config.Config) error {
+func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// object to store metrics
 	// remark: do not setup MetricsHook here, bc/ in case of tar+gzip, the
@@ -59,23 +44,21 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	uncompressedStream, err := gzip.NewReader(src)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)
-		msg := "cannot read gzip"
-		return handleError(c, &metrics, msg, err)
+		return handleError(c, &metrics, "cannot read gzip", err)
 	}
+	defer uncompressedStream.Close()
 
 	// convert to peek header
 	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)
-		msg := "cannot read header uncompressed gzip"
-		return handleError(c, &metrics, msg, err)
+		return handleError(c, &metrics, "cannot read header uncompressed gzip", err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
 		defer c.MetricsHook(ctx, &metrics)
-		msg := "context error"
-		return handleError(c, &metrics, msg, err)
+		return handleError(c, &metrics, "context error", err)
 	}
 
 	// check if uncompressed stream is tar
@@ -89,7 +72,7 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 		})
 
 		// continue with tar extraction
-		return NewTar().Unpack(ctx, headerReader, dst, t, c)
+		return UnpackTar(ctx, headerReader, dst, c)
 	}
 
 	// ensure metrics are emitted
@@ -106,9 +89,8 @@ func (gz *Gzip) unpack(ctx context.Context, src io.Reader, dst string, t target.
 	}
 
 	// Create file
-	if err := t.CreateSafeFile(c, dst, name, headerReader, 0644); err != nil {
-		msg := "cannot create file"
-		return handleError(c, &metrics, msg, err)
+	if err := unpackTarget.CreateSafeFile(c, dst, name, headerReader, 0644); err != nil {
+		return handleError(c, &metrics, "cannot create file", err)
 	}
 
 	// get size of extracted file
