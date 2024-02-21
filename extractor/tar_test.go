@@ -104,19 +104,19 @@ func TestTarUnpack(t *testing.T) {
 		{
 			name:              "unpack normal tar with symlink, but symlinks are denied",
 			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false)},
+			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true)},
 			expectError:       true,
 		},
 		{
 			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on error",
 			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
+			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnError(true)},
 			expectError:       false,
 		},
 		{
 			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on unsupported files",
 			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
+			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnUnsupportedFiles(true)},
 			expectError:       false,
 		},
 

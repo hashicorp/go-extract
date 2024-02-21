@@ -211,21 +211,21 @@ func TestNoTarGzExtract(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "noTarGzExtract is true",
-			cfg:  &Config{untarAfterDecompression: true},
+			name: "noUntarAfterDecompression is true",
+			cfg:  &Config{noUntarAfterDecompression: true},
 			want: true,
 		},
 		{
-			name: "noTarGzExtract is false",
-			cfg:  &Config{untarAfterDecompression: false},
+			name: "noUntarAfterDecompression is false",
+			cfg:  &Config{noUntarAfterDecompression: false},
 			want: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.cfg.UntarAfterDecompression(); got != tt.want {
-				t.Errorf("UntarAfterDecompression() = %v, want %v", got, tt.want)
+			if got := tt.cfg.NoUntarAfterDecompression(); got != tt.want {
+				t.Errorf("noUntarAfterDecompression() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -314,11 +314,11 @@ func TestWithNoTarGzExtract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &Config{}
-			option := WithUntarAfterDecompression(tt.disabled)
+			option := WithNoUntarAfterDecompression(tt.disabled)
 			option(config)
 
-			if config.untarAfterDecompression != tt.want {
-				t.Errorf("WithUntarAfterDecompression() set untarAfterDecompression to %v, want %v", config.untarAfterDecompression, tt.want)
+			if config.noUntarAfterDecompression != tt.want {
+				t.Errorf("WithUntarAfterDecompression() set noUntarAfterDecompression to %v, want %v", config.noUntarAfterDecompression, tt.want)
 			}
 		})
 	}
@@ -455,18 +455,18 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	}{
 		{
 			name:   "Allow symlinks",
-			config: NewConfig(WithAllowSymlinks(false)), // disable symlinks
+			config: NewConfig(WithDenySymlinkExtraction(false)), // disable symlinks
 			expect: false,
 		},
 		{
 			name:   "Deny symlinks",
-			config: NewConfig(WithAllowSymlinks(true)), // allow symlinks
+			config: NewConfig(WithDenySymlinkExtraction(true)), // allow symlinks
 			expect: true,
 		},
 		{
-			name:   "Default is enabled",
+			name:   "Default is disabled",
 			config: NewConfig(), // check default value
-			expect: true,
+			expect: false,
 		},
 	}
 
@@ -474,7 +474,7 @@ func TestCheckWithDenySymlinks(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expect
-			got := tc.config.AllowSymlinks()
+			got := tc.config.DenySymlinkExtraction()
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}

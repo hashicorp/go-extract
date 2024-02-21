@@ -45,20 +45,20 @@ import (
 
     // prepare config (these are the default values)
     config := config.NewConfig(
-        config.WithAllowSymlinks(true),               // allow symlink creation
         config.WithCacheInMemory(false),              // cache to disk if input is a zip in a stream
         config.WithContinueOnError(false),            // fail on error
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
+        config.WithDenySymlinkExtraction(false),      // allow symlink creation
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
         config.WithLogger(logger),                    // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsToLog),         // adjust hook to receive metrics from extraction
-        config.WithUntarAfterDecompression(true),     // extract tar.gz combined
+        config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
         config.WithOverwrite(false),                  // don't replace existing files
-        config.WithPatterns("*.tf","modules/*.tf"),   // no patterns predefined
+        config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
     )
 
     // extract archive

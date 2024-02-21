@@ -113,19 +113,19 @@ var casesZip = []struct {
 	{
 		name:              "normal zip with symlink, but deny symlink extraction",
 		testFileGenerator: createTestZipWithSymlink,
-		opts:              []config.ConfigOption{config.WithAllowSymlinks(false)},
+		opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true)},
 		expectError:       true,
 	},
 	{
 		name:              "normal zip with symlink, but deny symlink extraction, but continue without error",
 		testFileGenerator: createTestZipWithSymlink,
-		opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnError(true)},
+		opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnError(true)},
 		expectError:       false,
 	},
 	{
 		name:              "normal zip with symlink, but deny symlink extraction, but skip unsupported files",
 		testFileGenerator: createTestZipWithSymlink,
-		opts:              []config.ConfigOption{config.WithAllowSymlinks(false), config.WithContinueOnUnsupportedFiles(true)},
+		opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnUnsupportedFiles(true)},
 		expectError:       false,
 	},
 	{

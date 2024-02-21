@@ -149,7 +149,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 		case tar.TypeSymlink:
 
 			// check if symlinks are allowed
-			if !c.AllowSymlinks() {
+			if c.DenySymlinkExtraction() {
 
 				// check for continue for unsupported files
 				if c.ContinueOnUnsupportedFiles() {

@@ -12,9 +12,6 @@ type ConfigOption func(*Config)
 
 // Config is a struct type that holds all config options
 type Config struct {
-	// allowSymlinks offers the option to enable/disable the extraction of symlinks
-	allowSymlinks bool
-
 	// cacheInMemory offers the option to enable/disable caching in memory. This applies only
 	// to the extraction of zip archives, which are provided as a stream.
 	cacheInMemory bool
@@ -27,6 +24,9 @@ type Config struct {
 
 	// create destination directory if it does not exist
 	createDestination bool
+
+	// denySymlinkExtraction offers the option to enable/disable the extraction of symlinks
+	denySymlinkExtraction bool
 
 	// followSymlinks follow symlinks to directories during extraction
 	followSymlinks bool
@@ -53,8 +53,8 @@ type Config struct {
 	// Important: do not adjust this value after extraction started
 	metricsHook MetricsHook
 
-	// untarAfterDecompression offers the option to enable/disable combined tar.gz
-	untarAfterDecompression bool
+	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
+	noUntarAfterDecompression bool
 
 	// Define if files should be overwritten in the destination
 	overwrite bool
@@ -70,17 +70,17 @@ type Config struct {
 // default configuration in an option pattern style
 func NewConfig(opts ...ConfigOption) *Config {
 	const (
-		allowSymlinks              = true
 		cacheInMemory              = false
 		continueOnError            = false
 		continueOnUnsupportedFiles = false
 		createDestination          = false
+		denySymlinkExtraction      = false
 		followSymlinks             = false
 		maxFiles                   = 1000          // 1k files
 		maxExtractionSize          = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime          = 60            // 1 minute
 		maxInputSize               = 1 << (10 * 3) // 1 Gb
-		untarAfterDecompression    = true
+		noUntarAfterDecompression  = false
 		overwrite                  = false
 		verbose                    = false
 	)
@@ -90,17 +90,17 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default values
 	config := &Config{
-		allowSymlinks:              allowSymlinks,
 		cacheInMemory:              cacheInMemory,
 		continueOnError:            continueOnError,
 		createDestination:          createDestination,
+		denySymlinkExtraction:      denySymlinkExtraction,
 		followSymlinks:             followSymlinks,
 		logger:                     logger,
 		maxFiles:                   maxFiles,
 		maxExtractionSize:          maxExtractionSize,
 		maxInputSize:               maxInputSize,
 		overwrite:                  overwrite,
-		untarAfterDecompression:    untarAfterDecompression,
+		noUntarAfterDecompression:  noUntarAfterDecompression,
 		continueOnUnsupportedFiles: continueOnUnsupportedFiles,
 		verbose:                    verbose,
 	}
@@ -131,10 +131,10 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 	}
 }
 
-// WithUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction
-func WithUntarAfterDecompression(enable bool) ConfigOption {
+// WithNoUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction
+func WithNoUntarAfterDecompression(disable bool) ConfigOption {
 	return func(c *Config) {
-		c.untarAfterDecompression = enable
+		c.noUntarAfterDecompression = disable
 	}
 }
 
@@ -153,9 +153,9 @@ func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 	}
 }
 
-// AllowSymlinks returns true if symlinks are allowed
-func (c *Config) AllowSymlinks() bool {
-	return c.allowSymlinks
+// DenySymlinkExtraction returns true if symlinks are NOT allowed
+func (c *Config) DenySymlinkExtraction() bool {
+	return c.denySymlinkExtraction
 }
 
 // ContinueOnError returns true if the extraction should continue on error
@@ -210,9 +210,9 @@ func (c *Config) Overwrite() bool {
 	return c.overwrite
 }
 
-// UntarAfterDecompression returns true if tar.gz should be untarred after decompression
-func (c *Config) UntarAfterDecompression() bool {
-	return c.untarAfterDecompression
+// NoUntarAfterDecompression returns true if tar.gz should NOT be untarred after decompression
+func (c *Config) NoUntarAfterDecompression() bool {
+	return c.noUntarAfterDecompression
 }
 
 // ContinueOnUnsupportedFiles returns true if unsupported files should be skipped
@@ -267,10 +267,10 @@ func WithOverwrite(enable bool) ConfigOption {
 	}
 }
 
-// WithAllowSymlinks options pattern function to deny symlink extraction
-func WithAllowSymlinks(allow bool) ConfigOption {
+// WithDenySymlinkExtraction options pattern function to deny symlink extraction
+func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	return func(c *Config) {
-		c.allowSymlinks = allow
+		c.denySymlinkExtraction = deny
 	}
 }
 

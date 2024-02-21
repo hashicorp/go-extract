@@ -69,19 +69,19 @@ func Run(version, commit, date string) {
 
 	// process cli params
 	config := config.NewConfig(
-		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
+		config.WithDenySymlinkExtraction(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
+		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		config.WithOverwrite(cli.Overwrite),
 		config.WithPatterns(cli.Pattern...),
-		config.WithUntarAfterDecompression(!cli.NoUntarAfterDecompression),
 	)
 
 	// open archive
