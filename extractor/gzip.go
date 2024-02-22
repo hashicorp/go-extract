@@ -65,7 +65,8 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	headerBytes := headerReader.PeekHeader()
 
 	// check for tar header
-	if !c.NoTarGzExtract() && IsTar(headerBytes) {
+	checkUntar := !c.NoUntarAfterDecompression()
+	if checkUntar && IsTar(headerBytes) {
 		// combine types
 		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 			m.ExtractedType = "tar+gzip"

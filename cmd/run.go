@@ -30,7 +30,7 @@ type CLI struct {
 	MaxExtractionTime          int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
 	MaxInputSize               int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	Metrics                    bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
-	NoTarGz                    bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
+	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
@@ -69,19 +69,19 @@ func Run(version, commit, date string) {
 
 	// process cli params
 	config := config.NewConfig(
-		config.WithAllowSymlinks(!cli.DenySymlinks),
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
+		config.WithDenySymlinkExtraction(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithMaxInputSize(cli.MaxInputSize),
 		config.WithMetricsHook(metricsToLog),
+		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		config.WithOverwrite(cli.Overwrite),
 		config.WithPatterns(cli.Pattern...),
-		config.WithNoTarGzExtract(cli.NoTarGz),
 	)
 
 	// open archive

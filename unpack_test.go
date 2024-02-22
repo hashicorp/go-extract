@@ -434,7 +434,6 @@ func TestMetriksHook(t *testing.T) {
 		WithMaxExtractionSize int64
 		WithMaxFiles          int64
 		WithOverwrite         bool
-		WithNoTarGzExtract    bool
 		expectedMetrics       config.Metrics
 		expectError           bool
 	}{
@@ -657,7 +656,6 @@ func TestMetriksHook(t *testing.T) {
 				config.WithMaxExtractionSize(tc.WithMaxExtractionSize),
 				config.WithMaxFiles(tc.WithMaxFiles),
 				config.WithOverwrite(tc.WithOverwrite),
-				config.WithNoTarGzExtract(tc.WithNoTarGzExtract),
 				config.WithMetricsHook(hook),
 			)
 

@@ -186,7 +186,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 		{
 			name:        "legit link name",
 			input:       fnInput{name: "foo", target: "bar"},
-			cfg:         config.NewConfig(config.WithAllowSymlinks(false)),
+			cfg:         config.NewConfig(config.WithDenySymlinkExtraction(true)),
 			expectError: false,
 		},
 		{

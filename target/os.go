@@ -201,7 +201,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
 	// check if symlink extraction is denied
-	if !config.AllowSymlinks() {
+	if config.DenySymlinkExtraction() {
 		config.Logger().Info("skipped symlink extraction", newLinkName, linkTarget)
 		return nil
 	}

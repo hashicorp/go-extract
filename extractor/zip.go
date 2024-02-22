@@ -184,7 +184,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 		case os.ModeSymlink: // handle symlink
 
 			// check if symlinks are allowed
-			if !c.AllowSymlinks() {
+			if c.DenySymlinkExtraction() {
 
 				// check for continue for unsupported files
 				if c.ContinueOnUnsupportedFiles() {
