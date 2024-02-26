@@ -31,10 +31,7 @@ func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 	// capture extraction duration
 	captureExtractionDuration(ctx, c)
 
-	// limit input
-	ler := limitReader(ctx, src, c)
-
-	return unpackTar(ctx, ler, dst, c)
+	return unpackTar(ctx, src, dst, c)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
@@ -48,11 +45,12 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// start extraction
 	c.Logger().Info("extracting tar")
-	var objectCounter int64
-	var extractionSize uint64
-	tr := tar.NewReader(src)
+	limitedReader := limitReader(ctx, src, c)
+	tr := tar.NewReader(limitedReader)
 
 	// walk through tar
+	var objectCounter int64
+	var extractionSize uint64
 	for {
 		// check if context is canceled
 		if ctx.Err() != nil {

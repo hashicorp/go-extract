@@ -15,11 +15,11 @@ build:
 	@mv ./cmd/goextract/goextract goextract
 
 install: build
-	@mv extract $(GOPATH)/bin/goextract
+	@mv goextract $(GOPATH)/bin/goextract
 
 clean:
 	@go clean
-	@rm extract
+	@rm goextract
 
 test:
 	go test ./...
