@@ -104,6 +104,9 @@ func TestUnpackBrotli(t *testing.T) {
 			if err != nil {
 				t.Errorf("Error generating compressed file: %v", err)
 			}
+			if closer, ok := reader.(io.Closer); ok {
+				defer closer.Close()
+			}
 
 			// Unpack the compressed file
 			err = UnpackBrotli(context.Background(), reader, tmpDir, tt.cfg)
