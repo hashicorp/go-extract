@@ -34,10 +34,8 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 	captureExtractionDuration(ctx, cfg)
 
 	// check if src is a readerAt and an io.Seeker
-	if _, ok := src.(io.Seeker); ok {
-		if _, ok := src.(io.ReaderAt); ok {
-			return unpackZipReaderAtSeeker(ctx, src, dst, cfg, m)
-		}
+	if sra, ok := src.(SeekerReaderAt); ok {
+		return unpackZipReaderAtSeeker(ctx, sra, dst, cfg, m)
 	}
 
 	return unpackZipCached(ctx, src, dst, cfg, m)
@@ -45,21 +43,14 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 
 // unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *config.Metrics) error {
+func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, cfg *config.Config, m *config.Metrics) error {
 
 	// log extraction
 	cfg.Logger().Info("extracting zip")
 
 	// check if src is a seeker and readerAt
-	var s io.Seeker
-	var ra io.ReaderAt
-	var ok bool
-	if s, ok = src.(io.Seeker); !ok {
-		return handleError(cfg, m, "cannot convert src to seeker", fmt.Errorf("reader is not a seeker"))
-	}
-	if ra, ok = src.(io.ReaderAt); !ok {
-		return handleError(cfg, m, "cannot convert src to readerAt", fmt.Errorf("reader is not a readerAt"))
-	}
+	s, _ := src.(io.Seeker)
+	ra, _ := src.(io.ReaderAt)
 
 	// get size of input and check if it exceeds maximum input size
 	size, err := s.Seek(0, io.SeekEnd)

@@ -5,7 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
@@ -18,21 +21,49 @@ var now = time.Now
 // unpackTarget is the target that is used for extraction
 var unpackTarget target.Target
 
-// prepare ensures limited read and generic metric capturing
+// SeekerReaderAt is a struct that combines the io.ReaderAt and io.Seeker interfaces
+type SeekerReaderAt interface {
+	io.ReaderAt
+	io.Seeker
+}
+
+// determineOutputName determines the output name and directory for the extracted content
+func determineOutputName(dst string, src io.Reader, suffix string) (string, string) {
+
+	// check if dst is specified and not a directory
+	if dst != "." && dst != "" {
+		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
+			return filepath.Dir(dst), filepath.Base(dst)
+		}
+	}
+
+	// get get only letter from file extension
+	ext := strings.ReplaceAll(suffix, ".", "")
+
+	// check if src is a file and the filename is ending with the suffix
+	// remove the suffix from the filename and use it as output name
+	if f, ok := src.(*os.File); ok {
+		name := filepath.Base(f.Name())
+		newName := strings.TrimSuffix(name, suffix)
+		if name != newName && newName != "" {
+			return dst, newName
+		}
+
+		// if the filename is not ending with the suffix, use the suffix as output name
+		return dst, fmt.Sprintf("%s.decompressed-%s", newName, ext)
+	}
+	return dst, fmt.Sprintf("decompressed-%s", ext)
+}
+
+// limitReader ensures that the input size is limited and the input size is captured
 // remark: this preparation is located in the extractor package so that the
 // different extractor engines can be used independently and keep their
 // functionality.
-func prepare(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
-
-	// ensure input size is limited and input size is captured
+func limitReader(ctx context.Context, src io.Reader, c *config.Config) io.Reader {
 	ler := config.NewLimitErrorReader(src, c.MaxInputSize())
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.InputSize = int64(ler.ReadBytes())
 	})
-
-	// capture extraction duration
-	captureExtractionDuration(ctx, c)
-
 	return ler
 }
 
@@ -93,6 +124,11 @@ var AvailableExtractors = []struct {
 		Unpacker:    UnpackGZip,
 		HeaderCheck: IsGZip,
 		MagicBytes:  magicBytesGZip,
+	},
+	{
+		Unpacker:    unpackBrotli,
+		HeaderCheck: IsBrotli,
+		MagicBytes:  magicBytesBrotli,
 	},
 }
 

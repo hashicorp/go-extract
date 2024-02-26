@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -24,10 +23,10 @@ func IsGZip(header []byte) bool {
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
-	// prepare limits input and ensures metrics capturing
-	reader := prepare(ctx, src, c)
+	// capture extraction duration
+	captureExtractionDuration(ctx, c)
 
-	return unpackGZip(ctx, reader, dst, c)
+	return unpackGZip(ctx, src, dst, c)
 }
 
 // Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
@@ -41,15 +40,16 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
-	uncompressedStream, err := gzip.NewReader(src)
+	limitedReader := limitReader(ctx, src, c)
+	gunzipedStream, err := gzip.NewReader(limitedReader)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)
 		return handleError(c, &metrics, "cannot read gzip", err)
 	}
-	defer uncompressedStream.Close()
+	defer gunzipedStream.Close()
 
 	// convert to peek header
-	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
+	headerReader, err := NewHeaderReader(gunzipedStream, MaxHeaderLength)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)
 		return handleError(c, &metrics, "cannot read header uncompressed gzip", err)
@@ -80,22 +80,15 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	defer c.MetricsHook(ctx, &metrics)
 
 	// determine name for decompressed content
-	// TODO: use headerReader to determine name
-	name := "gunziped-content"
-	if dst != "." {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
-			name = filepath.Base(dst)
-			dst = filepath.Dir(dst)
-		}
-	}
+	dst, outputName := determineOutputName(dst, src, ".gz")
 
 	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, name, headerReader, 0644); err != nil {
+	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0644); err != nil {
 		return handleError(c, &metrics, "cannot create file", err)
 	}
 
 	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, name)); err == nil {
+	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
 		metrics.ExtractionSize = stat.Size()
 	}
 
