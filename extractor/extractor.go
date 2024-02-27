@@ -130,6 +130,11 @@ var AvailableExtractors = []struct {
 		HeaderCheck: IsBrotli,
 		MagicBytes:  magicBytesBrotli,
 	},
+	{
+		Unpacker:    UnpackBzip2,
+		HeaderCheck: IsBzip2,
+		MagicBytes:  magicBytesBzip2,
+	},
 }
 
 var MaxHeaderLength int
