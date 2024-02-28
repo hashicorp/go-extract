@@ -3,7 +3,6 @@ package extractor
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -52,7 +51,7 @@ func TestUnpackBrotli(t *testing.T) {
 		archiveName  string
 		expectedName string
 		cfg          *config.Config
-		generator    func(ctx context.Context, target string, data []byte) (io.Reader, error)
+		generator    func(ctx context.Context, target string, data []byte) io.Reader
 		testData     []byte
 		wantErr      bool
 	}{
@@ -61,8 +60,8 @@ func TestUnpackBrotli(t *testing.T) {
 			archiveName:  "test.br",
 			expectedName: "test",
 			cfg:          config.NewConfig(),
-			generator:    createBrotliCompressedFile,
-			testData:     []byte("Hello, World!"),
+			generator:    createFile,
+			testData:     compressBrotli([]byte("Hello, World!")),
 			wantErr:      false,
 		},
 		{
@@ -70,15 +69,15 @@ func TestUnpackBrotli(t *testing.T) {
 			archiveName:  "test",
 			expectedName: "test.decompressed-br",
 			cfg:          config.NewConfig(),
-			generator:    createBrotliCompressedFile,
-			testData:     []byte("Hello, World!"),
+			generator:    createFile,
+			testData:     compressBrotli([]byte("Hello, World!")),
 			wantErr:      false,
 		},
 		{
 			name:         "Test unpack brotli read from buffer",
 			expectedName: "decompressed-br",
 			cfg:          config.NewConfig(),
-			generator:    createBrotliCompressedBuffer,
+			generator:    createByteReader,
 			testData:     []byte("Hello, World!"),
 			wantErr:      false,
 		},
@@ -87,7 +86,7 @@ func TestUnpackBrotli(t *testing.T) {
 			archiveName:  "random",
 			expectedName: "decompressed-br",
 			cfg:          config.NewConfig(),
-			generator:    writeBytesToFile,
+			generator:    createFile,
 			testData:     []byte("Strings and bytes and bytes and strings"),
 			wantErr:      true,
 		},
@@ -100,16 +99,13 @@ func TestUnpackBrotli(t *testing.T) {
 			tmpFile := filepath.Join(tmpDir, tt.archiveName)
 
 			// Generate the compressed file
-			reader, err := tt.generator(context.Background(), tmpFile, tt.testData)
-			if err != nil {
-				t.Errorf("Error generating compressed file: %v", err)
-			}
+			reader := tt.generator(context.Background(), tmpFile, tt.testData)
 			if closer, ok := reader.(io.Closer); ok {
 				defer closer.Close()
 			}
 
 			// Unpack the compressed file
-			err = UnpackBrotli(context.Background(), reader, tmpDir, tt.cfg)
+			err := UnpackBrotli(context.Background(), reader, tmpDir, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("unpackBrotli() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -139,36 +135,8 @@ func TestUnpackBrotli(t *testing.T) {
 
 }
 
-// Create a Brotli compressed file
-func createBrotliCompressedFile(ctx context.Context, target string, data []byte) (io.Reader, error) {
-
-	// Write the compressed data to the target file
-	err := os.WriteFile(target, toBrotli(data), 0644)
-	if err != nil {
-		return nil, fmt.Errorf("Error writing compressed data to file: %v", err)
-	}
-
-	return os.Open(target)
-}
-
-// Create a Brotli compressed buffer
-// ignore target and return a bytes.Reader
-func createBrotliCompressedBuffer(ctx context.Context, target string, data []byte) (io.Reader, error) {
-	return bytes.NewReader(toBrotli(data)), nil
-}
-
-// Write a byte slice to a file
-func writeBytesToFile(ctx context.Context, target string, data []byte) (io.Reader, error) {
-	// Write data to file
-	err := os.WriteFile(target, data, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("Error writing data to file: %v", err)
-	}
-	return os.Open(target)
-}
-
 // Compress a byte slice with Brotli
-func toBrotli(data []byte) []byte {
+func compressBrotli(data []byte) []byte {
 	// Create a new Brotli writer
 	brotliBuf := new(bytes.Buffer)
 	brotliWriter := brotli.NewWriter(brotliBuf)

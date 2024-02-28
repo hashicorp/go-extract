@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -112,23 +111,6 @@ func TestUnpackBzip2(t *testing.T) {
 		})
 	}
 
-}
-
-// createFile creates a file with the given data and returns a reader for it.
-func createFile(ctx context.Context, target string, data []byte) io.Reader {
-
-	// Write the compressed data to the file
-	if err := os.WriteFile(target, data, 0644); err != nil {
-		panic(fmt.Errorf("error writing compressed data to file: %w", err))
-	}
-
-	// Open the file
-	newFile, err := os.Open(target)
-	if err != nil {
-		panic(fmt.Errorf("error opening file: %w", err))
-	}
-
-	return newFile
 }
 
 // compressBzip2 compresses data with bzip2 algorithm.
