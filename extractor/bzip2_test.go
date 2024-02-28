@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -47,6 +48,9 @@ func TestIsBzip2(t *testing.T) {
 
 // TestUnpackBzip2 tests the UnpackBzip2 function.
 func TestUnpackBzip2(t *testing.T) {
+
+	testData := []byte("Hello, World!")
+
 	tests := []struct {
 		name         string
 		testFileName string
@@ -61,32 +65,26 @@ func TestUnpackBzip2(t *testing.T) {
 			testFileName: "test.bz2",
 			expectedName: "test",
 			cfg:          config.NewConfig(),
-			generator: func(ctx context.Context, target string, data []byte) io.Reader {
-				return createFile(ctx, target, compressBzip2(data))
-			},
-			testData: []byte("test data"),
-			wantErr:  false,
+			generator:    createFile,
+			testData:     compressBzip2(testData),
+			wantErr:      false,
 		},
 		{
 			name:         "Test unpack bzip2 with no file extension",
 			testFileName: "test",
 			expectedName: "test.decompressed-bz2",
 			cfg:          config.NewConfig(),
-			generator: func(ctx context.Context, target string, data []byte) io.Reader {
-				return createFile(ctx, target, compressBzip2(data))
-			},
-			testData: []byte("test data"),
-			wantErr:  false,
+			generator:    createFile,
+			testData:     compressBzip2(testData),
+			wantErr:      false,
 		},
 		{
 			name:         "Test unpack bzip2 read from buffer",
 			expectedName: "decompressed-bz2",
 			cfg:          config.NewConfig(),
-			generator: func(ctx context.Context, target string, data []byte) io.Reader {
-				return bytes.NewReader(compressBzip2(data))
-			},
-			testData: []byte("test data"),
-			wantErr:  false,
+			generator:    createByteReader,
+			testData:     compressBzip2(testData),
+			wantErr:      false,
 		},
 	}
 
@@ -108,6 +106,16 @@ func TestUnpackBzip2(t *testing.T) {
 				t.Errorf("UnpackBzip2() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
+			// Check extracted file content
+			data, err := os.ReadFile(filepath.Join(tmpDir, tt.expectedName))
+			if err != nil {
+				t.Errorf("Error reading extracted file: %v", err)
+			}
+			if string(data) != string(testData) {
+				t.Errorf("Unpacked data is different from original data\n%v\n%v", string(data), string(tt.testData))
+			}
+
 		})
 	}
 
