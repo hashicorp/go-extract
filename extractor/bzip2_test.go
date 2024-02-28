@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// TestIsBzip2 tests the IsBzip2 function.
 func TestIsBzip2(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -45,6 +46,7 @@ func TestIsBzip2(t *testing.T) {
 	}
 }
 
+// TestUnpackBzip2 tests the UnpackBzip2 function.
 func TestUnpackBzip2(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -112,7 +114,7 @@ func TestUnpackBzip2(t *testing.T) {
 
 }
 
-// createBzip2CompressedFile creates a Bzip2 compressed file
+// createFile creates a file with the given data and returns a reader for it.
 func createFile(ctx context.Context, target string, data []byte) io.Reader {
 
 	// Write the compressed data to the file

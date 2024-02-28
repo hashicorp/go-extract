@@ -21,7 +21,7 @@ func IsBrotli(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBrotli)
 }
 
-// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the brotli decompression from src to dst.
 func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration

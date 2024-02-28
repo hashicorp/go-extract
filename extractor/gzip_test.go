@@ -176,7 +176,8 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-func TestIsGZIP(t *testing.T) {
+// TestIsGzip test with various test cases the implementation of IsGzip
+func TestIsGZip(t *testing.T) {
 	tests := []struct {
 		name   string
 		header []byte

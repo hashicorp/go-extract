@@ -29,7 +29,7 @@ func IsBzip2(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBzip2)
 }
 
-// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the bzip2 decompression from src to dst.
 func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
