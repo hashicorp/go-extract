@@ -13,8 +13,8 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-// TestIsZstandard tests the IsZstandard function.
-func TestIsZstandard(t *testing.T) {
+// TestIsZstd tests the IsZstd function.
+func TestIsZstd(t *testing.T) {
 
 	// test cases
 	tests := []struct {
@@ -27,13 +27,14 @@ func TestIsZstandard(t *testing.T) {
 
 	// run tests
 	for _, tt := range tests {
-		if got := IsZstandard(tt.header); got != tt.want {
+		if got := IsZstd(tt.header); got != tt.want {
 			t.Errorf("IsZstandard(%v) = %v, want %v", tt.header, got, tt.want)
 		}
 	}
 }
 
-func TestUnpackZstandard(t *testing.T) {
+// TestUnpackZstd tests the UnpackZstd function.
+func TestUnpackZstd(t *testing.T) {
 	tests := []struct {
 		name          string
 		archiveName   string
@@ -50,7 +51,7 @@ func TestUnpackZstandard(t *testing.T) {
 			expectedName: "test",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
-			testData:     compressZstandard([]byte("test data")),
+			testData:     compressZstd([]byte("test data")),
 			wantErr:      false,
 		},
 		{
@@ -59,7 +60,7 @@ func TestUnpackZstandard(t *testing.T) {
 			expectedName:  "test",
 			cfg:           config.NewConfig(),
 			generator:     createFile,
-			testData:      compressZstandard([]byte("test data")),
+			testData:      compressZstd([]byte("test data")),
 			cancelContext: true,
 			wantErr:       true,
 		},
@@ -98,7 +99,7 @@ func TestUnpackZstandard(t *testing.T) {
 			}
 
 			// unpack
-			if err := UnpackZstandard(ctx, src, tmpDir, tt.cfg); (err != nil) != tt.wantErr {
+			if err := UnpackZstd(ctx, src, tmpDir, tt.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("UnpackZstandard() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -122,21 +123,21 @@ func createFile(ctx context.Context, target string, data []byte) io.Reader {
 	}
 }
 
-// compressZstandard compresses the data using the zst algorithm
-func compressZstandard(data []byte) []byte {
+// compressZstd compresses the data using the zstandard algorithm
+func compressZstd(data []byte) []byte {
 
 	// Create a new zst writer
 	var buf bytes.Buffer
 
 	enc, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedDefault))
 	if err != nil {
-		panic(fmt.Errorf("error creating zst writer: %w", err))
+		panic(fmt.Errorf("error creating zstd writer: %w", err))
 	}
 
 	_, err = enc.Write(data)
 	enc.Close()
 	if err != nil {
-		panic(fmt.Errorf("error writing data to zst writer: %w", err))
+		panic(fmt.Errorf("error writing data to zstd writer: %w", err))
 	}
 
 	return buf.Bytes()
