@@ -10,12 +10,13 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// magicBytesGZip are the magic bytes for gzip compressed files
 // reference https://socketloop.com/tutorials/golang-gunzip-file
-
 var magicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
 
+// IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesGZip)
 }

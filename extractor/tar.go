@@ -11,16 +11,16 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// offsetTar is the offset where the magic bytes are located in the file
 const offsetTar = 257
 
+// magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
 }
 
-// Tar holds information that are needed for tar extraction.
-type Tar struct{}
-
+// IsTar checks if the header matches the magic bytes for tar files
 func IsTar(data []byte) bool {
 	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }

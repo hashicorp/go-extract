@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// magicBytesBzip2 are the magic bytes for bzip2 compressed files
 // reference: https://en.wikipedia.org/wiki/Bzip2 // https://github.com/dsnet/compress/blob/master/doc/bzip2-format.pdf
-
 var magicBytesBzip2 = [][]byte{
 	[]byte("BZh1"),
 	[]byte("BZh2"),
@@ -24,8 +24,7 @@ var magicBytesBzip2 = [][]byte{
 	[]byte("BZh9"),
 }
 
-var fileExtensionBzip2 = ".bz2"
-
+// IsBzip2 checks if the header matches the magic bytes for bzip2 compressed files
 func IsBzip2(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBzip2)
 }
@@ -58,7 +57,7 @@ func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fileExtensionBzip2)
+	dst, outputName := determineOutputName(dst, src, ".bz2")
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, bzip2Stream, 0644); err != nil {
