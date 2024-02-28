@@ -52,7 +52,7 @@ func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 	dst, outputName := determineOutputName(dst, src, ".br")
 
 	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, brotliStream, 0644); err != nil {
+	if err := unpackTarget.CreateSafeFile(c, dst, outputName, brotliStream, 0640); err != nil {
 		return handleError(c, &metrics, "cannot create file", err)
 	}
 

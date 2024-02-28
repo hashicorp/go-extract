@@ -84,7 +84,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	dst, outputName := determineOutputName(dst, src, ".gz")
 
 	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0644); err != nil {
+	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0640); err != nil {
 		return handleError(c, &metrics, "cannot create file", err)
 	}
 
