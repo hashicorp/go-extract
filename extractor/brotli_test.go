@@ -53,7 +53,7 @@ func TestUnpackBrotli(t *testing.T) {
 		archiveName  string
 		expectedName string
 		cfg          *config.Config
-		generator    func(ctx context.Context, target string, data []byte) io.Reader
+		generator    func(target string, data []byte) io.Reader
 		testData     []byte
 		wantErr      bool
 	}{
@@ -101,7 +101,7 @@ func TestUnpackBrotli(t *testing.T) {
 			tmpFile := filepath.Join(tmpDir, tt.archiveName)
 
 			// Generate the compressed file
-			reader := tt.generator(context.Background(), tmpFile, tt.testData)
+			reader := tt.generator(tmpFile, tt.testData)
 			if closer, ok := reader.(io.Closer); ok {
 				defer closer.Close()
 			}

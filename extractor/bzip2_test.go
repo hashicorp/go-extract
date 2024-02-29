@@ -56,7 +56,7 @@ func TestUnpackBzip2(t *testing.T) {
 		testFileName string
 		expectedName string
 		cfg          *config.Config
-		generator    func(ctx context.Context, target string, data []byte) io.Reader
+		generator    func(target string, data []byte) io.Reader
 		testData     []byte
 		wantErr      bool
 	}{
@@ -95,7 +95,7 @@ func TestUnpackBzip2(t *testing.T) {
 			target := filepath.Join(tmpDir, tt.testFileName)
 
 			// generate the file
-			src := tt.generator(context.Background(), target, tt.testData)
+			src := tt.generator(target, tt.testData)
 			if closer, ok := src.(io.Closer); ok {
 				defer closer.Close()
 			}

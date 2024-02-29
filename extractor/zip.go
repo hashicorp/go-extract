@@ -27,7 +27,7 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
-	captureExtractionDuration(ctx, cfg)
+	captureExtractionDuration(cfg)
 	m := &config.Metrics{ExtractedType: "zip"}
 	defer cfg.MetricsHook(ctx, m)
 

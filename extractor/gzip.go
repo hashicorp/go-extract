@@ -25,7 +25,7 @@ func IsGZip(header []byte) bool {
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	return unpackGZip(ctx, src, dst, c)
 }
@@ -41,7 +41,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	gunzipedStream, err := gzip.NewReader(limitedReader)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)

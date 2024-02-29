@@ -25,7 +25,7 @@ func IsBrotli(header []byte) bool {
 func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	// unpack
 	return unpackBrotli(ctx, src, dst, c)
@@ -40,7 +40,7 @@ func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting brotli")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	brotliStream := brotli.NewReader(limitedReader)
 
 	// check if context is canceled

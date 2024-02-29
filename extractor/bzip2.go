@@ -33,7 +33,7 @@ func IsBzip2(header []byte) bool {
 func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	// unpack
 	return unpackBzip2(ctx, src, dst, c)
@@ -48,7 +48,7 @@ func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 
 	// prepare bzip2 extraction
 	c.Logger().Info("extracting bzip2")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	bzip2Stream := bzip2.NewReader(limitedReader)
 
 	// check if context is canceled

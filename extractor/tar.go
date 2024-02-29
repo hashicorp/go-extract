@@ -29,7 +29,7 @@ func IsTar(data []byte) bool {
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	return unpackTar(ctx, src, dst, c)
 }
@@ -45,7 +45,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// start extraction
 	c.Logger().Info("extracting tar")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	tr := tar.NewReader(limitedReader)
 
 	// walk through tar
