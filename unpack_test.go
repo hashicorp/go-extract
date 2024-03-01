@@ -199,7 +199,7 @@ func createTestNonArchive(t *testing.T, dstDir string) string {
 // createTestFile is a helper function to generate test files
 func createTestFile(path string, content string) {
 	byteArray := []byte(content)
-	err := os.WriteFile(path, byteArray, 0644)
+	err := os.WriteFile(path, byteArray, 0640)
 	if err != nil {
 		panic(err)
 	}
