@@ -58,7 +58,6 @@ func TestUnpackBzip2(t *testing.T) {
 		cfg          *config.Config
 		generator    func(target string, data []byte) io.Reader
 		testData     []byte
-		wantErr      bool
 	}{
 		{
 			name:         "Test unpack bzip2",
@@ -67,7 +66,6 @@ func TestUnpackBzip2(t *testing.T) {
 			cfg:          config.NewConfig(),
 			generator:    createFile,
 			testData:     compressBzip2(testData),
-			wantErr:      false,
 		},
 		{
 			name:         "Test unpack bzip2 with no file extension",
@@ -76,7 +74,6 @@ func TestUnpackBzip2(t *testing.T) {
 			cfg:          config.NewConfig(),
 			generator:    createFile,
 			testData:     compressBzip2(testData),
-			wantErr:      false,
 		},
 		{
 			name:         "Test unpack bzip2 read from buffer",
@@ -84,7 +81,6 @@ func TestUnpackBzip2(t *testing.T) {
 			cfg:          config.NewConfig(),
 			generator:    createByteReader,
 			testData:     compressBzip2(testData),
-			wantErr:      false,
 		},
 	}
 
@@ -102,8 +98,8 @@ func TestUnpackBzip2(t *testing.T) {
 
 			// Unpack the file
 			err := UnpackBzip2(context.Background(), src, tmpDir, tt.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnpackBzip2() error = %v, wantErr %v", err, tt.wantErr)
+			if err != nil {
+				t.Errorf("UnpackBzip2() error = %v", err)
 				return
 			}
 
