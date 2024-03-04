@@ -2,7 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure extraction of zip/tar/tar.gz/gz/br archive type.
+Secure extraction of zip, tar, gzip, brotli and bzip2 archive/compression type.
 
 ## Code Example
 
@@ -137,11 +137,16 @@ Flags:
   - [x] tar
   - [x] gzip
   - [x] tar.gz
-  - [x] .br
-  - [ ] bzip2
-  - [ ] 7zip
+  - [x] brotli
+  - [x] bzip2
+  - [ ] flate
+  - [ ] xz
+  - [ ] snappy
   - [ ] rar
-  - [ ] deb
+  - [ ] 7zip
+  - [ ] zstandard
+  - [ ] zlib
+  - [ ] lz4
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion

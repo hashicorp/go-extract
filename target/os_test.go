@@ -353,7 +353,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
@@ -363,7 +363,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(config.WithMaxExtractionSize(-1)), // Extraction without limit of dst size
 			expectError: false,
@@ -373,7 +373,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: true,
@@ -383,7 +383,7 @@ func TestCreateSafeFile(t *testing.T) {
 			input: fnInput{
 				name:   "/foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
@@ -489,7 +489,7 @@ func TestOverwriteFile(t *testing.T) {
 			input: fnInput{
 				name:   "foo",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(), // default settings are fine
 			expectError: true,
@@ -500,7 +500,7 @@ func TestOverwriteFile(t *testing.T) {
 			input: fnInput{
 				name:   "aaa/bbb",
 				reader: bytes.NewReader([]byte("data")),
-				mode:   0644,
+				mode:   0640,
 			},
 			config:      config.NewConfig(config.WithOverwrite(true)), // allow overwrite
 			expectError: false,
