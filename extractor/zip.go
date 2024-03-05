@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// base reference: https://golang.cafe/blog/golang-unzip-file-example.html
-
 // magicBytesZIP contains the magic bytes for a zip archive.
 // reference: https://golang.org/pkg/archive/zip/
 var magicBytesZIP = [][]byte{
@@ -29,9 +27,9 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
+	captureExtractionDuration(cfg)
 	m := &config.Metrics{ExtractedType: "zip"}
 	defer cfg.MetricsHook(ctx, m)
-	captureExtractionDuration(ctx, cfg)
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {

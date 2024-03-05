@@ -1,7 +1,7 @@
 package extractor
 
 import (
-	"context"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -135,10 +135,10 @@ func TestCheckPatterns(t *testing.T) {
 }
 
 // createFile creates a file with the given data and returns a reader for it.
-func createFile(ctx context.Context, target string, data []byte) io.Reader {
+func createFile(target string, data []byte) io.Reader {
 
 	// Write the compressed data to the file
-	if err := os.WriteFile(target, data, 0644); err != nil {
+	if err := os.WriteFile(target, data, 0640); err != nil {
 		panic(fmt.Errorf("error writing compressed data to file: %w", err))
 	}
 
@@ -149,4 +149,9 @@ func createFile(ctx context.Context, target string, data []byte) io.Reader {
 	}
 
 	return newFile
+}
+
+// createByteReader creates a reader for the given data
+func createByteReader(target string, data []byte) io.Reader {
+	return bytes.NewReader(data)
 }
