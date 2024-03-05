@@ -37,7 +37,7 @@ func TestUnpackXz(t *testing.T) {
 		archiveName   string
 		expectedName  string
 		cfg           *config.Config
-		generator     func(ctx context.Context, target string, data []byte) io.Reader
+		generator     func(target string, data []byte) io.Reader
 		testData      []byte
 		cancelContext bool
 		wantErr       bool
@@ -90,7 +90,7 @@ func TestUnpackXz(t *testing.T) {
 			archivePath := filepath.Join(tmpDir, tt.archiveName)
 
 			// create a temporary file
-			reader := tt.generator(ctx, archivePath, tt.testData)
+			reader := tt.generator(archivePath, tt.testData)
 			if closer, ok := reader.(io.Closer); ok {
 				defer closer.Close()
 			}

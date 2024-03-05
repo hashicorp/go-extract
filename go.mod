@@ -7,3 +7,5 @@ require (
 	github.com/andybalholm/brotli v1.1.0
 	github.com/dsnet/compress v0.0.1
 )
+
+require github.com/ulikunitz/xz v0.5.11

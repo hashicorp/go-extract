@@ -29,7 +29,7 @@ func IsXz(header []byte) bool {
 func UnpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	// unpack
 	return unpackXz(ctx, src, dst, c)
@@ -44,7 +44,7 @@ func unpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) 
 
 	// prepare xz extraction
 	c.Logger().Info("extracting xz")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	xzStream, err := xz.NewReader(limitedReader)
 	if err != nil {
 		return handleError(c, &metrics, "cannot create xz reader", err)
