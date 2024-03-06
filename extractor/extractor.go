@@ -104,36 +104,42 @@ type HeaderCheck func([]byte) bool
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = []struct {
-	Unpacker    UnpackFkt
-	HeaderCheck HeaderCheck
-	MagicBytes  [][]byte
-	Offset      int
+	Unpacker      UnpackFkt
+	HeaderCheck   HeaderCheck
+	MagicBytes    [][]byte
+	Offset        int
+	FileExtension string
 }{
 	{
-		Unpacker:    UnpackTar,
-		HeaderCheck: IsTar,
-		MagicBytes:  magicBytesTar,
-		Offset:      offsetTar,
+		Unpacker:      UnpackTar,
+		HeaderCheck:   IsTar,
+		MagicBytes:    magicBytesTar,
+		Offset:        offsetTar,
+		FileExtension: fileExtensionTar,
 	},
 	{
-		Unpacker:    UnpackZip,
-		HeaderCheck: IsZip,
-		MagicBytes:  magicBytesZIP,
+		Unpacker:      UnpackZip,
+		HeaderCheck:   IsZip,
+		MagicBytes:    magicBytesZIP,
+		FileExtension: fileExtensionZIP,
 	},
 	{
-		Unpacker:    UnpackGZip,
-		HeaderCheck: IsGZip,
-		MagicBytes:  magicBytesGZip,
+		Unpacker:      UnpackGZip,
+		HeaderCheck:   IsGZip,
+		MagicBytes:    magicBytesGZip,
+		FileExtension: fileExtensionGZip,
 	},
 	{
-		Unpacker:    unpackBrotli,
-		HeaderCheck: IsBrotli,
-		MagicBytes:  magicBytesBrotli,
+		Unpacker:      unpackBrotli,
+		HeaderCheck:   IsBrotli,
+		MagicBytes:    magicBytesBrotli,
+		FileExtension: fileExtensionBrotli,
 	},
 	{
-		Unpacker:    UnpackBzip2,
-		HeaderCheck: IsBzip2,
-		MagicBytes:  magicBytesBzip2,
+		Unpacker:      UnpackBzip2,
+		HeaderCheck:   IsBzip2,
+		MagicBytes:    magicBytesBzip2,
+		FileExtension: fileExtensionBzip2,
 	},
 }
 

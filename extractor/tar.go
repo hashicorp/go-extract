@@ -13,6 +13,9 @@ import (
 // offsetTar is the offset where the magic bytes are located in the file
 const offsetTar = 257
 
+// fileExtensionTar is the file extension for tar files
+var fileExtensionTar = "tar"
+
 // magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
@@ -37,7 +40,7 @@ func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// object to store m
-	m := &config.Metrics{ExtractedType: "tar"}
+	m := &config.Metrics{ExtractedType: fileExtensionTar}
 
 	// anonymous function to emit metrics
 	defer c.MetricsHook(ctx, m)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
@@ -72,4 +73,16 @@ func findExtractor(data []byte) extractor.UnpackFkt {
 
 	// no matching reader found
 	return nil
+}
+
+// IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
+func IsKnownArchiveFileExtension(filename string) bool {
+	lowerFilename := strings.ToLower(filename)
+	for _, ex := range extractor.AvailableExtractors {
+		lowerExtension := strings.ToLower(fmt.Sprintf(".%s", ex.FileExtension))
+		if strings.HasSuffix(lowerFilename, lowerExtension) {
+			return true
+		}
+	}
+	return false
 }
