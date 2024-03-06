@@ -57,7 +57,6 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: '[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
-                  ```shell
-                  $(cat report.txt)
-                  ```'
+
+                  $(cat report.txt)'
           })
