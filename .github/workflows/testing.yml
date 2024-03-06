@@ -31,7 +31,7 @@ jobs:
         make test
 
     - name: Generate coverage report
-      id: test
+      id: gen_report
       run: |
         make test_coverage >> $GITHUB_OUTPUT
         make test_coverage_html
