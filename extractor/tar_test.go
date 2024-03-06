@@ -3,10 +3,8 @@ package extractor
 import (
 	"archive/tar"
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"testing"
 
@@ -14,157 +12,203 @@ import (
 )
 
 // TestTarUnpack implements test cases
-func TestTarUnpack(t *testing.T) {
+func TestTarUnpackNew(t *testing.T) {
 
 	// generate cancled context
 	canceledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
 
 	cases := []struct {
-		name              string
-		testFileGenerator func(*testing.T, string) string
-		opts              []config.ConfigOption
-		expectError       bool
-		ctx               context.Context
+		name        string
+		content     []tarContent
+		opts        []config.ConfigOption
+		expectError bool
+		ctx         context.Context
 	}{
 		{
-			name:              "unpack normal tar",
-			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
+			name:        "unpack normal tar",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			expectError: false,
 		},
 		{
-			name:              "unpack normal tar, but pattern mismatch",
-			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{config.WithPatterns("*foo")},
-			expectError:       false,
+			name:        "unpack normal tar, but pattern mismatch",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			opts:        []config.ConfigOption{config.WithPatterns("*foo")},
+			expectError: false,
 		},
 		{
-			name:              "unpack normal tar, but context timeout",
-			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{},
-			ctx:               canceledCtx,
-			expectError:       true,
+			name:        "unpack normal tar, but context canceled",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			ctx:         canceledCtx,
+			expectError: true,
 		},
 		{
-			name:              "unpack normal tar with 5 files",
-			testFileGenerator: createTestTarFiveFiles,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
+			name: "unpack normal tar with 5 files",
+			content: []tarContent{
+				{Content: []byte("foobar content"), Name: "test1", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test2", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test3", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test4", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test5", Mode: 0640, Filetype: tar.TypeReg},
+			},
+			expectError: false,
 		},
 		{
-			name:              "unpack normal tar with 5 files, but file limit",
-			testFileGenerator: createTestTarFiveFiles,
-			opts:              []config.ConfigOption{config.WithMaxFiles(4)},
-			expectError:       true,
-		},
-		// TODO: use context for timeout
-		// {
-		// 	name:           "unpack normal tar, but extraction time exceeded",
-		// 	inputGenerator: createTestTarNormal,
-		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-		// 	expectError:    true,
-		// },
-		{
-			name:              "unpack normal tar, but extraction size exceeded",
-			testFileGenerator: createTestTarNormal,
-			opts:              []config.ConfigOption{config.WithMaxExtractionSize(1)},
-			expectError:       true,
+			name: "unpack normal tar with 5 files, but file limit",
+			content: []tarContent{
+				{Content: []byte("foobar content"), Name: "test1", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test2", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test3", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test4", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "test5", Mode: 0640, Filetype: tar.TypeReg},
+			},
+			opts:        []config.ConfigOption{config.WithMaxFiles(4)},
+			expectError: true,
 		},
 		{
-			name:              "unpack malicious tar, with traversal",
-			testFileGenerator: createTestTarWithPathTraversalInFile,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
+			name:        "unpack normal tar, but extraction size exceeded",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			opts:        []config.ConfigOption{config.WithMaxExtractionSize(1)},
+			expectError: true,
 		},
 		{
-			name:              "unpack normal tar with symlink",
-			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
+			name:        "unpack malicious tar, with traversal",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "../test", Mode: 0640, Filetype: tar.TypeReg}},
+			expectError: true,
 		},
 		{
-			name:              "unpack tar with traversal in directory",
-			testFileGenerator: createTestTarWithTraversalInDirectory,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
+			name:        "unpack normal tar with symlink",
+			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			expectError: false,
 		},
 		{
-			name:              "unpack tar with traversal in directory",
-			testFileGenerator: createTestTarWithTraversalInDirectory,
-			opts:              []config.ConfigOption{config.WithContinueOnError(true)},
-			expectError:       false,
+			name:        "unpack tar with traversal in directory",
+			content:     []tarContent{{Name: "../test", Filetype: tar.TypeDir}},
+			expectError: true,
 		},
 		{
-			name:              "unpack normal tar with traversal symlink",
-			testFileGenerator: createTestTarWithPathTraversalSymlink,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
+			name:        "unpack tar with traversal in directory",
+			content:     []tarContent{{Name: "../test", Filetype: tar.TypeDir}},
+			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError: false,
 		},
 		{
-			name:              "unpack normal tar with symlink, but symlinks are denied",
-			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true)},
-			expectError:       true,
+			name:        "unpack normal tar with traversal symlink",
+			content:     []tarContent{{Name: "foo", Linktarget: "../bar", Filetype: tar.TypeLink}},
+			expectError: true,
 		},
 		{
-			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on error",
-			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnError(true)},
-			expectError:       false,
+			name:        "unpack normal tar with symlink, but symlinks are denied",
+			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			opts:        []config.ConfigOption{config.WithDenySymlinkExtraction(true)},
+			expectError: true,
 		},
 		{
-			name:              "unpack normal tar with symlink, but symlinks are denied, but continue on unsupported files",
-			testFileGenerator: createTestTarWithSymlink,
-			opts:              []config.ConfigOption{config.WithDenySymlinkExtraction(true), config.WithContinueOnUnsupportedFiles(true)},
-			expectError:       false,
-		},
-
-		{
-			name:              "unpack normal tar with absolute path in symlink",
-			testFileGenerator: createTestTarWithAbsolutePathSymlink,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
+			name:    "unpack normal tar with symlink, but symlinks are denied, but continue on error",
+			content: []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			opts: []config.ConfigOption{
+				config.WithDenySymlinkExtraction(true),
+				config.WithContinueOnError(true),
+			},
+			expectError: false,
 		},
 		{
-			name:              "malicious tar with symlink name path traversal",
-			testFileGenerator: createTestTarWithTraversalInSymlinkName,
-			opts:              []config.ConfigOption{},
-			expectError:       true,
+			name:    "unpack normal tar with symlink, but symlinks are denied, but continue on unsupported files",
+			content: []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			opts: []config.ConfigOption{
+				config.WithDenySymlinkExtraction(true),
+				config.WithContinueOnUnsupportedFiles(true),
+			},
+			expectError: false,
 		},
 		{
-			name:              "malicious tar.gz with empty name for compressed file",
-			testFileGenerator: createTestTarGzWithEmptyFileName,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
+			name:        "unpack normal tar with absolute path in symlink",
+			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "/absolute-target"}},
+			expectError: true,
 		},
 		{
-			name:              "malicious tar with .. as filename",
-			testFileGenerator: createTestTarDotDotFilename,
-			opts:              []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:       true,
+			name:        "malicious tar with symlink name path traversal",
+			content:     []tarContent{{Name: "../testLink", Filetype: tar.TypeSymlink, Linktarget: "target"}},
+			expectError: true,
 		},
 		{
-			name:              "malicious tar with FIFO filetype",
-			testFileGenerator: createTestTarWithFIFO,
-			opts:              []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:       true,
+			name:        "malicious tar with .. as filename",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: "..", Filetype: tar.TypeReg}},
+			expectError: true,
 		},
 		{
-			name:              "malicious tar with zip slip attack",
-			testFileGenerator: createTestTarWithZipSlip,
-			opts:              []config.ConfigOption{config.WithContinueOnError(false)},
-			expectError:       true,
-		}, {
-			name:              "absolute path in filename",
-			testFileGenerator: createTestTarWithAbsolutePathInFilename,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
-		}, {
-			name:              "absolute path in filename (windows)",
-			testFileGenerator: createTestTarWithAbsolutePathInFilenameWindows,
-			opts:              []config.ConfigOption{},
-			expectError:       false,
+			name:        "malicious tar with . as filename",
+			content:     []tarContent{{Content: []byte("foobar content"), Name: ".", Filetype: tar.TypeReg}},
+			expectError: true,
+		},
+		{
+			name:        "malicious tar with FIFO filetype",
+			content:     []tarContent{{Name: "fifo", Filetype: tar.TypeFifo}},
+			expectError: true,
+		},
+		{
+			name:        "malicious tar with FIFO filetype, but continue on error",
+			content:     []tarContent{{Name: "fifo", Filetype: tar.TypeFifo}},
+			opts:        []config.ConfigOption{config.WithContinueOnUnsupportedFiles(true)},
+			expectError: false,
+		},
+		{
+			name: "malicious tar with zip slip attack",
+			content: []tarContent{
+				{Name: "sub/to-parent", Filetype: tar.TypeSymlink, Linktarget: "../"},
+				{Name: "sub/to-parent/one-above", Filetype: tar.TypeSymlink, Linktarget: "../"},
+			},
+			expectError: true,
+		},
+		{
+			name:        "tar with legit git pax_global_header",
+			content:     []tarContent{{Content: []byte(""), Name: "pax_global_header", Filetype: tar.TypeXGlobalHeader}},
+			expectError: false,
+		},
+		{
+			name: "absolute path in filename (windows)",
+			content: []tarContent{
+				{Content: []byte("foobar content"), Name: "c:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
+			},
+			expectError: false,
+		},
+		{
+			name: "absolute path in filename",
+			content: []tarContent{
+				{Content: []byte("foobar content"), Name: "/absolute-path", Mode: 0640, Filetype: tar.TypeReg},
+			},
+			expectError: false,
+		},
+		{
+			name: "extract a directory",
+			content: []tarContent{
+				{Name: "test", Filetype: tar.TypeDir},
+			},
+			expectError: false,
+		},
+		{
+			name: "extract a file with traversal, but continue on error",
+			content: []tarContent{
+				{Content: []byte("foobar content"), Name: "../test", Mode: 0640, Filetype: tar.TypeReg},
+			},
+			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError: false,
+		},
+		{
+			name: "extract a symlink with traversal, but continue on error",
+			content: []tarContent{
+				{Name: "foo", Linktarget: "../bar", Filetype: tar.TypeSymlink},
+			},
+			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError: false,
+		},
+		{
+			name: "tar with hard link, with error, but continue on error",
+			content: []tarContent{
+				{Name: "testLink", Filetype: tar.TypeLink, Linktarget: "testTarget"},
+			},
+			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
+			expectError: false,
 		},
 	}
 
@@ -181,10 +225,10 @@ func TestTarUnpack(t *testing.T) {
 			ctx := tc.ctx
 
 			// perform actual tests
-			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			input := createTarWithContent(filepath.Join(testDir, "test.tar"), tc.content)
 			want := tc.expectError
 			err := UnpackTar(ctx, input, testDir, config.NewConfig(tc.opts...))
-			input.Close()
+			defer input.(io.Closer).Close()
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -194,374 +238,56 @@ func TestTarUnpack(t *testing.T) {
 	}
 }
 
-// createTestTarNormal is a helper function to generate test content
-func createTestTarNormal(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarNormal.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// Add file to tar
-	addFileToTarArchive(tarWriter, "test", f1)
-
-	// add empty dir to tar
-	addFileToTarArchive(tarWriter, "emptyDir/", nil)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
+// tarContent is a struct to store the content of a tar file
+type tarContent struct {
+	Content    []byte
+	Linktarget string
+	Mode       os.FileMode
+	Name       string
+	Filetype   byte
 }
 
-func createTestTarWithTraversalInDirectory(t *testing.T, dstDir string) string {
-	targetFile := filepath.Join(dstDir, "TarWithTraversalInDirectory.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add dir with traversal
-	addFileToTarArchive(tarWriter, "../test", nil)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-func createTestTarWithFIFO(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithFIFO.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// create fifo and add
-	path := path.Join(dstDir, "testFIFO")
-	fifo := createTestFile(path, "ignored anyway")
-	defer fifo.Close()
-
-	addFifoToTarArchive(tarWriter, "fifo", path)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarDotDotFilename is a helper function to generate test content
-func createTestTarDotDotFilename(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarDotDot.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// Add file to tar
-	addFileToTarArchive(tarWriter, "..", f1)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithSymlink is a helper function to generate test content
-func createTestTarWithSymlink(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithSymlink.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add symlink
-	addLinkToTarArchive(t, tarWriter, "testLink", "testTarget")
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithSymlink is a helper function to generate test content
-func createTestTarWithZipSlip(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithZipSlip.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add symlinks
-	addLinkToTarArchive(t, tarWriter, "sub/to-parent", "../")
-	addLinkToTarArchive(t, tarWriter, "sub/to-parent/one-above", "../")
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithTraversalInSymlinkName is a helper function to generate test content
-func createTestTarWithTraversalInSymlinkName(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithTraversalInSymlinkName.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add symlink
-	addLinkToTarArchive(t, tarWriter, "../testLink", "testTarget")
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithPathTraversalSymlink is a helper function to generate test content
-func createTestTarWithPathTraversalSymlink(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithPathTraversalSymlink.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add symlink
-	addLinkToTarArchive(t, tarWriter, "testLink", "../testTarget")
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithAbsolutePathSymlink is a helper function to generate test content
-func createTestTarWithAbsolutePathSymlink(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithAbsolutePathSymlink.tar")
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// add symlink
-	addLinkToTarArchive(t, tarWriter, "testLink", "/tmp/test")
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithPathTraversalInFile is a helper function to generate test content
-func createTestTarWithPathTraversalInFile(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithPathTraversalInFile.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// add
-	addFileToTarArchive(tarWriter, "../test", f1)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarFiveFiles is a helper function to generate test content
-func createTestTarFiveFiles(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarFiveFiles.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	for i := 0; i < 5; i++ {
-
-		// prepare test file for be added to tar
-		f1 := createTestFile(filepath.Join(tmpDir, fmt.Sprintf("test%d", i)), "foobar content")
-		defer f1.Close()
-
-		// add
-		addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
-	}
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-func createTestTarGzWithEmptyFileName(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarEmptyNameDir.tar.gz")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// Add file to tar
-	addFileToTarArchive(tarWriter, "", f1)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// addFileToTarArchive is a helper function to generate test content
-func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
-
-	if f1 == nil {
-
-		// create a new dir/file header
-		header := &tar.Header{
-			Name:     fileName,
-			Typeflag: tar.TypeDir,
+// createTarWithContent creates a tar file with the given content
+func createTarWithContent(target string, content []tarContent) io.Reader {
+
+	// create tar file
+	file, tw := createTar(target)
+	defer file.Close()
+
+	// write content
+	for _, c := range content {
+
+		// create header
+		hdr := &tar.Header{
+			Name:     c.Name,
+			Mode:     int64(c.Mode),
+			Size:     int64(len(c.Content)),
+			Linkname: c.Linktarget,
+			Typeflag: c.Filetype,
 		}
 
-		// write the header
-		if err := tarWriter.WriteHeader(header); err != nil {
+		// write header
+		if err := tw.WriteHeader(hdr); err != nil {
 			panic(err)
 		}
 
-		return
+		// write data
+		if _, err := tw.Write(c.Content); err != nil {
+			panic(err)
+		}
 	}
 
-	fileInfo, err := os.Lstat(f1.Name())
+	// close tar writer
+	if err := tw.Close(); err != nil {
+		panic(err)
+	}
+
+	// return reader
+	file, err := os.Open(target)
 	if err != nil {
 		panic(err)
 	}
-
-	// create a new dir/file header
-	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
-	if err != nil {
-		panic(err)
-	}
-
-	// adjust filename
-	header.Name = fileName
-
-	// write the header
-	if err := tarWriter.WriteHeader(header); err != nil {
-		panic(err)
-	}
-
-	// add content
-	if _, err := io.Copy(tarWriter, f1); err != nil {
-		panic(err)
-	}
-}
-
-// addFileToTarArchive is a helper function to generate test content
-func addFifoToTarArchive(tarWriter *tar.Writer, fileName string, fifoPath string) {
-	fileInfo, err := os.Lstat(fifoPath)
-	if err != nil {
-		panic(err)
-	}
-
-	// create a new dir/file header
-	header, err := tar.FileInfoHeader(fileInfo, fileInfo.Name())
-	if err != nil {
-		panic(err)
-	}
-
-	// adjust filename
-	header.Name = fileName
-	header.Typeflag = tar.TypeFifo
-
-	// write the header
-	if err := tarWriter.WriteHeader(header); err != nil {
-		panic(err)
-	}
-
-}
-
-// addLinkToTarArchive is a helper function to generate test content
-func addLinkToTarArchive(t *testing.T, tarWriter *tar.Writer, fileName string, linkTarget string) {
-	// create a temporary dir for files in zip archive
-	tmpDir := t.TempDir()
-
-	// create dummy link to get data structure
-	dummyLink := filepath.Join(tmpDir, "dummy-link")
-	if err := os.Symlink("nirvana", dummyLink); err != nil {
-		panic(err)
-	}
-
-	// get file stats for testing operating system
-	info, err := os.Lstat(dummyLink)
-	if err != nil {
-		panic(err)
-	}
-
-	// create a new dir/file header
-	header, err := tar.FileInfoHeader(info, info.Name())
-	if err != nil {
-		panic(err)
-	}
-
-	// adjust file headers
-	header.Name = fileName
-	header.Linkname = linkTarget
-
-	if err := tarWriter.WriteHeader(header); err != nil {
-		panic(err)
-	}
+	return file
 }
 
 // createTar is a helper function to generate test content
@@ -571,56 +297,4 @@ func createTar(filePath string) (*os.File, *tar.Writer) {
 		panic(err)
 	}
 	return f, tar.NewWriter(f)
-}
-
-// createTestTarWithAbsolutePathInFilename is a helper function to generate test content
-func createTestTarWithAbsolutePathInFilename(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilename.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// Add file to tar
-	addFileToTarArchive(tarWriter, "/absolute-path", f1)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
-}
-
-// createTestTarWithAbsolutePathInFilenameWindows is a helper function to generate test content
-func createTestTarWithAbsolutePathInFilenameWindows(t *testing.T, dstDir string) string {
-
-	targetFile := filepath.Join(dstDir, "TarWithMaliciousFilenameWindows.tar")
-
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// prepare generated zip+writer
-	f, tarWriter := createTar(targetFile)
-	defer f.Close()
-
-	// prepare test file for be added to tar
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// Add file to tar
-	addFileToTarArchive(tarWriter, "c:\\absolute-path", f1)
-
-	// close zip
-	tarWriter.Close()
-
-	// return path to zip
-	return targetFile
 }
