@@ -109,7 +109,7 @@ func TestGzipUnpack(t *testing.T) {
 			expectedName: "test",
 			cfg:          config.NewConfig(),
 			generator: func(target string, data []byte) io.Reader {
-				return createTarGz(target, []tarContent{{name: "test", mode: 0640, content: data}})
+				return createTarGz(target, []tarContent{{Name: "test", Mode: 0640, Content: data, Filetype: tar.TypeReg}})
 			},
 			testData: testData,
 			wantErr:  false,
@@ -198,52 +198,4 @@ func createTarGz(target string, data []tarContent) io.Reader {
 		panic(err)
 	}
 	return createFile(target, compressGzip(tarContent))
-}
-
-// tarContent is a struct to store the content of a tar file
-type tarContent struct {
-	name    string
-	mode    os.FileMode
-	content []byte
-}
-
-// createTarWithContent creates a tar file with the given content
-func createTarWithContent(target string, content []tarContent) io.Reader {
-
-	// create tar file
-	file, tw := createTar(target)
-	defer file.Close()
-
-	// write content
-	for _, c := range content {
-
-		// create header
-		hdr := &tar.Header{
-			Name: c.name,
-			Mode: int64(c.mode),
-			Size: int64(len(c.content)),
-		}
-
-		// write header
-		if err := tw.WriteHeader(hdr); err != nil {
-			panic(err)
-		}
-
-		// write data
-		if _, err := tw.Write(c.content); err != nil {
-			panic(err)
-		}
-	}
-
-	// close tar writer
-	if err := tw.Close(); err != nil {
-		panic(err)
-	}
-
-	// return reader
-	file, err := os.Open(target)
-	if err != nil {
-		panic(err)
-	}
-	return file
 }

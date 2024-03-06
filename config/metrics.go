@@ -60,11 +60,9 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 
 	type Alias Metrics
 	return json.Marshal(&struct {
-		ExtractionDuration  int64  `json:"ExtractionDuration"`
 		LastExtractionError string `json:"LastExtractionError"`
 		*Alias
 	}{
-		ExtractionDuration:  m.ExtractionDuration.Microseconds(),
 		LastExtractionError: lastError,
 		Alias:               (*Alias)(&m),
 	})

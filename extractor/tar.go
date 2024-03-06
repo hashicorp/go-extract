@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -82,11 +81,6 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
 			return handleError(c, m, "max objects check failed", err)
-		}
-
-		// check if name is just current working dir
-		if filepath.Clean(hdr.Name) == "." {
-			continue
 		}
 
 		// check if file needs to match patterns
@@ -184,6 +178,11 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 			continue
 
 		default:
+
+			// check for git comment file `pax_global_header` from type `67` and skip
+			if hdr.Typeflag&tar.TypeXGlobalHeader == tar.TypeXGlobalHeader && hdr.Name == "pax_global_header" {
+				continue
+			}
 
 			// check if unsupported files should be skipped
 			if c.ContinueOnUnsupportedFiles() {
