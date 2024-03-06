@@ -47,6 +47,11 @@ jobs:
         name: test-coverage
         path: coverage.html
 
+    - name: Read file content
+      id: file_content
+      run: |
+        echo "::set-output name=content::$(cat report.txt)"
+
     - name: Write test coverage into PR comment
       if: runner.os == 'Linux' && ${{ github.event.number != '' }}
       uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
@@ -56,7 +61,11 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
+            body: `[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
 
-                  $(cat report.txt)'
+                  \`\`\`
+                  ${process.env.CONTENT}
+                  \`\`\``
           })
+      env:
+        CONTENT: ${{ steps.file_content.outputs.content }}
