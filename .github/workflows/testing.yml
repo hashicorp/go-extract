@@ -33,10 +33,7 @@ jobs:
     - name: Generate coverage comment
       id: gen_report
       run: |
-        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "text<<$EOF" >> $GITHUB_OUTPUT
-        make test_coverage >> $GITHUB_OUTPUT
-        echo "$EOF" >> $GITHUB_OUTPUT
+        make test_coverage | tee report.txt
 
     - name: Generate coverage html report
       id: gen_html
@@ -61,6 +58,6 @@ jobs:
             repo: context.repo.repo,
             body: '[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
                   ```shell
-                  ${{steps.gen_report.outputs.text}}
+                  $(cat report.txt)
                   ```'
           })
