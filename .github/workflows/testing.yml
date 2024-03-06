@@ -37,7 +37,7 @@ jobs:
         make test_coverage_html
 
     - name: Upload preview report to action run
-    if: runner.os == 'Linux' && ${{ github.event.number != '' }}
+      if: runner.os == 'Linux' && ${{ github.event.number != '' }}
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
         name: test-coverage
