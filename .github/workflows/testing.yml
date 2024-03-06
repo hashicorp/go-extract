@@ -59,8 +59,8 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: "[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
+            body: '[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
                   ```shell
-                  ${{join(steps.gen_report.outputs.*, '\n')}}
-                  ```"
+                  ${{join(steps.gen_report.outputs.*, \'\n\')}}
+                  ```'
           })
