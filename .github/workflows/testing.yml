@@ -40,7 +40,7 @@ jobs:
         content="${content//'%'/'%25'}"
         content="${content//$'\n'/'%0A'}"
         content="${content//$'\r'/'%0D'}"
-        echo "{content}={$content}" >> $GITHUB_OUTPUT
+        echo "::set-output name=content::$content"
 
     - name: Upload preview report to action run
       if: runner.os == 'Linux' && ${{ github.event.number != '' }}
