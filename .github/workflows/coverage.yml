@@ -22,7 +22,7 @@ jobs:
       run: |
         make test_coverage_html
         make test_coverage > report.txt        
-        content=$(cat report.txt)
+        content="$(cat report.txt)"
         content="${content//'%'/'%25'}"
         content="${content//$'\n'/'%0A'}"
         content="${content//$'\r'/'%0D'}"
