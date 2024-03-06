@@ -50,7 +50,11 @@ jobs:
     - name: Read file content
       id: file_content
       run: |
-        echo "::set-output name=content::$(cat report.txt)"
+        content=$(cat report.txt)
+        content="${content//'%'/'%25'}"
+        content="${content//$'\n'/'%0A'}"
+        content="${content//$'\r'/'%0D'}"
+        echo "::set-output name=content::$content"
 
     - name: Write test coverage into PR comment
       if: runner.os == 'Linux' && ${{ github.event.number != '' }}
