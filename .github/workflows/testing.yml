@@ -63,9 +63,8 @@ jobs:
             repo: context.repo.repo,
             body: `[Test coverage report generated](https://github.com/hashicorp/go-extract/actions/runs/${{ github.run_id }}) ✍
 
-                  \`\`\`
                   ${process.env.CONTENT}
-                  \`\`\``
+                  `
           })
       env:
-        CONTENT: ${{ steps.file_content.outputs.content }}
+        CONTENT: "${{ steps.file_content.outputs.content }}"
