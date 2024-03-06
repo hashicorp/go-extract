@@ -35,7 +35,6 @@ func TestUnpackXz(t *testing.T) {
 	tests := []struct {
 		name          string
 		archiveName   string
-		expectedName  string
 		cfg           *config.Config
 		generator     func(target string, data []byte) io.Reader
 		testData      []byte
@@ -43,18 +42,16 @@ func TestUnpackXz(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:         "UnpackXz",
-			archiveName:  "test.xz",
-			expectedName: "test",
-			cfg:          config.NewConfig(),
-			generator:    createFile,
-			testData:     compressXz([]byte("test")),
-			wantErr:      false,
+			name:        "UnpackXz",
+			archiveName: "test.xz",
+			cfg:         config.NewConfig(),
+			generator:   createFile,
+			testData:    compressXz([]byte("test")),
+			wantErr:     false,
 		},
 		{
 			name:          "UnpackXz with cancel",
 			archiveName:   "test.xz",
-			expectedName:  "test",
 			cfg:           config.NewConfig(),
 			generator:     createFile,
 			testData:      compressXz([]byte("test")),
@@ -62,22 +59,20 @@ func TestUnpackXz(t *testing.T) {
 			wantErr:       true,
 		},
 		{
-			name:         "UnpackXz with limited input",
-			archiveName:  "test.xz",
-			expectedName: "test",
-			cfg:          config.NewConfig(config.WithMaxInputSize(1)),
-			generator:    createFile,
-			testData:     compressXz([]byte("test")),
-			wantErr:      true,
+			name:        "UnpackXz with limited input",
+			archiveName: "test.xz",
+			cfg:         config.NewConfig(config.WithMaxInputSize(1)),
+			generator:   createFile,
+			testData:    compressXz([]byte("test")),
+			wantErr:     true,
 		},
 		{
-			name:         "UnpackXz with invalid input",
-			archiveName:  "test.xz",
-			expectedName: "test",
-			cfg:          config.NewConfig(),
-			generator:    createFile,
-			testData:     []byte("test"),
-			wantErr:      true,
+			name:        "UnpackXz with invalid input",
+			archiveName: "test.xz",
+			cfg:         config.NewConfig(),
+			generator:   createFile,
+			testData:    []byte("test"),
+			wantErr:     true,
 		},
 	}
 
