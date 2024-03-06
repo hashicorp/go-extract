@@ -33,6 +33,7 @@ jobs:
     - name: Generate coverage comment
       id: gen_report
       run: |
+        echo "make test_coverage >> $GITHUB_OUTPUT"
         make test_coverage >> $GITHUB_OUTPUT
 
     - name: Generate coverage html report
