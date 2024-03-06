@@ -31,14 +31,16 @@ jobs:
         make test
 
     - name: Generate coverage comment
+      if: runner.os == 'Linux' && ${{ github.event.number != '' }}
       id: gen_report
       run: |
-        make test_coverage > report.txt
-
-    - name: Generate coverage html report
-      id: gen_html
-      run: |    
         make test_coverage_html
+        make test_coverage > report.txt        
+        content=$(cat report.txt)
+        content="${content//'%'/'%25'}"
+        content="${content//$'\n'/'%0A'}"
+        content="${content//$'\r'/'%0D'}"
+        echo "{content}={$content}" >> $GITHUB_OUTPUT
 
     - name: Upload preview report to action run
       if: runner.os == 'Linux' && ${{ github.event.number != '' }}
@@ -46,15 +48,6 @@ jobs:
       with:
         name: test-coverage
         path: coverage.html
-
-    - name: Read file content
-      id: file_content
-      run: |
-        content=$(cat report.txt)
-        content="${content//'%'/'%25'}"
-        content="${content//$'\n'/'%0A'}"
-        content="${content//$'\r'/'%0D'}"
-        echo "::set-output name=content::$content"
 
     - name: Write test coverage into PR comment
       if: runner.os == 'Linux' && ${{ github.event.number != '' }}
@@ -71,4 +64,4 @@ jobs:
             \`\`\``
           })
       env:
-        CONTENT: "${{ steps.file_content.outputs.content }}"
+        CONTENT: "${{ steps.gen_report.outputs.content }}"
