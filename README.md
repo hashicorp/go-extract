@@ -2,7 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure extraction of zip, tar, gzip, brotli, bzip2 and xz archive/compression type.
+Secure file extraction of zip, tar, gzip, brotli, bzip2 and xz archive/compression type.
 
 ## Code Example
 
@@ -128,6 +128,29 @@ Flags:
   -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
+```
+
+## Metrics
+
+It is possible to collect metrics ether by specifying a metrics hook via the config option `config.WithMetricsHook(metricsToLog)` or as a cli parameter `-M, --metrics`.
+
+Here is an example collected metrics for the extraction of [`terraform-aws-iam-5.34.0.tar.gz`](https://github.com/terraform-aws-modules/terraform-aws-iam/releases/tag/v5.34.0):
+
+```json
+{
+  "LastExtractionError": "",
+  "ExtractedDirs": 51,
+  "ExtractionDuration": 48598584,
+  "ExtractionErrors": 0,
+  "ExtractedFiles": 241,
+  "ExtractionSize": 539085,
+  "ExtractedSymlinks": 0,
+  "ExtractedType": "tar+gzip",
+  "InputSize": 81477,
+  "PatternMismatches": 0,
+  "UnsupportedFiles": 0,
+  "LastUnsupportedFile": ""
+}
 ```
 
 ## Feature collection
