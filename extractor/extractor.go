@@ -139,6 +139,11 @@ var AvailableExtractors = []struct {
 		MagicBytes:    magicBytesBzip2,
 		FileExtension: fileExtensionBzip2,
 	},
+	{
+		Unpacker:    UnpackXz,
+		HeaderCheck: IsXz,
+		MagicBytes:  magicBytesXz,
+	},
 }
 
 var MaxHeaderLength int
