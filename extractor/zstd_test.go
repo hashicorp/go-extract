@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -105,22 +104,6 @@ func TestUnpackZstd(t *testing.T) {
 		})
 	}
 
-}
-
-// createFile creates file with byte content
-func createFile(ctx context.Context, target string, data []byte) io.Reader {
-
-	// Write the compressed data to the file
-	if err := os.WriteFile(target, data, 0644); err != nil {
-		panic(fmt.Errorf("error writing compressed data to file: %w", err))
-	}
-
-	// Open the file
-	if f, err := os.Open(target); err != nil {
-		panic(fmt.Errorf("error stating file: %w", err))
-	} else {
-		return f
-	}
 }
 
 // compressZstd compresses the data using the zstandard algorithm
