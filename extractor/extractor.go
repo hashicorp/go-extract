@@ -140,9 +140,10 @@ var AvailableExtractors = []struct {
 		FileExtension: fileExtensionBzip2,
 	},
 	{
-		Unpacker:    UnpackXz,
-		HeaderCheck: IsXz,
-		MagicBytes:  magicBytesXz,
+		Unpacker:      UnpackXz,
+		HeaderCheck:   IsXz,
+		MagicBytes:    magicBytesXz,
+		FileExtension: fileExtensionXz,
 	},
 }
 
