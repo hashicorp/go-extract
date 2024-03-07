@@ -78,9 +78,11 @@ func findExtractor(data []byte) extractor.UnpackFkt {
 
 // IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
 func IsKnownArchiveFileExtension(filename string) bool {
-	chkExt := filepath.Ext(strings.ToLower(filename))
+
+	chkExt := strings.Replace(strings.ToLower(filepath.Ext(filename)), ".", "", -1)
 	for _, ex := range extractor.AvailableExtractors {
-		knownExt := strings.ToLower(fmt.Sprintf(".%s", ex.FileExtension))
+
+		knownExt := strings.ToLower(ex.FileExtension)
 		if chkExt == knownExt {
 			return true
 		}

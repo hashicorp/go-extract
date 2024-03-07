@@ -70,14 +70,14 @@ func TestUnpackBzip2(t *testing.T) {
 		{
 			name:         "Test unpack bzip2 with no file extension",
 			testFileName: "test",
-			expectedName: "test.decompressed-bz2",
+			expectedName: "test.decompressed",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
 			testData:     compressBzip2(testData),
 		},
 		{
 			name:         "Test unpack bzip2 read from buffer",
-			expectedName: "decompressed-bz2",
+			expectedName: "goextract-decompressed-content",
 			cfg:          config.NewConfig(),
 			generator:    createByteReader,
 			testData:     compressBzip2(testData),

@@ -85,7 +85,8 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	defer c.MetricsHook(ctx, &metrics)
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionGZip))
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0640); err != nil {

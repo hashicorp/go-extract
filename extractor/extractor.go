@@ -28,7 +28,7 @@ type SeekerReaderAt interface {
 }
 
 // determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader, suffix string) (string, string) {
+func determineOutputName(dst string, src io.Reader) (string, string) {
 
 	// check if dst is specified and not a directory
 	if dst != "." && dst != "" {
@@ -37,22 +37,20 @@ func determineOutputName(dst string, src io.Reader, suffix string) (string, stri
 		}
 	}
 
-	// get get only letter from file extension
-	ext := strings.ReplaceAll(suffix, ".", "")
-
 	// check if src is a file and the filename is ending with the suffix
 	// remove the suffix from the filename and use it as output name
 	if f, ok := src.(*os.File); ok {
+
 		name := filepath.Base(f.Name())
-		newName := strings.TrimSuffix(name, suffix)
+		newName := strings.TrimSuffix(name, filepath.Ext(name))
 		if name != newName && newName != "" {
 			return dst, newName
 		}
 
 		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, fmt.Sprintf("%s.decompressed-%s", newName, ext)
+		return dst, fmt.Sprintf("%s.decompressed", newName)
 	}
-	return dst, fmt.Sprintf("decompressed-%s", ext)
+	return dst, "goextract-decompressed-content"
 }
 
 // limitReader ensures that the input size is limited and the input size is captured

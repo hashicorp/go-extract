@@ -2,7 +2,6 @@ package extractor
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -53,7 +52,8 @@ func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionBrotli))
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, brotliStream, 0640); err != nil {

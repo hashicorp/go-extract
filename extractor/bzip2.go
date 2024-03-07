@@ -3,7 +3,6 @@ package extractor
 import (
 	"compress/bzip2"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -61,7 +60,8 @@ func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionBzip2))
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, bzip2Stream, 0640); err != nil {
