@@ -22,8 +22,8 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 	}
 
 	// find extractor for header
-	var unpacker extractor.UnpackFkt
-	if unpacker = findExtractor(header); unpacker == nil {
+	unpacker := GetUnpackFunction(header)
+	if unpacker == nil {
 		return fmt.Errorf("archive type not supported")
 	}
 
@@ -63,8 +63,8 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 	return headerReader.PeekHeader(), headerReader, nil
 }
 
-// findExtractor identifies the correct extractor based on magic bytes.
-func findExtractor(data []byte) extractor.UnpackFkt {
+// GetUnpackFunction identifies the correct extractor based on magic bytes.
+func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 	// find extractor with longest suffix match
 	for _, ex := range extractor.AvailableExtractors {
 		if ex.HeaderCheck(data) {

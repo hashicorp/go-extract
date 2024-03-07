@@ -17,13 +17,13 @@ import (
 	"github.com/hashicorp/go-extract/extractor"
 )
 
-// TestFindExtractor implements test cases
-func TestFindExtractor(t *testing.T) {
+// TestGetUnpackFunction implements test cases
+func TestGetUnpackFunction(t *testing.T) {
 	// test cases
 	cases := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
-		expected       extractor.UnpackFkt
+		expected       extractor.UnpackFunc
 	}{
 		{
 			name:           "get zip extractor from file",
@@ -68,7 +68,7 @@ func TestFindExtractor(t *testing.T) {
 				f.Close()
 				t.Fatal(err)
 			}
-			got := findExtractor(input)
+			got := GetUnpackFunction(input)
 			f.Close()
 
 			// success if both are nil and no engine found

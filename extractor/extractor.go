@@ -93,8 +93,8 @@ func captureExtractionDuration(c *config.Config) {
 	})
 }
 
-// UnpackFkt is a function that extracts the contents from src and extracts them to dst.
-type UnpackFkt func(context.Context, io.Reader, string, *config.Config) error
+// UnpackFunc is a function that extracts the contents from src and extracts them to dst.
+type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
 
 // HeaderCheck is a function that checks if the given header matches the expected magic bytes.
 type HeaderCheck func([]byte) bool
@@ -102,7 +102,7 @@ type HeaderCheck func([]byte) bool
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = []struct {
-	Unpacker      UnpackFkt
+	Unpacker      UnpackFunc
 	HeaderCheck   HeaderCheck
 	MagicBytes    [][]byte
 	Offset        int
