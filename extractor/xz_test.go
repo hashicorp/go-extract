@@ -34,7 +34,6 @@ func TestUnpackXz(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		archiveName   string
 		cfg           *config.Config
 		generator     func(target string, data []byte) io.Reader
 		testData      []byte
@@ -42,16 +41,14 @@ func TestUnpackXz(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name:        "UnpackXz",
-			archiveName: "test.xz",
-			cfg:         config.NewConfig(),
-			generator:   createFile,
-			testData:    compressXz([]byte("test")),
-			wantErr:     false,
+			name:      "UnpackXz",
+			cfg:       config.NewConfig(),
+			generator: createFile,
+			testData:  compressXz([]byte("test")),
+			wantErr:   false,
 		},
 		{
 			name:          "UnpackXz with cancel",
-			archiveName:   "test.xz",
 			cfg:           config.NewConfig(),
 			generator:     createFile,
 			testData:      compressXz([]byte("test")),
@@ -59,20 +56,18 @@ func TestUnpackXz(t *testing.T) {
 			wantErr:       true,
 		},
 		{
-			name:        "UnpackXz with limited input",
-			archiveName: "test.xz",
-			cfg:         config.NewConfig(config.WithMaxInputSize(1)),
-			generator:   createFile,
-			testData:    compressXz([]byte("test")),
-			wantErr:     true,
+			name:      "UnpackXz with limited input",
+			cfg:       config.NewConfig(config.WithMaxInputSize(1)),
+			generator: createFile,
+			testData:  compressXz([]byte("test")),
+			wantErr:   true,
 		},
 		{
-			name:        "UnpackXz with invalid input",
-			archiveName: "test.xz",
-			cfg:         config.NewConfig(),
-			generator:   createFile,
-			testData:    []byte("this is not valid xz data"),
-			wantErr:     true,
+			name:      "UnpackXz with invalid input",
+			cfg:       config.NewConfig(),
+			generator: createFile,
+			testData:  []byte("this is not valid xz data"),
+			wantErr:   true,
 		},
 	}
 
@@ -82,7 +77,7 @@ func TestUnpackXz(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			tmpDir := t.TempDir()
-			archivePath := filepath.Join(tmpDir, tt.archiveName)
+			archivePath := filepath.Join(tmpDir, "test.xz")
 
 			// create a temporary file
 			reader := tt.generator(archivePath, tt.testData)
