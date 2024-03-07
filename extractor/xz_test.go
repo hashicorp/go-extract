@@ -71,7 +71,7 @@ func TestUnpackXz(t *testing.T) {
 			archiveName: "test.xz",
 			cfg:         config.NewConfig(),
 			generator:   createFile,
-			testData:    []byte("test"),
+			testData:    []byte("this is not valid xz data"),
 			wantErr:     true,
 		},
 	}
