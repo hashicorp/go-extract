@@ -6,21 +6,20 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 )
 
+// offsetTar is the offset where the magic bytes are located in the file
 const offsetTar = 257
 
+// magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
 	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
 }
 
-// Tar holds information that are needed for tar extraction.
-type Tar struct{}
-
+// IsTar checks if the header matches the magic bytes for tar files
 func IsTar(data []byte) bool {
 	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }
@@ -29,7 +28,7 @@ func IsTar(data []byte) bool {
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	return unpackTar(ctx, src, dst, c)
 }
@@ -45,7 +44,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// start extraction
 	c.Logger().Info("extracting tar")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	tr := tar.NewReader(limitedReader)
 
 	// walk through tar
@@ -82,11 +81,6 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
 			return handleError(c, m, "max objects check failed", err)
-		}
-
-		// check if name is just current working dir
-		if filepath.Clean(hdr.Name) == "." {
-			continue
 		}
 
 		// check if file needs to match patterns
@@ -184,6 +178,11 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 			continue
 
 		default:
+
+			// check for git comment file `pax_global_header` from type `67` and skip
+			if hdr.Typeflag&tar.TypeXGlobalHeader == tar.TypeXGlobalHeader && hdr.Name == "pax_global_header" {
+				continue
+			}
 
 			// check if unsupported files should be skipped
 			if c.ContinueOnUnsupportedFiles() {

@@ -10,21 +10,22 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// magicBytesGZip are the magic bytes for gzip compressed files
 // reference https://socketloop.com/tutorials/golang-gunzip-file
-
 var magicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
 
+// IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesGZip)
 }
 
-// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// capture extraction duration
-	captureExtractionDuration(ctx, c)
+	captureExtractionDuration(c)
 
 	return unpackGZip(ctx, src, dst, c)
 }
@@ -40,7 +41,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
-	limitedReader := limitReader(ctx, src, c)
+	limitedReader := limitReader(src, c)
 	gunzipedStream, err := gzip.NewReader(limitedReader)
 	if err != nil {
 		defer c.MetricsHook(ctx, &metrics)
@@ -83,7 +84,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	dst, outputName := determineOutputName(dst, src, ".gz")
 
 	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0644); err != nil {
+	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0640); err != nil {
 		return handleError(c, &metrics, "cannot create file", err)
 	}
 

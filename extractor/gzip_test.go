@@ -1,182 +1,21 @@
 package extractor
 
 import (
+	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestGzipUnpack test with various test cases the implementation of zip.Unpack
-func TestGzipUnpack(t *testing.T) {
-
-	type TestFileGenerator func(*testing.T, string) io.Reader
-
-	cases := []struct {
-		name           string
-		inputGenerator TestFileGenerator
-		outputFileName string
-		opts           []config.ConfigOption
-		expectError    bool
-	}{
-		{
-			name:           "normal gzip with file",
-			inputGenerator: createTestGzipWithFile,
-			outputFileName: "test-gziped-file",
-			opts:           []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:    false,
-		},
-		{
-			name:           "random file with no gzip",
-			inputGenerator: func(t *testing.T, s string) io.Reader { return bytes.NewReader([]byte(RandStringBytes(1 << (10 * 2)))) },
-			outputFileName: "test-gziped-file",
-			expectError:    true,
-		},
-		{
-			name:           "gzip with compressed txt",
-			inputGenerator: createTestGzipWithText,
-			outputFileName: "",
-			opts:           []config.ConfigOption{config.WithOverwrite(true)},
-			expectError:    false,
-		},
-		{
-			name:           "gzip with limited extraction size",
-			inputGenerator: createTestGzipWithMoreContent,
-			outputFileName: "test-gziped-file",
-			opts:           []config.ConfigOption{config.WithMaxExtractionSize(512)},
-			expectError:    true,
-		},
-		{
-			name:           "gzip with unlimited extraction size",
-			inputGenerator: createTestGzipWithMoreContent,
-			outputFileName: "test-gziped-file",
-			opts:           []config.ConfigOption{config.WithMaxExtractionSize(-1)},
-			expectError:    false,
-		},
-		// TODO: use context for timeout
-		// {
-		// 	name:           "gzip with extraction time exceeded",
-		// 	inputGenerator: createTestGzipWithMoreContent,
-		// 	outputFileName: "test-gziped-file",
-		// 	opts:           []config.ConfigOption{config.WithMaxExtractionTime(0)},
-		// 	expectError:    true,
-		// },
-		{
-			name:           "tar gzip",
-			inputGenerator: createTestTarGzipWithFile,
-			outputFileName: "",
-			opts:           []config.ConfigOption{},
-			expectError:    false,
-		},
-	}
-
-	// run cases
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-
-			// create testing directory
-			testDir := t.TempDir()
-
-			// perform actual tests
-			input := tc.inputGenerator(t, testDir)
-			defer func() {
-				if closer, ok := input.(io.Closer); ok {
-					closer.Close()
-				}
-			}()
-			want := tc.expectError
-			err := UnpackGZip(context.Background(), input, fmt.Sprintf("%s%s", testDir, tc.outputFileName), config.NewConfig(tc.opts...))
-			got := err != nil
-			if got != want {
-				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
-			}
-
-		})
-	}
-}
-
-// createGzip creates a gzip archive at dstFile with contents from input
-func createGzip(dstFile string, input io.Reader) {
-	// Create a new gziped file
-	gzipedFile, err := os.Create(dstFile)
-	if err != nil {
-		panic(err)
-	}
-	defer gzipedFile.Close()
-
-	// Create a new gzip writer
-	gzipWriter := gzip.NewWriter(gzipedFile)
-	defer gzipWriter.Close()
-
-	// Copy the contents of the original file to the gzip writer
-	_, err = io.Copy(gzipWriter, input)
-	if err != nil {
-		panic(err)
-	}
-
-	// Flush the gzip writer to ensure all data is written
-	gzipWriter.Flush()
-}
-
-// createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestGzipWithFile(t *testing.T, dstDir string) io.Reader {
-
-	// define target
-	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
-
-	// create a temporary dir for files in zip archive
-	tmpDir := t.TempDir()
-
-	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
-	defer f1.Close()
-
-	// create Gzip file
-	createGzip(targetFile, f1)
-
-	// return reader
-	file, err := os.Open(targetFile)
-	if err != nil {
-		panic(err)
-	}
-	return file
-}
-
-// createTestGzipWithText creates a test gzip file in dstDir for testing
-func createTestGzipWithText(t *testing.T, dstDir string) io.Reader {
-
-	content := "some random content"
-	// Initialize gzip
-	buf := &bytes.Buffer{}
-	gzWriter := gzip.NewWriter(buf)
-	if _, err := gzWriter.Write([]byte(content)); err != nil {
-		panic(err)
-	}
-	if err := gzWriter.Close(); err != nil {
-		panic(err)
-	}
-
-	return buf
-}
-
-func RandStringBytes(n int) string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
-}
-
-func TestIsGZIP(t *testing.T) {
+// TestIsGzip test with various test cases the implementation of IsGzip
+func TestIsGZip(t *testing.T) {
 	tests := []struct {
 		name   string
 		header []byte
@@ -203,52 +42,160 @@ func TestIsGZIP(t *testing.T) {
 	}
 }
 
-// createTestGzipWithMoreContent creates a test gzip file in dstDir for testing
-func createTestGzipWithMoreContent(t *testing.T, dstDir string) io.Reader {
+// TestGzipUnpack test with various test cases the implementation of zip.Unpack
+func TestGzipUnpack(t *testing.T) {
 
-	// define target
-	targetFile := filepath.Join(dstDir, "GzipWithMoreContent.gz")
+	testData := []byte("Hello, World!")
 
-	// example text
-	var bytesBuffer bytes.Buffer
-	bytesBuffer.Write([]byte(RandStringBytes(1 << (10 * 2)))) // Generate 1 Mb text
-
-	// create Gzip file
-	createGzip(targetFile, &bytesBuffer)
-
-	// return reader
-	file, err := os.Open(targetFile)
-	if err != nil {
-		panic(err)
+	tests := []struct {
+		name            string
+		archiveName     string
+		expectedName    string
+		cfg             *config.Config
+		generator       func(target string, data []byte) io.Reader
+		testData        []byte
+		contextCanceled bool
+		wantErr         bool
+	}{
+		{
+			name:         "normal gzip with file",
+			archiveName:  "test.gz",
+			expectedName: "test",
+			cfg:          config.NewConfig(),
+			generator:    createFile,
+			testData:     compressGzip(testData),
+			wantErr:      false,
+		},
+		{
+			name:         "random file with no gzip",
+			archiveName:  "test.gz",
+			expectedName: "test",
+			cfg:          config.NewConfig(),
+			generator:    createFile,
+			testData:     testData,
+			wantErr:      true,
+		},
+		{
+			name:         "gzip error while reading the header",
+			archiveName:  "test.gz",
+			expectedName: "test",
+			cfg:          config.NewConfig(),
+			generator:    createFile,
+			testData:     []byte("123"),
+			wantErr:      true,
+		},
+		{
+			name:            "gzip with canceled context",
+			archiveName:     "test.gz",
+			expectedName:    "test",
+			cfg:             config.NewConfig(),
+			generator:       createFile,
+			testData:        compressGzip(testData),
+			contextCanceled: true,
+			wantErr:         true,
+		},
+		{
+			name:         "gzip with limited reader",
+			archiveName:  "test.gz",
+			expectedName: "test",
+			cfg:          config.NewConfig(config.WithMaxInputSize(1)),
+			generator:    createFile,
+			testData:     compressGzip(testData),
+			wantErr:      true,
+		},
+		{
+			name:         "tar gzip extraction",
+			archiveName:  "test.tar.gz",
+			expectedName: "test",
+			cfg:          config.NewConfig(),
+			generator: func(target string, data []byte) io.Reader {
+				return createTarGz(target, []tarContent{{Name: "test", Mode: 0640, Content: data, Filetype: tar.TypeReg}})
+			},
+			testData: testData,
+			wantErr:  false,
+		},
 	}
-	return file
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			ctx := context.Background()
+
+			// create testing directory
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, tt.archiveName)
+
+			// create a temporary file (if necessary)
+			reader := tt.generator(tmpFile, tt.testData)
+			defer func() {
+				if closer, ok := reader.(io.Closer); ok {
+					closer.Close()
+				}
+			}()
+
+			// cancel context if necessary
+			if tt.contextCanceled {
+				cancelCtx, cancel := context.WithCancel(ctx)
+				cancel()
+				ctx = cancelCtx
+			}
+
+			// Unpack the file
+			err := UnpackGZip(ctx, reader, tmpDir, tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UnpackGZip() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !tt.wantErr {
+
+				// check if file was created
+				if _, err := os.Stat(filepath.Join(tmpDir, tt.expectedName)); os.IsNotExist(err) {
+					t.Errorf("UnpackGZip() file not created")
+				}
+
+				// check if file has the correct content
+				data, err := os.ReadFile(filepath.Join(tmpDir, tt.expectedName))
+				if err != nil {
+					t.Errorf("UnpackGZip() error reading file: %v", err)
+				}
+				if !bytes.Equal(data, testData) {
+					t.Errorf("UnpackGZip() file content is not the expected")
+				}
+
+			}
+		})
+	}
 }
 
-// createTestGzipWithFile creates a test gzip file in dstDir for testing
-func createTestTarGzipWithFile(t *testing.T, dstDir string) io.Reader {
+// compressGzip compresses data using gzip algorithm
+func compressGzip(data []byte) []byte {
+	buf := &bytes.Buffer{}
+	gzWriter := gzip.NewWriter(buf)
+	if _, err := gzWriter.Write(data); err != nil {
+		panic(err)
+	}
+	if err := gzWriter.Close(); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
 
-	// define target
-	targetFile := filepath.Join(dstDir, "GzipWithTarGz.tar.gz")
+// createFile creates a file with the given data and returns a reader for it.
+func createTarGz(target string, data []tarContent) io.Reader {
 
-	// create a temporary dir for files in zip archive
-	tmpDir := t.TempDir()
+	// create tar file
+	tarFilePath := strings.TrimSuffix(target, ".gz")
+	tarReader := createTarWithContent(tarFilePath, data)
+	defer func() {
+		if closer, ok := tarReader.(io.Closer); ok {
+			closer.Close()
+		}
+	}()
 
-	// get test tar
-	tarFile := createTestTarNormal(t, tmpDir)
-
-	tarReader, err := os.Open(tarFile)
+	// compress tar file
+	tarContent, err := os.ReadFile(tarFilePath)
 	if err != nil {
 		panic(err)
 	}
-	defer tarReader.Close()
-
-	// create Gzip file
-	createGzip(targetFile, tarReader)
-
-	// return reader
-	file, err := os.Open(targetFile)
-	if err != nil {
-		panic(err)
-	}
-	return file
+	return createFile(target, compressGzip(tarContent))
 }

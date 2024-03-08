@@ -727,7 +727,7 @@ func createZip(filePath string) (*os.File, *zip.Writer) {
 // createTestFile creates a file under path containing content
 func createTestFile(path string, content string) *os.File {
 	byteArray := []byte(content)
-	err := os.WriteFile(path, byteArray, 0644)
+	err := os.WriteFile(path, byteArray, 0640)
 	if err != nil {
 		panic(err)
 	}
