@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -39,7 +38,7 @@ func TestUnpackSnappy(t *testing.T) {
 		archiveName   string
 		expectedName  string
 		cfg           *config.Config
-		generator     func(ctx context.Context, target string, data []byte) io.Reader
+		generator     func(target string, data []byte) io.Reader
 		testData      []byte
 		cancelContext bool
 		wantErr       bool
@@ -87,7 +86,7 @@ func TestUnpackSnappy(t *testing.T) {
 			archivePath := filepath.Join(tmpDir, tt.archiveName)
 
 			// Create the source file
-			src := tt.generator(ctx, archivePath, tt.testData)
+			src := tt.generator(archivePath, tt.testData)
 			if closer, ok := src.(io.Closer); ok {
 				defer closer.Close()
 			}
@@ -122,20 +121,4 @@ func compressSnappy(data []byte) []byte {
 		panic(fmt.Errorf("error closing snappy writer: %w", err))
 	}
 	return buf.Bytes()
-}
-
-// createFile creates file with byte content
-func createFile(ctx context.Context, target string, data []byte) io.Reader {
-
-	// Write the compressed data to the file
-	if err := os.WriteFile(target, data, 0644); err != nil {
-		panic(fmt.Errorf("error writing compressed data to file: %w", err))
-	}
-
-	// Open the file
-	if f, err := os.Open(target); err != nil {
-		panic(fmt.Errorf("error stating file: %w", err))
-	} else {
-		return f
-	}
 }

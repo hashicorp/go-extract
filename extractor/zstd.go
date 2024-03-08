@@ -2,10 +2,7 @@ package extractor
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/klauspost/compress/zstd"
@@ -27,48 +24,10 @@ func IsZstd(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the zstandard decompression from src to dst.
 func UnpackZstd(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(ctx, c)
-
-	// unpack
-	return unpackZstd(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressZstdStream, fileExtensionZstd)
 }
 
-// Unpack decompresses src with zstandard algorithm into dst.
-func unpackZstd(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionZstd}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare extraction
-	c.Logger().Info("extracting zstd")
-	limitedReader := limitReader(ctx, src, c)
-	zstandardDecoder, err := zstd.NewReader(limitedReader)
-	if err != nil {
-		return handleError(c, &metrics, "cannot create zstd decoder", err)
-	}
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionZstd))
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, zstandardDecoder, 0640); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+// decompressZstdStream returns an io.Reader that decompresses src with zstandard algorithm
+func decompressZstdStream(src io.Reader, c *config.Config) (io.Reader, error) {
+	return zstd.NewReader(src)
 }

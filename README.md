@@ -8,10 +8,12 @@ Secure file decompression and extraction of following types:
 - Bzip2
 - GZip
 - LZ4
+- Snappy
 - Tar
 - Xz
-- Zlib
 - Zip
+- Zlib
+- Zstandard
 
 ## Code Example
 
@@ -171,14 +173,14 @@ Here is an example collected metrics for the extraction of [`terraform-aws-iam-5
   - [x] tar.gz
   - [x] brotli
   - [x] bzip2
-  - [ ] flate
+  - [x] flate
   - [x] xz
-  - [ ] snappy
+  - [x] snappy
   - [ ] rar
   - [ ] 7zip
-  - [ ] zstandard
-  - [ ] zlib
-  - [ ] lz4
+  - [x] zstandard
+  - [x] zlib
+  - [x] lz4
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion

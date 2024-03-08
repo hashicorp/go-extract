@@ -39,7 +39,7 @@ func TestUnpackZstd(t *testing.T) {
 		archiveName   string
 		expectedName  string
 		cfg           *config.Config
-		generator     func(ctx context.Context, target string, data []byte) io.Reader
+		generator     func(target string, data []byte) io.Reader
 		testData      []byte
 		cancelContext bool
 		wantErr       bool
@@ -85,7 +85,7 @@ func TestUnpackZstd(t *testing.T) {
 			archivePath := filepath.Join(tmpDir, tt.archiveName)
 
 			// Create the source file
-			src := tt.generator(ctx, archivePath, tt.testData)
+			src := tt.generator(archivePath, tt.testData)
 			if closer, ok := src.(io.Closer); ok {
 				defer closer.Close()
 			}

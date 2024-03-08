@@ -133,6 +133,12 @@ var AvailableExtractors = []struct {
 		FileExtension: fileExtensionLZ4,
 	},
 	{
+		Unpacker:      UnpackSnappy,
+		HeaderCheck:   IsSnappy,
+		MagicBytes:    magicBytesSnappy,
+		FileExtension: fileExtensionSnappy,
+	},
+	{
 		Unpacker:      UnpackTar,
 		HeaderCheck:   IsTar,
 		MagicBytes:    magicBytesTar,
@@ -156,6 +162,12 @@ var AvailableExtractors = []struct {
 		HeaderCheck:   IsZlib,
 		MagicBytes:    magicBytesZlib,
 		FileExtension: fileExtensionZlib,
+	},
+	{
+		Unpacker:      UnpackZstd,
+		HeaderCheck:   IsZstd,
+		MagicBytes:    magicBytesZstd,
+		FileExtension: fileExtensionZstd,
 	},
 }
 
