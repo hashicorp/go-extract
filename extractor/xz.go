@@ -2,7 +2,6 @@ package extractor
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -56,7 +55,7 @@ func unpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) 
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionXz))
+	dst, outputName := determineOutputName(dst, src)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, xzStream, 0644); err != nil {

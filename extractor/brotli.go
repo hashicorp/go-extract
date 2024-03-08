@@ -16,6 +16,9 @@ var magicBytesBrotli = [][]byte{
 	{0xce, 0xb2, 0xcf, 0x81},
 }
 
+// fileExtensionBrotli is the file extension for brotli files
+var fileExtensionBrotli = "br"
+
 // IsBrotli checks if the header matches the magic bytes for brotli compressed files
 func IsBrotli(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBrotli)
@@ -35,7 +38,7 @@ func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// object to store metrics
-	metrics := config.Metrics{ExtractedType: "brotli"}
+	metrics := config.Metrics{ExtractedType: fileExtensionBrotli}
 	defer c.MetricsHook(ctx, &metrics)
 
 	// prepare gzip extraction
@@ -49,7 +52,8 @@ func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, ".br")
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, brotliStream, 0640); err != nil {
