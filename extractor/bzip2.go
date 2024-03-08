@@ -36,6 +36,5 @@ func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 }
 
 func decompressBz2Stream(src io.Reader, c *config.Config) (io.Reader, error) {
-	limitedReader := limitReader(src, c)
-	return bzip2.NewReader(limitedReader), nil
+	return bzip2.NewReader(src), nil
 }

@@ -46,7 +46,7 @@ func TestIsBrotli(t *testing.T) {
 
 func TestUnpackBrotli(t *testing.T) {
 
-	testData := []byte("Hello, World!")
+	inputData := []byte("Hello, World!")
 
 	tests := []struct {
 		name         string
@@ -63,7 +63,7 @@ func TestUnpackBrotli(t *testing.T) {
 			expectedName: "test",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
-			testData:     compressBrotli(testData),
+			testData:     compressBrotli(inputData),
 			wantErr:      false,
 		},
 		{
@@ -72,7 +72,7 @@ func TestUnpackBrotli(t *testing.T) {
 			expectedName: "test.decompressed",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
-			testData:     compressBrotli(testData),
+			testData:     compressBrotli(inputData),
 			wantErr:      false,
 		},
 		{
@@ -80,7 +80,7 @@ func TestUnpackBrotli(t *testing.T) {
 			expectedName: "goextract-decompressed-content",
 			cfg:          config.NewConfig(),
 			generator:    createByteReader,
-			testData:     compressBrotli(testData),
+			testData:     compressBrotli(inputData),
 			wantErr:      false,
 		},
 		{
@@ -89,7 +89,7 @@ func TestUnpackBrotli(t *testing.T) {
 			expectedName: "goextract-decompressed-content",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
-			testData:     testData,
+			testData:     inputData,
 			wantErr:      true,
 		},
 	}
@@ -126,8 +126,8 @@ func TestUnpackBrotli(t *testing.T) {
 				if err != nil {
 					t.Errorf("Error reading extracted file: %v", err)
 				}
-				if string(data) != string(testData) {
-					t.Errorf("Unpacked data is different from original data\n%v\n%v", string(data), string(tt.testData))
+				if string(data) != string(inputData) {
+					t.Errorf("%v: Unpacked data is different from original data\n'%v'\n'%v'", tt.name, string(data), string(inputData))
 				}
 
 			}

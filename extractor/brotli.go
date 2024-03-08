@@ -29,6 +29,5 @@ func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Conf
 
 // decompressBrotliStream returns an io.Reader that decompresses src with brotli algorithm
 func decompressBrotliStream(src io.Reader, c *config.Config) (io.Reader, error) {
-	limitedReader := limitReader(src, c)
-	return brotli.NewReader(limitedReader), nil
+	return brotli.NewReader(src), nil
 }

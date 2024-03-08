@@ -29,6 +29,5 @@ func UnpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
 func decompressLZ4Stream(src io.Reader, c *config.Config) (io.Reader, error) {
-	limitedReader := limitReader(src, c)
-	return lz4.NewReader(limitedReader), nil
+	return lz4.NewReader(src), nil
 }
