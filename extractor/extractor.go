@@ -109,25 +109,6 @@ var AvailableExtractors = []struct {
 	FileExtension string
 }{
 	{
-		Unpacker:      UnpackTar,
-		HeaderCheck:   IsTar,
-		MagicBytes:    magicBytesTar,
-		Offset:        offsetTar,
-		FileExtension: fileExtensionTar,
-	},
-	{
-		Unpacker:      UnpackZip,
-		HeaderCheck:   IsZip,
-		MagicBytes:    magicBytesZIP,
-		FileExtension: fileExtensionZIP,
-	},
-	{
-		Unpacker:      UnpackGZip,
-		HeaderCheck:   IsGZip,
-		MagicBytes:    magicBytesGZip,
-		FileExtension: fileExtensionGZip,
-	},
-	{
 		Unpacker:      UnpackBrotli,
 		HeaderCheck:   IsBrotli,
 		MagicBytes:    magicBytesBrotli,
@@ -140,10 +121,41 @@ var AvailableExtractors = []struct {
 		FileExtension: fileExtensionBzip2,
 	},
 	{
+		Unpacker:      UnpackGZip,
+		HeaderCheck:   IsGZip,
+		MagicBytes:    magicBytesGZip,
+		FileExtension: fileExtensionGZip,
+	},
+	{
+		Unpacker:      UnpackLZ4,
+		HeaderCheck:   IsLZ4,
+		MagicBytes:    magicBytesLZ4,
+		FileExtension: fileExtensionLZ4,
+	},
+	{
+		Unpacker:      UnpackTar,
+		HeaderCheck:   IsTar,
+		MagicBytes:    magicBytesTar,
+		Offset:        offsetTar,
+		FileExtension: fileExtensionTar,
+	},
+	{
 		Unpacker:      UnpackXz,
 		HeaderCheck:   IsXz,
 		MagicBytes:    magicBytesXz,
 		FileExtension: fileExtensionXz,
+	},
+	{
+		Unpacker:      UnpackZip,
+		HeaderCheck:   IsZip,
+		MagicBytes:    magicBytesZIP,
+		FileExtension: fileExtensionZIP,
+	},
+	{
+		Unpacker:      UnpackZlib,
+		HeaderCheck:   IsZlib,
+		MagicBytes:    magicBytesZlib,
+		FileExtension: fileExtensionZlib,
 	},
 }
 
