@@ -85,6 +85,11 @@ func TestUnpackZlib(t *testing.T) {
 
 			// create a reader
 			src := tt.generator(testFile, tt.testData)
+			defer func() {
+				if closer, ok := src.(io.Closer); ok {
+					closer.Close()
+				}
+			}()
 
 			// cancel if necessary
 			if tt.cancelContext {
