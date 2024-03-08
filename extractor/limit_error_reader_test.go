@@ -1,4 +1,4 @@
-package config
+package extractor
 
 import (
 	"strings"
@@ -36,8 +36,8 @@ func TestReadBytes(t *testing.T) {
 			limit:      4,
 			input:      "12345",
 			bufferSize: 5,
-			expectN:    5,
-			wantErr:    true,
+			expectN:    4,
+			wantErr:    false,
 		},
 		{
 			name:       "Under limit with buffer",
@@ -103,8 +103,8 @@ func TestLimitErrorReader_Read(t *testing.T) {
 			name:    "Over limit",
 			limit:   4,
 			input:   "12345",
-			expectN: 5,
-			wantErr: true,
+			expectN: 4,
+			wantErr: false,
 		},
 	}
 

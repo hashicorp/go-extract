@@ -1,4 +1,4 @@
-package config
+package extractor
 
 import (
 	"fmt"
@@ -17,24 +17,23 @@ type LimitErrorReader struct {
 // Read reads from the underlying reader and fills up p.
 // It returns an error if the limit is exceeded, even if the underlying reader is not fully read.
 // If the limit is -1, all data from the original reader is read.
-// Remark: Even if the limit is exceeded, the buffer p is filled up to the max or until the underlying
-// reader is fully read.
 func (l *LimitErrorReader) Read(p []byte) (int, error) {
 
-	// read from underlying reader and preserve error type
-	n, err := l.R.Read(p)
-	l.N += int64(n)
-	if err != nil {
-		return n, err
+	// determine how many bytes to read
+	m := l.L - l.N
+	if l.L == -1 || m > int64(len(p)) {
+		m = int64(len(p))
 	}
 
 	// check if limit has exceeded
-	if l.L >= 0 && l.N > l.L {
-		return n, fmt.Errorf("read limit exceeded")
+	if m == 0 {
+		return 0, fmt.Errorf("read limit exceeded")
 	}
 
-	// return
-	return n, nil
+	// read from underlying reader and preserve error type
+	n, err := l.R.Read(p[:m])
+	l.N += int64(n)
+	return n, err
 }
 
 // ReadBytes returns how many bytes have been read from the underlying reader

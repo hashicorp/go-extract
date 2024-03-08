@@ -60,7 +60,7 @@ func determineOutputName(dst string, src io.Reader, suffix string) (string, stri
 // different extractor engines can be used independently and keep their
 // functionality.
 func limitReader(src io.Reader, c *config.Config) io.Reader {
-	ler := config.NewLimitErrorReader(src, c.MaxInputSize())
+	ler := NewLimitErrorReader(src, c.MaxInputSize())
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.InputSize = int64(ler.ReadBytes())
 	})

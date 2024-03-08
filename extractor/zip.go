@@ -78,7 +78,7 @@ func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config
 	cfg.Logger().Info("caching zip input")
 
 	// create limit error reader for src
-	ler := config.NewLimitErrorReader(src, cfg.MaxInputSize())
+	ler := limitReader(src, cfg)
 
 	// cache src in temp file for extraction
 	if !cfg.CacheInMemory() {
