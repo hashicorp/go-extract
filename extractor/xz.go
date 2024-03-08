@@ -27,7 +27,7 @@ func UnpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) 
 	return decompress(ctx, src, dst, c, decompressXzStream, fileExtensionXz)
 }
 
-// decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
+// decompressZlibStream returns an io.Reader that decompresses src with xz algorithm
 func decompressXzStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return xz.NewReader(src)
 }

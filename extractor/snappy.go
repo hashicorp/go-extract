@@ -21,7 +21,7 @@ func IsSnappy(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesSnappy)
 }
 
-// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.
 func UnpackSnappy(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 	return decompress(ctx, src, dst, c, decompressSnappyStream, fileExtensionSnappy)
 }
