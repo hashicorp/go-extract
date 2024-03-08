@@ -3,8 +3,6 @@ package extractor
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/andybalholm/brotli"
 	"github.com/hashicorp/go-extract/config"
@@ -26,46 +24,11 @@ func IsBrotli(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the brotli decompression from src to dst.
 func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	// unpack
-	return unpackBrotli(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressBrotliStream, "br")
 }
 
-// Unpack decompresses src with brotli algorithm into dst.
-func unpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionBrotli}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare gzip extraction
-	c.Logger().Info("extracting brotli")
+// decompressBrotliStream returns an io.Reader that decompresses src with brotli algorithm
+func decompressBrotliStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	limitedReader := limitReader(src, c)
-	brotliStream := brotli.NewReader(limitedReader)
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src)
-	c.Logger().Debug("determined output name", "name", outputName)
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, brotliStream, 0640); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+	return brotli.NewReader(limitedReader), nil
 }

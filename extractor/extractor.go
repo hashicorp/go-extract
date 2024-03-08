@@ -128,7 +128,7 @@ var AvailableExtractors = []struct {
 		FileExtension: fileExtensionGZip,
 	},
 	{
-		Unpacker:      unpackBrotli,
+		Unpacker:      UnpackBrotli,
 		HeaderCheck:   IsBrotli,
 		MagicBytes:    magicBytesBrotli,
 		FileExtension: fileExtensionBrotli,

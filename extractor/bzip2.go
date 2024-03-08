@@ -4,8 +4,6 @@ import (
 	"compress/bzip2"
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -34,46 +32,10 @@ func IsBzip2(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the bzip2 decompression from src to dst.
 func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	// unpack
-	return unpackBzip2(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressBz2Stream, "bz2")
 }
 
-// Unpack decompresses src with bzip2 algorithm into dst.
-func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionBzip2}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare bzip2 extraction
-	c.Logger().Info("extracting bzip2")
+func decompressBz2Stream(src io.Reader, c *config.Config) (io.Reader, error) {
 	limitedReader := limitReader(src, c)
-	bzip2Stream := bzip2.NewReader(limitedReader)
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src)
-	c.Logger().Debug("determined output name", "name", outputName)
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, bzip2Stream, 0640); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+	return bzip2.NewReader(limitedReader), nil
 }

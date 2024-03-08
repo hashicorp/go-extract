@@ -2,10 +2,7 @@ package extractor
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/pierrec/lz4/v4"
@@ -25,47 +22,13 @@ func IsLZ4(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesLZ4)
 }
 
-// Unpack sets a timeout for the ctx and starts the lz4 decompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
 func UnpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	// unpack
-	return unpackLZ4(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressLZ4Stream, fileExtensionLZ4)
 }
 
-// Unpack decompresses src with lz4 algorithm into dst.
-func unpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionLZ4}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare lz4 decompression extraction
-	c.Logger().Info("extracting lz4")
+// decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
+func decompressLZ4Stream(src io.Reader, c *config.Config) (io.Reader, error) {
 	limitedReader := limitReader(src, c)
-	lz4Stream := lz4.NewReader(limitedReader)
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionLZ4))
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, lz4Stream, 0644); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+	return lz4.NewReader(limitedReader), nil
 }

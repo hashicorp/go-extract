@@ -3,10 +3,7 @@ package extractor
 import (
 	"compress/zlib"
 	"context"
-	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -34,48 +31,12 @@ func IsZlib(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
 func UnpackZlib(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	// unpack
-	return unpackZlib(ctx, src, dst, c)
+	c.Logger().Info("decompress zlib")
+	return decompress(ctx, src, dst, c, decompressZlibStream, fileExtensionZlib)
 }
 
-// Unpack decompresses src with zlib algorithm into dst.
-func unpackZlib(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionZlib}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare zlib decompression extraction
-	c.Logger().Info("extracting zlib")
+// decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
+func decompressZlibStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	limitedReader := limitReader(src, c)
-	zlibStream, err := zlib.NewReader(limitedReader)
-	if err != nil {
-		return handleError(c, &metrics, "cannot create zlib reader", err)
-	}
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExtensionZlib))
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, zlibStream, 0644); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+	return zlib.NewReader(limitedReader)
 }
