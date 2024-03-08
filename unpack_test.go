@@ -17,13 +17,13 @@ import (
 	"github.com/hashicorp/go-extract/extractor"
 )
 
-// TestFindExtractor implements test cases
-func TestFindExtractor(t *testing.T) {
+// TestGetUnpackFunction implements test cases
+func TestGetUnpackFunction(t *testing.T) {
 	// test cases
 	cases := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
-		expected       extractor.UnpackFkt
+		expected       extractor.UnpackFunc
 	}{
 		{
 			name:           "get zip extractor from file",
@@ -68,7 +68,7 @@ func TestFindExtractor(t *testing.T) {
 				f.Close()
 				t.Fatal(err)
 			}
-			got := findExtractor(input)
+			got := GetUnpackFunction(input)
 			f.Close()
 
 			// success if both are nil and no engine found
@@ -451,7 +451,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
 				ExtractionSize:   1024,
-				ExtractedType:    "gzip",
+				ExtractedType:    "gz",
 			},
 			expectError: false,
 		},
@@ -469,7 +469,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
 				ExtractionSize:   1024,
-				ExtractedType:    "gzip",
+				ExtractedType:    "gz",
 			},
 			expectError: false,
 		},
@@ -488,7 +488,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
 				ExtractionSize:   0,
-				ExtractedType:    "gzip",
+				ExtractedType:    "gz",
 			},
 			expectError: true,
 		},
@@ -507,7 +507,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
 				ExtractionSize:   1024,
-				ExtractedType:    "gzip",
+				ExtractedType:    "gz",
 			},
 			expectError: false,
 		},
@@ -561,7 +561,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   5,
 				ExtractionErrors: 0,
 				ExtractionSize:   1024 * 5,
-				ExtractedType:    "tar+gzip",
+				ExtractedType:    "tar.gz",
 			},
 			expectError: false,
 		},
@@ -579,7 +579,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   4,
 				ExtractionErrors: 1,
 				ExtractionSize:   1024 * 4,
-				ExtractedType:    "tar+gzip",
+				ExtractedType:    "tar.gz",
 			},
 			expectError: true,
 		},
@@ -597,7 +597,7 @@ func TestMetriksHook(t *testing.T) {
 				ExtractedFiles:   0,
 				ExtractionErrors: 5,
 				ExtractionSize:   0,
-				ExtractedType:    "tar+gzip",
+				ExtractedType:    "tar.gz",
 			},
 			expectError: false,
 		},
@@ -690,6 +690,57 @@ func TestMetriksHook(t *testing.T) {
 				t.Errorf("test case %d failed: %s (ExtractedType)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractedType, collectedMetrics.ExtractedType)
 			}
 
+		})
+	}
+}
+
+func TestIsKnownArchiveFileExtension(t *testing.T) {
+	tests := []struct {
+		name     string
+		filename string
+		want     bool
+	}{
+		{
+			name:     "known extension",
+			filename: "test.zip",
+			want:     true,
+		},
+		{
+			name:     "known extension",
+			filename: "test.tar",
+			want:     true,
+		},
+		{
+			name:     "known extension",
+			filename: "test.tar.gz",
+			want:     true,
+		},
+		{
+			name:     "known extension",
+			filename: "test.br",
+			want:     true,
+		},
+		{
+			name:     "known extension",
+			filename: "test.bZ2",
+			want:     true,
+		},
+		{
+			name:     "unknown extension",
+			filename: "test.txt",
+			want:     false,
+		},
+		{
+			name:     "unknown extension",
+			filename: "test",
+			want:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsKnownArchiveFileExtension(tt.filename); got != tt.want {
+				t.Errorf("IsKnownArchiveFileExtension(%s) = %v, want %v", tt.filename, got, tt.want)
+			}
 		})
 	}
 }

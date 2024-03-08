@@ -18,6 +18,9 @@ var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
+// fileExtensionZIP is the file extension for zip files.
+var fileExtensionZIP = "zip"
+
 // IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func IsZip(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesZIP)
@@ -28,7 +31,7 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 
 	// prepare metrics collection and emit
 	captureExtractionDuration(cfg)
-	m := &config.Metrics{ExtractedType: "zip"}
+	m := &config.Metrics{ExtractedType: fileExtensionZIP}
 	defer cfg.MetricsHook(ctx, m)
 
 	// check if src is a readerAt and an io.Seeker

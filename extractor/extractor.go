@@ -28,7 +28,7 @@ type SeekerReaderAt interface {
 }
 
 // determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader, suffix string) (string, string) {
+func determineOutputName(dst string, src io.Reader) (string, string) {
 
 	// check if dst is specified and not a directory
 	if dst != "." && dst != "" {
@@ -37,22 +37,20 @@ func determineOutputName(dst string, src io.Reader, suffix string) (string, stri
 		}
 	}
 
-	// get get only letter from file extension
-	ext := strings.ReplaceAll(suffix, ".", "")
-
 	// check if src is a file and the filename is ending with the suffix
 	// remove the suffix from the filename and use it as output name
 	if f, ok := src.(*os.File); ok {
+
 		name := filepath.Base(f.Name())
-		newName := strings.TrimSuffix(name, suffix)
+		newName := strings.TrimSuffix(name, filepath.Ext(name))
 		if name != newName && newName != "" {
 			return dst, newName
 		}
 
 		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, fmt.Sprintf("%s.decompressed-%s", newName, ext)
+		return dst, fmt.Sprintf("%s.decompressed", newName)
 	}
-	return dst, fmt.Sprintf("decompressed-%s", ext)
+	return dst, "goextract-decompressed-content"
 }
 
 // limitReader ensures that the input size is limited and the input size is captured
@@ -95,8 +93,8 @@ func captureExtractionDuration(c *config.Config) {
 	})
 }
 
-// UnpackFkt is a function that extracts the contents from src and extracts them to dst.
-type UnpackFkt func(context.Context, io.Reader, string, *config.Config) error
+// UnpackFunc is a function that extracts the contents from src and extracts them to dst.
+type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
 
 // HeaderCheck is a function that checks if the given header matches the expected magic bytes.
 type HeaderCheck func([]byte) bool
@@ -104,41 +102,48 @@ type HeaderCheck func([]byte) bool
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = []struct {
-	Unpacker    UnpackFkt
-	HeaderCheck HeaderCheck
-	MagicBytes  [][]byte
-	Offset      int
+	Unpacker      UnpackFunc
+	HeaderCheck   HeaderCheck
+	MagicBytes    [][]byte
+	Offset        int
+	FileExtension string
 }{
 	{
-		Unpacker:    UnpackTar,
-		HeaderCheck: IsTar,
-		MagicBytes:  magicBytesTar,
-		Offset:      offsetTar,
+		Unpacker:      UnpackTar,
+		HeaderCheck:   IsTar,
+		MagicBytes:    magicBytesTar,
+		Offset:        offsetTar,
+		FileExtension: fileExtensionTar,
 	},
 	{
-		Unpacker:    UnpackZip,
-		HeaderCheck: IsZip,
-		MagicBytes:  magicBytesZIP,
+		Unpacker:      UnpackZip,
+		HeaderCheck:   IsZip,
+		MagicBytes:    magicBytesZIP,
+		FileExtension: fileExtensionZIP,
 	},
 	{
-		Unpacker:    UnpackGZip,
-		HeaderCheck: IsGZip,
-		MagicBytes:  magicBytesGZip,
+		Unpacker:      UnpackGZip,
+		HeaderCheck:   IsGZip,
+		MagicBytes:    magicBytesGZip,
+		FileExtension: fileExtensionGZip,
 	},
 	{
-		Unpacker:    unpackBrotli,
-		HeaderCheck: IsBrotli,
-		MagicBytes:  magicBytesBrotli,
+		Unpacker:      unpackBrotli,
+		HeaderCheck:   IsBrotli,
+		MagicBytes:    magicBytesBrotli,
+		FileExtension: fileExtensionBrotli,
 	},
 	{
-		Unpacker:    UnpackBzip2,
-		HeaderCheck: IsBzip2,
-		MagicBytes:  magicBytesBzip2,
+		Unpacker:      UnpackBzip2,
+		HeaderCheck:   IsBzip2,
+		MagicBytes:    magicBytesBzip2,
+		FileExtension: fileExtensionBzip2,
 	},
 	{
-		Unpacker:    UnpackXz,
-		HeaderCheck: IsXz,
-		MagicBytes:  magicBytesXz,
+		Unpacker:      UnpackXz,
+		HeaderCheck:   IsXz,
+		MagicBytes:    magicBytesXz,
+		FileExtension: fileExtensionXz,
 	},
 }
 

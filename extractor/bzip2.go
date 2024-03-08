@@ -24,6 +24,9 @@ var magicBytesBzip2 = [][]byte{
 	[]byte("BZh9"),
 }
 
+// fileExtensionBzip2 is the file extension for bzip2 files
+var fileExtensionBzip2 = "bz2"
+
 // IsBzip2 checks if the header matches the magic bytes for bzip2 compressed files
 func IsBzip2(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBzip2)
@@ -43,7 +46,7 @@ func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// object to store metrics
-	metrics := config.Metrics{ExtractedType: "bzip2"}
+	metrics := config.Metrics{ExtractedType: fileExtensionBzip2}
 	defer c.MetricsHook(ctx, &metrics)
 
 	// prepare bzip2 extraction
@@ -57,7 +60,8 @@ func unpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Confi
 	}
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, ".bz2")
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, bzip2Stream, 0640); err != nil {

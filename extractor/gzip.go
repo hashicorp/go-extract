@@ -3,6 +3,7 @@ package extractor
 import (
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +16,9 @@ import (
 var magicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
+
+// fileExtensionGZip is the file extension for gzip files
+var fileExtensionGZip = "gz"
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
@@ -37,7 +41,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// object to store metrics
 	// remark: do not setup MetricsHook here, bc/ in case of tar+gzip, the
 	// tar extractor should submit the metrics
-	metrics := config.Metrics{ExtractedType: "gzip"}
+	metrics := config.Metrics{ExtractedType: fileExtensionGZip}
 
 	// prepare gzip extraction
 	c.Logger().Info("extracting gzip")
@@ -70,7 +74,7 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	if checkUntar && IsTar(headerBytes) {
 		// combine types
 		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
-			m.ExtractedType = "tar+gzip"
+			m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, fileExtensionGZip)
 		})
 
 		// continue with tar extraction
@@ -81,7 +85,8 @@ func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 	defer c.MetricsHook(ctx, &metrics)
 
 	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src, ".gz")
+	dst, outputName := determineOutputName(dst, src)
+	c.Logger().Debug("determined output name", "name", outputName)
 
 	// Create file
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0640); err != nil {
