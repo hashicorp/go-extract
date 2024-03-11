@@ -33,6 +33,10 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 			closer.Close()
 		}
 	}()
+	// check if context is canceled
+	if err := ctx.Err(); err != nil {
+		return handleError(c, &metrics, "context error", err)
+	}
 
 	// convert to peek header
 	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
@@ -72,9 +76,11 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 
 	// capture telemetry
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
+	stat, err := os.Stat(filepath.Join(dst, outputName))
+	if err != nil {
+		return handleError(c, &metrics, "cannot stat file", err)
 	}
+	metrics.ExtractionSize = stat.Size()
 	metrics.ExtractedFiles++
 
 	// finished
