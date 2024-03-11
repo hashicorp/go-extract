@@ -1,11 +1,11 @@
 package extractor
 
 import (
-	"compress/gzip"
 	"context"
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/klauspost/pgzip"
 )
 
 // magicBytesGZip are the magic bytes for gzip compressed files
@@ -29,5 +29,6 @@ func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 // decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm
 func decompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
-	return gzip.NewReader(src)
+	return pgzip.NewReader(src)
+	// return gzip.NewReader(src)
 }
