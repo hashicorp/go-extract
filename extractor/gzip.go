@@ -1,11 +1,11 @@
 package extractor
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/klauspost/pgzip"
 )
 
 // magicBytesGZip are the magic bytes for gzip compressed files
@@ -18,7 +18,7 @@ var magicBytesGZip = [][]byte{
 var fileExtensionGZip = "gz"
 
 // gzipReader is a global variable to avoid creating a new reader for each file
-var gzipReader *pgzip.Reader
+var gzipReader *gzip.Reader
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
@@ -36,7 +36,7 @@ func decompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	// create a new gzip reader
 	if gzipReader == nil {
 		var err error
-		gzipReader, err = pgzip.NewReader(src)
+		gzipReader, err = gzip.NewReader(src)
 		if err != nil {
 			return nil, err
 		}
