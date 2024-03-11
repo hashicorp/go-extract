@@ -30,6 +30,9 @@ type Metrics struct {
 	// ExtractedType is the type of the archive
 	ExtractedType string
 
+	// hook is a function pointer to consume metrics after finished extraction
+	hook MetricsHook
+
 	// InputSize is the size of the input
 	InputSize int64
 
@@ -73,7 +76,7 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 }
 
 // MetricsHook emits metrics to hook and applies all registered metricsProcessor
-func (m *Metrics) Submit(ctx context.Context, hook MetricsHook) {
+func (m *Metrics) Submit(ctx context.Context) {
 
 	// process metrics in reverse order
 	for i := len(m.metricsProcessor) - 1; i >= 0; i-- {
@@ -81,12 +84,19 @@ func (m *Metrics) Submit(ctx context.Context, hook MetricsHook) {
 	}
 
 	// emit metrics
-	if hook != nil {
-		hook(ctx, m)
+	if m.hook != nil {
+		m.hook(ctx, m)
 	}
 }
 
 // AddMetricsProcessor adds a metrics processor to the config
 func (m *Metrics) AddProcessor(hook MetricsHook) {
 	m.metricsProcessor = append(m.metricsProcessor, hook)
+}
+
+func NewMetrics(eType string, hook MetricsHook) *Metrics {
+	return &Metrics{
+		ExtractedType: eType,
+		hook:          hook,
+	}
 }
