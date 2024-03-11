@@ -17,10 +17,6 @@ var magicBytesGZip = [][]byte{
 // fileExtensionGZip is the file extension for gzip files
 var fileExtensionGZip = "gz"
 
-// gzipReader is a global variable to avoid creating a new reader for each file
-// WARNING: this is not thread safe
-var gzipReader *gzip.Reader
-
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesGZip)
@@ -33,17 +29,5 @@ func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 // decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm
 func decompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
-
-	var err error
-	// reset the reader to use the new source
-	if gzipReader != nil {
-		err = gzipReader.Reset(src)
-	}
-
-	// create a new gzip reader, or reuse the existing one
-	if gzipReader == nil {
-		gzipReader, err = gzip.NewReader(src)
-	}
-
-	return gzipReader, err
+	return gzip.NewReader(src)
 }
