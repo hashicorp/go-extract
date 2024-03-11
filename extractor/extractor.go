@@ -57,9 +57,9 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 // remark: this preparation is located in the extractor package so that the
 // different extractor engines can be used independently and keep their
 // functionality.
-func limitReader(src io.Reader, c *config.Config) io.Reader {
+func limitReader(src io.Reader, c *config.Config, m *config.Metrics) io.Reader {
 	ler := NewLimitErrorReader(src, c.MaxInputSize())
-	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+	m.AddProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.InputSize = int64(ler.ReadBytes())
 	})
 	return ler
@@ -86,9 +86,9 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 }
 
 // captureExtractionDuration ensures that the extraction duration is captured
-func captureExtractionDuration(c *config.Config) {
+func captureExtractionDuration(m *config.Metrics) {
 	start := now()
-	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
+	m.AddProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.ExtractionDuration = time.Since(start) // capture execution time
 	})
 }

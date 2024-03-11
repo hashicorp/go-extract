@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -47,34 +46,6 @@ func TestCheckMaxFiles(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestCheckMaxInputSize implements test cases
-func TestWithMetricsHook(t *testing.T) {
-	hookExecuted := false
-	hook := func(ctx context.Context, metrics *Metrics) {
-		hookExecuted = true
-	}
-
-	config := &Config{}
-	option := WithMetricsHook(hook)
-	option(config)
-	config.MetricsHook(context.Background(), &Metrics{})
-
-	if hookExecuted == false {
-		t.Errorf("Expected MetricsHook to be executed, but it was not")
-	}
-
-	otherHookExecuted := false
-	otherHook := func(ctx context.Context, metrics *Metrics) {
-		otherHookExecuted = true
-	}
-	config.AddMetricsProcessor(otherHook)
-	config.MetricsHook(context.Background(), &Metrics{})
-	if otherHookExecuted == false {
-		t.Errorf("Expected MetricsHook to be executed, but it was not")
-	}
-
 }
 
 // TestWithMaxFiles implements test cases
@@ -128,21 +99,6 @@ func TestWithPattern(t *testing.T) {
 		if cfg.Patterns()[i] != p {
 			t.Errorf("WithPattern() pattern = %v, want %v", cfg.patterns[i], p)
 		}
-	}
-}
-
-func TestAddMetricsProcessor(t *testing.T) {
-	config := &Config{}
-	hook := func(ctx context.Context, m *Metrics) {}
-
-	if len(config.metricsProcessor) > 0 {
-		t.Errorf("Expected metricsProcessor to be empty, but it was not")
-	}
-
-	config.AddMetricsProcessor(hook)
-
-	if len(config.metricsProcessor) != 1 {
-		t.Errorf("AddMetricsProcessor() did not add hook to metricsProcessor")
 	}
 }
 

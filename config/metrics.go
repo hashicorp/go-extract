@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -35,6 +36,9 @@ type Metrics struct {
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
 
+	// metricsProcessor performs operations on metrics before submitting to hook
+	metricsProcessor []MetricsHook
+
 	// PatternMismatches is the number of skipped files
 	PatternMismatches int64
 
@@ -66,4 +70,23 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 		LastExtractionError: lastError,
 		Alias:               (*Alias)(&m),
 	})
+}
+
+// MetricsHook emits metrics to hook and applies all registered metricsProcessor
+func (m *Metrics) Submit(ctx context.Context, hook MetricsHook) {
+
+	// process metrics in reverse order
+	for i := len(m.metricsProcessor) - 1; i >= 0; i-- {
+		m.metricsProcessor[i](ctx, m)
+	}
+
+	// emit metrics
+	if hook != nil {
+		hook(ctx, m)
+	}
+}
+
+// AddMetricsProcessor adds a metrics processor to the config
+func (m *Metrics) AddProcessor(hook MetricsHook) {
+	m.metricsProcessor = append(m.metricsProcessor, hook)
 }

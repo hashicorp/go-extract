@@ -30,9 +30,9 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
-	captureExtractionDuration(cfg)
 	m := &config.Metrics{ExtractedType: fileExtensionZIP}
-	defer cfg.MetricsHook(ctx, m)
+	captureExtractionDuration(m)
+	defer m.Submit(ctx, cfg.MetricsHook())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
@@ -81,7 +81,7 @@ func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config
 	cfg.Logger().Info("caching zip input")
 
 	// create limit error reader for src
-	ler := limitReader(src, cfg)
+	ler := limitReader(src, cfg, m)
 
 	// cache src in temp file for extraction
 	if !cfg.CacheInMemory() {

@@ -46,9 +46,6 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxInputSize int64
 
-	// metricsProcessor performs operations on metrics before submitting to hook
-	metricsProcessor []MetricsHook
-
 	// metricsHook is a function pointer to consume metrics after finished extraction
 	// Important: do not adjust this value after extraction started
 	metricsHook MetricsHook
@@ -220,28 +217,9 @@ func (c *Config) ContinueOnUnsupportedFiles() bool {
 	return c.continueOnUnsupportedFiles
 }
 
-// MetricsHook emits metrics to hook and applies all registered metricsProcessor
-func (c *Config) MetricsHook(ctx context.Context, metrics *Metrics) {
-
-	// emit metrics in reverse order
-	for i := len(c.metricsProcessor) - 1; i >= 0; i-- {
-		c.metricsProcessor[i](ctx, metrics)
-	}
-
-	if c.metricsHook != nil {
-		// emit metrics
-		c.metricsHook(ctx, metrics)
-	}
-}
-
 // CacheInMemory returns true if caching in memory is enabled
 func (c *Config) CacheInMemory() bool {
 	return c.cacheInMemory
-}
-
-// AddMetricsProcessor adds a metrics processor to the config
-func (c *Config) AddMetricsProcessor(hook MetricsHook) {
-	c.metricsProcessor = append(c.metricsProcessor, hook)
 }
 
 // WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the
@@ -330,4 +308,9 @@ func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
 		c.createDestination = create
 	}
+}
+
+// MetricsHook returns the metrics hook
+func (c *Config) MetricsHook() MetricsHook {
+	return c.metricsHook
 }
