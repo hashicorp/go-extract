@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"io"
 	"os"
@@ -20,92 +21,92 @@ func TestTarUnpackNew(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		content     []tarContent
+		content     []byte
 		opts        []config.ConfigOption
 		expectError bool
 		ctx         context.Context
 	}{
 		{
 			name:        "unpack normal tar",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}}),
 			expectError: false,
 		},
 		{
 			name:        "unpack normal tar, but pattern mismatch",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}}),
 			opts:        []config.ConfigOption{config.WithPatterns("*foo")},
 			expectError: false,
 		},
 		{
 			name:        "unpack normal tar, but context canceled",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}}),
 			ctx:         canceledCtx,
 			expectError: true,
 		},
 		{
 			name: "unpack normal tar with 5 files",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "test1", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test2", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test3", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test4", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test5", Mode: 0640, Filetype: tar.TypeReg},
-			},
+			}),
 			expectError: false,
 		},
 		{
 			name: "unpack normal tar with 5 files, but file limit",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "test1", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test2", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test3", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test4", Mode: 0640, Filetype: tar.TypeReg},
 				{Content: []byte("foobar content"), Name: "test5", Mode: 0640, Filetype: tar.TypeReg},
-			},
+			}),
 			opts:        []config.ConfigOption{config.WithMaxFiles(4)},
 			expectError: true,
 		},
 		{
 			name:        "unpack normal tar, but extraction size exceeded",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg}}),
 			opts:        []config.ConfigOption{config.WithMaxExtractionSize(1)},
 			expectError: true,
 		},
 		{
 			name:        "unpack malicious tar, with traversal",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "../test", Mode: 0640, Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "../test", Mode: 0640, Filetype: tar.TypeReg}}),
 			expectError: true,
 		},
 		{
 			name:        "unpack normal tar with symlink",
-			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			content:     packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}}),
 			expectError: false,
 		},
 		{
 			name:        "unpack tar with traversal in directory",
-			content:     []tarContent{{Name: "../test", Filetype: tar.TypeDir}},
+			content:     packTarWithContent([]tarContent{{Name: "../test", Filetype: tar.TypeDir}}),
 			expectError: true,
 		},
 		{
 			name:        "unpack tar with traversal in directory",
-			content:     []tarContent{{Name: "../test", Filetype: tar.TypeDir}},
+			content:     packTarWithContent([]tarContent{{Name: "../test", Filetype: tar.TypeDir}}),
 			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
 			expectError: false,
 		},
 		{
 			name:        "unpack normal tar with traversal symlink",
-			content:     []tarContent{{Name: "foo", Linktarget: "../bar", Filetype: tar.TypeLink}},
+			content:     packTarWithContent([]tarContent{{Name: "foo", Linktarget: "../bar", Filetype: tar.TypeLink}}),
 			expectError: true,
 		},
 		{
 			name:        "unpack normal tar with symlink, but symlinks are denied",
-			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			content:     packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}}),
 			opts:        []config.ConfigOption{config.WithDenySymlinkExtraction(true)},
 			expectError: true,
 		},
 		{
 			name:    "unpack normal tar with symlink, but symlinks are denied, but continue on error",
-			content: []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			content: packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}}),
 			opts: []config.ConfigOption{
 				config.WithDenySymlinkExtraction(true),
 				config.WithContinueOnError(true),
@@ -114,7 +115,7 @@ func TestTarUnpackNew(t *testing.T) {
 		},
 		{
 			name:    "unpack normal tar with symlink, but symlinks are denied, but continue on unsupported files",
-			content: []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}},
+			content: packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "testTarget"}}),
 			opts: []config.ConfigOption{
 				config.WithDenySymlinkExtraction(true),
 				config.WithContinueOnUnsupportedFiles(true),
@@ -123,90 +124,90 @@ func TestTarUnpackNew(t *testing.T) {
 		},
 		{
 			name:        "unpack normal tar with absolute path in symlink",
-			content:     []tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "/absolute-target"}},
+			content:     packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "/absolute-target"}}),
 			expectError: true,
 		},
 		{
 			name:        "malicious tar with symlink name path traversal",
-			content:     []tarContent{{Name: "../testLink", Filetype: tar.TypeSymlink, Linktarget: "target"}},
+			content:     packTarWithContent([]tarContent{{Name: "../testLink", Filetype: tar.TypeSymlink, Linktarget: "target"}}),
 			expectError: true,
 		},
 		{
 			name:        "malicious tar with .. as filename",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: "..", Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: "..", Filetype: tar.TypeReg}}),
 			expectError: true,
 		},
 		{
 			name:        "malicious tar with . as filename",
-			content:     []tarContent{{Content: []byte("foobar content"), Name: ".", Filetype: tar.TypeReg}},
+			content:     packTarWithContent([]tarContent{{Content: []byte("foobar content"), Name: ".", Filetype: tar.TypeReg}}),
 			expectError: true,
 		},
 		{
 			name:        "malicious tar with FIFO filetype",
-			content:     []tarContent{{Name: "fifo", Filetype: tar.TypeFifo}},
+			content:     packTarWithContent([]tarContent{{Name: "fifo", Filetype: tar.TypeFifo}}),
 			expectError: true,
 		},
 		{
 			name:        "malicious tar with FIFO filetype, but continue on error",
-			content:     []tarContent{{Name: "fifo", Filetype: tar.TypeFifo}},
+			content:     packTarWithContent([]tarContent{{Name: "fifo", Filetype: tar.TypeFifo}}),
 			opts:        []config.ConfigOption{config.WithContinueOnUnsupportedFiles(true)},
 			expectError: false,
 		},
 		{
 			name: "malicious tar with zip slip attack",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Name: "sub/to-parent", Filetype: tar.TypeSymlink, Linktarget: "../"},
 				{Name: "sub/to-parent/one-above", Filetype: tar.TypeSymlink, Linktarget: "../"},
-			},
+			}),
 			expectError: true,
 		},
 		{
 			name:        "tar with legit git pax_global_header",
-			content:     []tarContent{{Content: []byte(""), Name: "pax_global_header", Filetype: tar.TypeXGlobalHeader}},
+			content:     packTarWithContent([]tarContent{{Content: []byte(""), Name: "pax_global_header", Filetype: tar.TypeXGlobalHeader}}),
 			expectError: false,
 		},
 		{
 			name: "absolute path in filename (windows)",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "c:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
-			},
+			}),
 			expectError: false,
 		},
 		{
 			name: "absolute path in filename",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "/absolute-path", Mode: 0640, Filetype: tar.TypeReg},
-			},
+			}),
 			expectError: false,
 		},
 		{
 			name: "extract a directory",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Name: "test", Filetype: tar.TypeDir},
-			},
+			}),
 			expectError: false,
 		},
 		{
 			name: "extract a file with traversal, but continue on error",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "../test", Mode: 0640, Filetype: tar.TypeReg},
-			},
+			}),
 			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
 			expectError: false,
 		},
 		{
 			name: "extract a symlink with traversal, but continue on error",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Name: "foo", Linktarget: "../bar", Filetype: tar.TypeSymlink},
-			},
+			}),
 			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
 			expectError: false,
 		},
 		{
 			name: "tar with hard link, with error, but continue on error",
-			content: []tarContent{
+			content: packTarWithContent([]tarContent{
 				{Name: "testLink", Filetype: tar.TypeLink, Linktarget: "testTarget"},
-			},
+			}),
 			opts:        []config.ConfigOption{config.WithContinueOnError(true)},
 			expectError: false,
 		},
@@ -225,7 +226,7 @@ func TestTarUnpackNew(t *testing.T) {
 			ctx := tc.ctx
 
 			// perform actual tests
-			input := createTarWithContent(filepath.Join(testDir, "test.tar"), tc.content)
+			input := createFile(filepath.Join(testDir, "test.tar"), tc.content)
 			want := tc.expectError
 			err := UnpackTar(ctx, input, testDir, config.NewConfig(tc.opts...))
 			defer input.(io.Closer).Close()
@@ -247,12 +248,12 @@ type tarContent struct {
 	Filetype   byte
 }
 
-// createTarWithContent creates a tar file with the given content
-func createTarWithContent(target string, content []tarContent) io.Reader {
+// packTarWithContent creates a tar file with the given content
+func packTarWithContent(content []tarContent) []byte {
 
-	// create tar file
-	file, tw := createTar(target)
-	defer file.Close()
+	// create tar writer
+	writeBuffer := bytes.NewBuffer([]byte{})
+	tw := tar.NewWriter(writeBuffer)
 
 	// write content
 	for _, c := range content {
@@ -282,19 +283,5 @@ func createTarWithContent(target string, content []tarContent) io.Reader {
 		panic(err)
 	}
 
-	// return reader
-	file, err := os.Open(target)
-	if err != nil {
-		panic(err)
-	}
-	return file
-}
-
-// createTar is a helper function to generate test content
-func createTar(filePath string) (*os.File, *tar.Writer) {
-	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-	if err != nil {
-		panic(err)
-	}
-	return f, tar.NewWriter(f)
+	return writeBuffer.Bytes()
 }

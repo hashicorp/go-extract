@@ -181,8 +181,8 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	if cfg.MaxExtractionSize() >= 0 {
 
 		// encapsulate reader with limit reader
-		ler := config.NewLimitErrorReader(reader, cfg.MaxExtractionSize())
-		if _, err = io.Copy(dstFile, ler); err != nil {
+		limitedWriter := NewLimitErrorWriter(dstFile, cfg.MaxExtractionSize())
+		if _, err = io.Copy(limitedWriter, reader); err != nil {
 			return fmt.Errorf("failed to write file (%s)", err)
 		}
 

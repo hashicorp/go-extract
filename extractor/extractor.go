@@ -58,7 +58,7 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 // different extractor engines can be used independently and keep their
 // functionality.
 func limitReader(src io.Reader, c *config.Config) io.Reader {
-	ler := config.NewLimitErrorReader(src, c.MaxInputSize())
+	ler := NewLimitErrorReader(src, c.MaxInputSize())
 	c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
 		m.InputSize = int64(ler.ReadBytes())
 	})
@@ -109,26 +109,7 @@ var AvailableExtractors = []struct {
 	FileExtension string
 }{
 	{
-		Unpacker:      UnpackTar,
-		HeaderCheck:   IsTar,
-		MagicBytes:    magicBytesTar,
-		Offset:        offsetTar,
-		FileExtension: fileExtensionTar,
-	},
-	{
-		Unpacker:      UnpackZip,
-		HeaderCheck:   IsZip,
-		MagicBytes:    magicBytesZIP,
-		FileExtension: fileExtensionZIP,
-	},
-	{
-		Unpacker:      UnpackGZip,
-		HeaderCheck:   IsGZip,
-		MagicBytes:    magicBytesGZip,
-		FileExtension: fileExtensionGZip,
-	},
-	{
-		Unpacker:      unpackBrotli,
+		Unpacker:      UnpackBrotli,
 		HeaderCheck:   IsBrotli,
 		MagicBytes:    magicBytesBrotli,
 		FileExtension: fileExtensionBrotli,
@@ -140,10 +121,53 @@ var AvailableExtractors = []struct {
 		FileExtension: fileExtensionBzip2,
 	},
 	{
+		Unpacker:      UnpackGZip,
+		HeaderCheck:   IsGZip,
+		MagicBytes:    magicBytesGZip,
+		FileExtension: fileExtensionGZip,
+	},
+	{
+		Unpacker:      UnpackLZ4,
+		HeaderCheck:   IsLZ4,
+		MagicBytes:    magicBytesLZ4,
+		FileExtension: fileExtensionLZ4,
+	},
+	{
+		Unpacker:      UnpackSnappy,
+		HeaderCheck:   IsSnappy,
+		MagicBytes:    magicBytesSnappy,
+		FileExtension: fileExtensionSnappy,
+	},
+	{
+		Unpacker:      UnpackTar,
+		HeaderCheck:   IsTar,
+		MagicBytes:    magicBytesTar,
+		Offset:        offsetTar,
+		FileExtension: fileExtensionTar,
+	},
+	{
 		Unpacker:      UnpackXz,
 		HeaderCheck:   IsXz,
 		MagicBytes:    magicBytesXz,
 		FileExtension: fileExtensionXz,
+	},
+	{
+		Unpacker:      UnpackZip,
+		HeaderCheck:   IsZip,
+		MagicBytes:    magicBytesZIP,
+		FileExtension: fileExtensionZIP,
+	},
+	{
+		Unpacker:      UnpackZlib,
+		HeaderCheck:   IsZlib,
+		MagicBytes:    magicBytesZlib,
+		FileExtension: fileExtensionZlib,
+	},
+	{
+		Unpacker:      UnpackZstd,
+		HeaderCheck:   IsZstd,
+		MagicBytes:    magicBytesZstd,
+		FileExtension: fileExtensionZstd,
 	},
 }
 

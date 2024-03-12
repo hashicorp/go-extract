@@ -3,8 +3,6 @@ package extractor
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/ulikunitz/xz"
@@ -24,50 +22,12 @@ func IsXz(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesXz)
 }
 
-// Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
+// Unpack sets a timeout for the ctx and starts the xz decompression from src to dst.
 func UnpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	// unpack
-	return unpackXz(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressXzStream, fileExtensionXz)
 }
 
-// Unpack decompresses src with xz algorithm into dst.
-func unpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionXz}
-	defer c.MetricsHook(ctx, &metrics)
-
-	// prepare xz extraction
-	c.Logger().Info("extracting xz")
-	limitedReader := limitReader(src, c)
-	xzStream, err := xz.NewReader(limitedReader)
-	if err != nil {
-		return handleError(c, &metrics, "cannot create xz reader", err)
-	}
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src)
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, xzStream, 0644); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+// decompressZlibStream returns an io.Reader that decompresses src with xz algorithm
+func decompressXzStream(src io.Reader, c *config.Config) (io.Reader, error) {
+	return xz.NewReader(src)
 }

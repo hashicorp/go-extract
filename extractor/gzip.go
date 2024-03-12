@@ -3,10 +3,7 @@ package extractor
 import (
 	"compress/gzip"
 	"context"
-	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -27,78 +24,10 @@ func IsGZip(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// capture extraction duration
-	captureExtractionDuration(c)
-
-	return unpackGZip(ctx, src, dst, c)
+	return decompress(ctx, src, dst, c, decompressGZipStream, fileExtensionGZip)
 }
 
-// Unpack decompresses src with gzip algorithm into dst. If src is a gziped tar archive,
-// the tar archive is extracted
-func unpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store metrics
-	// remark: do not setup MetricsHook here, bc/ in case of tar+gzip, the
-	// tar extractor should submit the metrics
-	metrics := config.Metrics{ExtractedType: fileExtensionGZip}
-
-	// prepare gzip extraction
-	c.Logger().Info("extracting gzip")
-	limitedReader := limitReader(src, c)
-	gunzipedStream, err := gzip.NewReader(limitedReader)
-	if err != nil {
-		defer c.MetricsHook(ctx, &metrics)
-		return handleError(c, &metrics, "cannot read gzip", err)
-	}
-	defer gunzipedStream.Close()
-
-	// convert to peek header
-	headerReader, err := NewHeaderReader(gunzipedStream, MaxHeaderLength)
-	if err != nil {
-		defer c.MetricsHook(ctx, &metrics)
-		return handleError(c, &metrics, "cannot read header uncompressed gzip", err)
-	}
-
-	// check if context is canceled
-	if err := ctx.Err(); err != nil {
-		defer c.MetricsHook(ctx, &metrics)
-		return handleError(c, &metrics, "context error", err)
-	}
-
-	// check if uncompressed stream is tar
-	headerBytes := headerReader.PeekHeader()
-
-	// check for tar header
-	checkUntar := !c.NoUntarAfterDecompression()
-	if checkUntar && IsTar(headerBytes) {
-		// combine types
-		c.AddMetricsProcessor(func(ctx context.Context, m *config.Metrics) {
-			m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, fileExtensionGZip)
-		})
-
-		// continue with tar extraction
-		return UnpackTar(ctx, headerReader, dst, c)
-	}
-
-	// ensure metrics are emitted
-	defer c.MetricsHook(ctx, &metrics)
-
-	// determine name for decompressed content
-	dst, outputName := determineOutputName(dst, src)
-	c.Logger().Debug("determined output name", "name", outputName)
-
-	// Create file
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0640); err != nil {
-		return handleError(c, &metrics, "cannot create file", err)
-	}
-
-	// get size of extracted file
-	if stat, err := os.Stat(filepath.Join(dst, outputName)); err == nil {
-		metrics.ExtractionSize = stat.Size()
-	}
-
-	// finished
-	metrics.ExtractedFiles++
-	return nil
+// decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm
+func decompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
+	return gzip.NewReader(src)
 }

@@ -2,7 +2,18 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure file extraction of zip, tar, gzip, brotli, bzip2 and xz archive/compression type.
+Secure file decompression and extraction of following types:
+
+- Brotli
+- Bzip2
+- GZip
+- LZ4
+- Snappy
+- Tar
+- Xz
+- Zip
+- Zlib
+- Zstandard
 
 ## Code Example
 
@@ -162,14 +173,14 @@ Here is an example collected metrics for the extraction of [`terraform-aws-iam-5
   - [x] tar.gz
   - [x] brotli
   - [x] bzip2
-  - [ ] flate
+  - [x] flate
   - [x] xz
-  - [ ] snappy
+  - [x] snappy
   - [ ] rar
   - [ ] 7zip
-  - [ ] zstandard
-  - [ ] zlib
-  - [ ] lz4
+  - [x] zstandard
+  - [x] zlib
+  - [x] lz4
 - [x] extraction size check
 - [x] max num of extracted files
 - [x] extraction time exhaustion

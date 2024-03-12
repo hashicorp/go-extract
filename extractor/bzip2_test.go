@@ -99,14 +99,14 @@ func TestUnpackBzip2(t *testing.T) {
 			// Unpack the file
 			err := UnpackBzip2(context.Background(), src, tmpDir, tt.cfg)
 			if err != nil {
-				t.Errorf("UnpackBzip2() error = %v", err)
+				t.Errorf("%v: UnpackBzip2() error = %v", tt.name, err)
 				return
 			}
 
 			// Check extracted file content
 			data, err := os.ReadFile(filepath.Join(tmpDir, tt.expectedName))
 			if err != nil {
-				t.Errorf("Error reading extracted file: %v", err)
+				t.Errorf("%v: Error reading extracted file: %v", tt.name, err)
 			}
 			if string(data) != string(testData) {
 				t.Errorf("Unpacked data is different from original data\n%v\n%v", string(data), string(tt.testData))
