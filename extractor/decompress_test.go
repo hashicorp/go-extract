@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -83,6 +84,11 @@ func TestDecompress(t *testing.T) {
 			tmpDir := t.TempDir()
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", tt.ext))
 			r := createFile(testFile, tt.comp(testTar))
+			defer func() {
+				if f, ok := r.(io.Closer); ok {
+					f.Close()
+				}
+			}()
 			if err := decompress(ctx, r, tmpDir, cfg, tt.decomp, tt.ext); err != nil {
 				t.Errorf("%v: Unpack() error = %v", tt.name, err)
 			}
