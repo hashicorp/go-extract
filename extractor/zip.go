@@ -30,9 +30,9 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
-	m := config.NewMetrics(fileExtensionZIP, cfg.MetricsHook())
+	m := &config.Metrics{ExtractedType: fileExtensionZIP}
 	captureExtractionDuration(m)
-	defer m.Submit(ctx)
+	defer SubmitMetrics(ctx, m, cfg.MetricsHook())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {

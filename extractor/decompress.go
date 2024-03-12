@@ -18,14 +18,14 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// remark: do not defer MetricsHook here, bc/ in case of tar.<compression>, the
 	// tar extractor should submit the metrics
 	c.Logger().Info("decompress", "fileExt", fileExt)
-	m := config.NewMetrics(fileExt, c.MetricsHook())
+	m := &config.Metrics{ExtractedType: fileExt}
 	captureExtractionDuration(m)
 
 	// prepare decompression
 	limitedReader := limitReader(src, c, m)
 	decompressedStream, err := decom(limitedReader, c)
 	if err != nil {
-		defer m.Submit(ctx)
+		defer SubmitMetrics(ctx, m, c.MetricsHook())
 		return handleError(c, m, "cannot start decompression", err)
 	}
 	defer func() {
@@ -35,20 +35,20 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}()
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer m.Submit(ctx)
+		defer SubmitMetrics(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
 	// convert to peek header
 	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
 	if err != nil {
-		defer m.Submit(ctx)
+		defer SubmitMetrics(ctx, m, c.MetricsHook())
 		return handleError(c, m, "cannot read uncompressed header", err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer m.Submit(ctx)
+		defer SubmitMetrics(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
@@ -68,7 +68,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 
 	// ensure metrics are emitted
-	defer m.Submit(ctx)
+	defer SubmitMetrics(ctx, m, c.MetricsHook())
 
 	// determine name and decompress content
 	dst, outputName := determineOutputName(dst, src)
