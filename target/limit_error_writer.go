@@ -2,9 +2,9 @@ package target
 
 import "io"
 
-// LimitErrorWrite is a wrapper around an io.Writer that returns io.ErrShortWrite
+// LimitErrorWriter is a wrapper around an io.Writer that returns io.ErrShortWrite
 // when the limit is reached.
-type LimitErrorWrite struct {
+type LimitErrorWriter struct {
 	W io.Writer // underlying reader
 	L int64     // limit
 	N int64     // number of bytes read
@@ -15,7 +15,7 @@ type LimitErrorWrite struct {
 // that caused the write to stop early. Write returns a non-nil error when n < len(p).
 // Write does not modify the slice data, even temporarily. The limit is enforced by
 // returning io.ErrShortWrite when the limit is reached.
-func (l *LimitErrorWrite) Write(p []byte) (n int, err error) {
+func (l *LimitErrorWriter) Write(p []byte) (n int, err error) {
 
 	// check if we reached the limit
 	if l.N >= l.L {
@@ -39,8 +39,8 @@ func (l *LimitErrorWrite) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-// NewLimitErrorWrite returns a new LimitErrorWrite that wraps the given writer
+// NewLimitErrorWriter returns a new LimitErrorWriter that wraps the given writer
 // and limit.
-func NewLimitErrorWrite(w io.Writer, l int64) *LimitErrorWrite {
-	return &LimitErrorWrite{W: w, L: l}
+func NewLimitErrorWriter(w io.Writer, l int64) *LimitErrorWriter {
+	return &LimitErrorWriter{W: w, L: l}
 }

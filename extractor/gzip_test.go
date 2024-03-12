@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -108,11 +107,12 @@ func TestGzipUnpack(t *testing.T) {
 			archiveName:  "test.tar.gz",
 			expectedName: "test",
 			cfg:          config.NewConfig(),
-			generator: func(target string, data []byte) io.Reader {
-				return createTarGz(target, []tarContent{{Name: "test", Mode: 0640, Content: data, Filetype: tar.TypeReg}})
-			},
-			testData: testData,
-			wantErr:  false,
+			generator:    createFile,
+			testData: compressGzip(
+				packTarWithContent([]tarContent{
+					{Content: testData, Name: "test", Mode: 0640, Filetype: tar.TypeReg},
+				})),
+			wantErr: false,
 		},
 	}
 
@@ -159,7 +159,7 @@ func TestGzipUnpack(t *testing.T) {
 					t.Errorf("UnpackGZip() error reading file: %v", err)
 				}
 				if !bytes.Equal(data, testData) {
-					t.Errorf("UnpackGZip() file content is not the expected")
+					t.Errorf("%v: UnpackGZip() file content is not the expected", tt.name)
 				}
 
 			}
@@ -178,24 +178,4 @@ func compressGzip(data []byte) []byte {
 		panic(err)
 	}
 	return buf.Bytes()
-}
-
-// createFile creates a file with the given data and returns a reader for it.
-func createTarGz(target string, data []tarContent) io.Reader {
-
-	// create tar file
-	tarFilePath := strings.TrimSuffix(target, ".gz")
-	tarReader := createTarWithContent(tarFilePath, data)
-	defer func() {
-		if closer, ok := tarReader.(io.Closer); ok {
-			closer.Close()
-		}
-	}()
-
-	// compress tar file
-	tarContent, err := os.ReadFile(tarFilePath)
-	if err != nil {
-		panic(err)
-	}
-	return createFile(target, compressGzip(tarContent))
 }
