@@ -110,7 +110,7 @@ func TestGzipUnpack(t *testing.T) {
 			generator:    createFile,
 			testData: compressGzip(
 				packTarWithContent([]tarContent{
-					{Content: []byte("foobar content"), Name: "test", Mode: 0640, Filetype: tar.TypeReg},
+					{Content: testData, Name: "test", Mode: 0640, Filetype: tar.TypeReg},
 				})),
 			wantErr: false,
 		},
@@ -159,7 +159,7 @@ func TestGzipUnpack(t *testing.T) {
 					t.Errorf("UnpackGZip() error reading file: %v", err)
 				}
 				if !bytes.Equal(data, testData) {
-					t.Errorf("UnpackGZip() file content is not the expected")
+					t.Errorf("%v: UnpackGZip() file content is not the expected", tt.name)
 				}
 
 			}

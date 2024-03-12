@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// compressFunc is a function that compresses a byte slice
+type compressFunc func([]byte) []byte
+
 func TestDecompress(t *testing.T) {
 
 	ctx := context.Background()
@@ -81,21 +84,13 @@ func TestDecompress(t *testing.T) {
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", tt.ext))
 			r := createFile(testFile, tt.comp(testTar))
 			if err := decompress(ctx, r, tmpDir, cfg, tt.decomp, tt.ext); err != nil {
-				t.Errorf("Unpack() error = %v", err)
+				t.Errorf("%v: Unpack() error = %v", tt.name, err)
 			}
 
 			// check if file was extracted
 			if _, err := os.Stat(filepath.Join(tmpDir, filename)); err != nil {
-				t.Errorf("File not found: %v", err)
+				t.Errorf("%v: File not found: %v", tt.name, err)
 			}
 		})
 	}
-}
-
-// compressFunc is a function that compresses a byte slice
-type compressFunc func([]byte) []byte
-
-// createCompressedTar creates a compressed tar file with the given data and provided compression function
-func compressedTar(data []tarContent, compress compressFunc) []byte {
-	return compress(packTarWithContent(data))
 }
