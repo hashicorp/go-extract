@@ -96,7 +96,7 @@ func main() {
 
 	// log average, min and max duration
 	for _, key := range sortedKeys(ed) {
-		logger.Info("extraction profiling results", "iterations", len(ed[key]), "average", avg(ed[key]), "min", min(ed[key]), "max", max(ed[key]), "std", int(std(ed[key])), "key", key)
+		logger.Info("extraction profiling results", "iterations", len(ed[key]), "average", fmt.Sprintf("%dms", avg(ed[key])), "min", fmt.Sprintf("%dms", min(ed[key])), "max", fmt.Sprintf("%dms", max(ed[key])), "std", fmt.Sprintf("%dms", int(std(ed[key]))), "key", key)
 	}
 
 	// store memory profile
@@ -214,8 +214,8 @@ func profileExtraction(ctx context.Context, logger *slog.Logger, filename string
 	duration := time.Since(start)
 
 	// capture duration
-	logger.Debug("extraction finished", "libraryName", libraryName, "filename", filename, "duration", duration.Microseconds())
-	return duration.Microseconds(), nil
+	logger.Debug("extraction finished", "libraryName", libraryName, "filename", filename, "duration", fmt.Sprintf("%dms", duration.Milliseconds()))
+	return duration.Milliseconds(), nil
 
 }
 
