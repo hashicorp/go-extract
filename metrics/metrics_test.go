@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -25,4 +26,34 @@ func TestMetricsString(t *testing.T) {
 	if m.String() != expected {
 		t.Errorf("Expected '%s', but got '%s'", expected, m.String())
 	}
+}
+
+// TestSubmitMetrics tests the SubmitMetrics function
+func TestSubmitMetrics(t *testing.T) {
+
+	metricsReceived := false
+
+	// Create a new Metrics instance
+	m := &Metrics{ExtractedType: "tar"}
+
+	// Add a processor to the metrics
+	m.AddProcessor(func(ctx context.Context, m *Metrics) {
+		m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, "gz")
+	})
+
+	// Call SubmitMetrics
+	ApplyProcessorAndSubmit(context.Background(), m, func(ctx context.Context, m *Metrics) {
+		metricsReceived = true
+	})
+
+	// Check if metrics were received
+	if !metricsReceived {
+		t.Error("Expected metrics to be received")
+	}
+
+	// Check if the processor was called
+	if m.ExtractedType != "tar.gz" {
+		t.Errorf("Expected 'tar.gz', but got '%s'", m.ExtractedType)
+	}
+
 }

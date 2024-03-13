@@ -31,24 +31,23 @@ func IsTar(data []byte) bool {
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 	m := &metrics.Metrics{ExtractedType: fileExtensionTar}
-	defer c.MetricsHook()(ctx, m)
-	defer captureExtractionDuration(m, now())
-
-	// limit input size
-	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
-	defer captureInputSize(m, limitedReader)
-
 	return unpackTar(ctx, src, dst, c, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
 
+	// object to store m
+	m.ExtractedType = fileExtensionTar
+	captureExtractionDuration(m)
+	defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
+
 	// start extraction
 	c.Logger().Info("extracting tar")
+	limitedReader := limitReader(src, c, m)
+	tr := tar.NewReader(limitedReader)
 
 	// walk through tar
-	tr := tar.NewReader(src)
 	var objectCounter int64
 	var extractionSize uint64
 	for {

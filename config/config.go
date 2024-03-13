@@ -35,7 +35,7 @@ type Config struct {
 	// logger stream for extraction
 	logger Logger
 
-	// maxExtractionSize is the maximum size of a file after uncompression.
+	// maxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
 	maxExtractionSize int64
 
@@ -51,8 +51,8 @@ type Config struct {
 	// Important: do not adjust this value after extraction started
 	metricsHook metrics.MetricsHook
 
-	// noUntarAfterUncompression offers the option to enable/disable combined tar.gz extraction
-	noUntarAfterUncompression bool
+	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
+	noUntarAfterDecompression bool
 
 	// Define if files should be overwritten in the destination
 	overwrite bool
@@ -78,7 +78,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize          = 1 << (10 * 3) // 1 Gb
 		maxExtractionTime          = 60            // 1 minute
 		maxInputSize               = 1 << (10 * 3) // 1 Gb
-		noUntarAfterUncompression  = false
+		noUntarAfterDecompression  = false
 		overwrite                  = false
 		verbose                    = false
 	)
@@ -98,7 +98,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		maxExtractionSize:          maxExtractionSize,
 		maxInputSize:               maxInputSize,
 		overwrite:                  overwrite,
-		noUntarAfterUncompression:  noUntarAfterUncompression,
+		noUntarAfterDecompression:  noUntarAfterDecompression,
 		continueOnUnsupportedFiles: continueOnUnsupportedFiles,
 		verbose:                    verbose,
 	}
@@ -126,10 +126,10 @@ func WithMaxFiles(maxFiles int64) ConfigOption {
 	}
 }
 
-// WithNoUntarAfterUncompression options pattern function to enable/disable combined tar.gz extraction
-func WithNoUntarAfterUncompression(disable bool) ConfigOption {
+// WithNoUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction
+func WithNoUntarAfterDecompression(disable bool) ConfigOption {
 	return func(c *Config) {
-		c.noUntarAfterUncompression = disable
+		c.noUntarAfterDecompression = disable
 	}
 }
 
@@ -185,7 +185,7 @@ func (c *Config) Logger() Logger {
 	return c.logger
 }
 
-// MaxExtractionSize returns the maximum size of a file after uncompression
+// MaxExtractionSize returns the maximum size of a file after decompression
 func (c *Config) MaxExtractionSize() int64 {
 	return c.maxExtractionSize
 }
@@ -205,9 +205,9 @@ func (c *Config) Overwrite() bool {
 	return c.overwrite
 }
 
-// NoUntarAfterUncompression returns true if tar.gz should NOT be untarred after uncompression
-func (c *Config) NoUntarAfterUncompression() bool {
-	return c.noUntarAfterUncompression
+// NoUntarAfterDecompression returns true if tar.gz should NOT be untarred after decompression
+func (c *Config) NoUntarAfterDecompression() bool {
+	return c.noUntarAfterDecompression
 }
 
 // ContinueOnUnsupportedFiles returns true if unsupported files should be skipped
@@ -310,8 +310,5 @@ func WithCreateDestination(create bool) ConfigOption {
 
 // MetricsHook returns the metrics hook
 func (c *Config) MetricsHook() metrics.MetricsHook {
-	if c.metricsHook == nil {
-		return metrics.NoopMetricsHook
-	}
 	return c.metricsHook
 }

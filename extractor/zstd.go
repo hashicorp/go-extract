@@ -22,12 +22,12 @@ func IsZstd(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesZstd)
 }
 
-// Unpack sets a timeout for the ctx and starts the zstandard uncompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the zstandard decompression from src to dst.
 func UnpackZstd(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return uncompress(ctx, src, dst, c, uncompressZstdStream, fileExtensionZstd)
+	return decompress(ctx, src, dst, c, decompressZstdStream, fileExtensionZstd)
 }
 
-// uncompressZstdStream returns an io.Reader that uncompresses src with zstandard algorithm
-func uncompressZstdStream(src io.Reader, c *config.Config) (io.Reader, error) {
+// decompressZstdStream returns an io.Reader that decompresses src with zstandard algorithm
+func decompressZstdStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return zstd.NewReader(src)
 }

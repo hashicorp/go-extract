@@ -21,12 +21,12 @@ func IsSnappy(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesSnappy)
 }
 
-// Unpack sets a timeout for the ctx and starts the snappy uncompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.
 func UnpackSnappy(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return uncompress(ctx, src, dst, c, uncompressSnappyStream, fileExtensionSnappy)
+	return decompress(ctx, src, dst, c, decompressSnappyStream, fileExtensionSnappy)
 }
 
-// uncompressSnappyStream returns an io.Reader that Uncompresses src with snappy algorithm
-func uncompressSnappyStream(src io.Reader, c *config.Config) (io.Reader, error) {
+// decompressSnappyStream returns an io.Reader that decompresses src with snappy algorithm
+func decompressSnappyStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return snappy.NewReader(src), nil
 }

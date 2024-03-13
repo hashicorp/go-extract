@@ -167,21 +167,21 @@ func TestNoTarGzExtract(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "noUntarAfterUncompression is true",
-			cfg:  &Config{noUntarAfterUncompression: true},
+			name: "noUntarAfterDecompression is true",
+			cfg:  &Config{noUntarAfterDecompression: true},
 			want: true,
 		},
 		{
-			name: "noUntarAfterUncompression is false",
-			cfg:  &Config{noUntarAfterUncompression: false},
+			name: "noUntarAfterDecompression is false",
+			cfg:  &Config{noUntarAfterDecompression: false},
 			want: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.cfg.NoUntarAfterUncompression(); got != tt.want {
-				t.Errorf("noUntarAfterUncompression() = %v, want %v", got, tt.want)
+			if got := tt.cfg.NoUntarAfterDecompression(); got != tt.want {
+				t.Errorf("noUntarAfterDecompression() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -270,11 +270,11 @@ func TestWithNoTarGzExtract(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &Config{}
-			option := WithNoUntarAfterUncompression(tt.disabled)
+			option := WithNoUntarAfterDecompression(tt.disabled)
 			option(config)
 
-			if config.noUntarAfterUncompression != tt.want {
-				t.Errorf("WithUntarAfterUncompression() set noUntarAfterUncompression to %v, want %v", config.noUntarAfterUncompression, tt.want)
+			if config.noUntarAfterDecompression != tt.want {
+				t.Errorf("WithUntarAfterDecompression() set noUntarAfterDecompression to %v, want %v", config.noUntarAfterDecompression, tt.want)
 			}
 		})
 	}

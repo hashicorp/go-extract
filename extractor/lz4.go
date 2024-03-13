@@ -22,12 +22,12 @@ func IsLZ4(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesLZ4)
 }
 
-// Unpack sets a timeout for the ctx and starts the lz4 uncompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the lz4 decompression from src to dst.
 func UnpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return uncompress(ctx, src, dst, c, uncompressLZ4Stream, fileExtensionLZ4)
+	return decompress(ctx, src, dst, c, decompressLZ4Stream, fileExtensionLZ4)
 }
 
-// uncompressZlibStream returns an io.Reader that uncompresses src with zlib algorithm
-func uncompressLZ4Stream(src io.Reader, c *config.Config) (io.Reader, error) {
+// decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
+func decompressLZ4Stream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return lz4.NewReader(src), nil
 }

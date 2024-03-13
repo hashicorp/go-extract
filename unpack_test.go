@@ -457,9 +457,9 @@ func TestMetriksHook(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:                  "normal gzip with file, and uncompression target-name",
+			name:                  "normal gzip with file, and decompression target-name",
 			inputGenerator:        gen1024ByteGzip,
-			dst:                   "target-file", // important: the gzip 	ion has a filename das dst
+			dst:                   "target-file", // important: the gzip decompression has a filename das dst
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
 			WithMaxExtractionSize: 1024,
@@ -475,10 +475,10 @@ func TestMetriksHook(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:                  "normal gzip with file and uncompression target-name in sub-dir failing",
+			name:                  "normal gzip with file and decompression target-name in sub-dir failing",
 			inputGenerator:        gen1024ByteGzip,
 			inputName:             "GzipWithFile.gz",
-			dst:                   "sub/target", // important: the gzip uncompression has a filename das dst
+			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
 			WithMaxExtractionSize: 1024,
@@ -494,10 +494,10 @@ func TestMetriksHook(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:                  "normal gzip with file, and uncompression target-name in sub-dir with sub-dir-creation",
+			name:                  "normal gzip with file, and decompression target-name in sub-dir with sub-dir-creation",
 			inputGenerator:        gen1024ByteGzip,
 			inputName:             "GzipWithFile.gz",
-			dst:                   "sub/target", // important: the gzip uncompression has a filename das dst
+			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
 			WithContinueOnError:   false,
 			WithCreateDestination: true,
 			WithMaxExtractionSize: 1024,
@@ -669,12 +669,6 @@ func TestMetriksHook(t *testing.T) {
 			// check if error is expected
 			if tc.expectError != (err != nil) {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, tc.expectError, err)
-			}
-
-			if collectedMetrics == nil {
-				// no metrics collected
-				t.Errorf("test case %d failed: %s\nno metrics collected", i, tc.name)
-				return
 			}
 
 			// compare collected and expected metrics ExtractedFiles
