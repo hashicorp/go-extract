@@ -11,45 +11,43 @@ import (
 	"github.com/hashicorp/go-extract/metrics"
 )
 
-type decompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
+type uncompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
 
-func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config, decom decompressionFunction, fileExt string) error {
+func uncompress(ctx context.Context, src io.Reader, dst string, c *config.Config, uncompressor uncompressionFunction, fileExt string) error {
 
 	// prepare telemetry capturing
 	// remark: do not defer MetricsHook here, bc/ in case of tar.<compression>, the
 	// tar extractor should submit the metrics
-	c.Logger().Info("decompress", "fileExt", fileExt)
+	c.Logger().Info("uncompress", "fileExt", fileExt)
 	m := &metrics.Metrics{ExtractedType: fileExt}
-	captureExtractionDuration(m)
+	defer c.MetricsHook()(ctx, m)
+	defer captureExtractionDuration(m, now())
 
-	// prepare decompression
-	limitedReader := limitReader(src, c, m)
-	decompressedStream, err := decom(limitedReader, c)
+	// prepare uncompression
+	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
+	defer captureInputSize(m, limitedReader)
+	uncompressedStream, err := uncompressor(limitedReader, c)
 	if err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
-		return handleError(c, m, "cannot start decompression", err)
+		return handleError(c, m, "cannot start uncompression", err)
 	}
 	defer func() {
-		if closer, ok := decompressedStream.(io.Closer); ok {
+		if closer, ok := uncompressedStream.(io.Closer); ok {
 			closer.Close()
 		}
 	}()
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
 	// convert to peek header
-	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
+	headerReader, err := NewHeaderReader(uncompressedStream, MaxHeaderLength)
 	if err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "cannot read uncompressed header", err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
@@ -57,21 +55,13 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	headerBytes := headerReader.PeekHeader()
 
 	// check for tar header
-	checkUntar := !c.NoUntarAfterDecompression()
-	if checkUntar && IsTar(headerBytes) {
-		// combine types
-		m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
-			m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, fileExt)
-		})
-
-		// continue with tar extraction
+	checkUnTar := !c.NoUntarAfterUncompression()
+	if checkUnTar && IsTar(headerBytes) {
+		m.ExtractedType = fmt.Sprintf("tar.%s", fileExt)
 		return unpackTar(ctx, headerReader, dst, c, m)
 	}
 
-	// ensure metrics are emitted
-	defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
-
-	// determine name and decompress content
+	// determine name and uncompress content
 	dst, outputName := determineOutputName(dst, src)
 	c.Logger().Debug("determined output name", "name", outputName)
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0644); err != nil {

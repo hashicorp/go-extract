@@ -36,9 +36,6 @@ type Metrics struct {
 	// LastExtractionError is the last error during extraction
 	LastExtractionError error
 
-	// metricsProcessor performs operations on metrics before submitting to hook
-	metricsProcessor []MetricsHook
-
 	// PatternMismatches is the number of skipped files
 	PatternMismatches int64
 
@@ -75,28 +72,7 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 // MetricsHook is a function type that performs operations on metrics
 type MetricsHook func(context.Context, *Metrics)
 
-// applyProcessor applies the metricsProcessor to the metrics
-func (m *Metrics) applyProcessor(ctx context.Context) {
-
-	// process metrics in reverse order
-	for i := len(m.metricsProcessor) - 1; i >= 0; i-- {
-		m.metricsProcessor[i](ctx, m)
-	}
-}
-
-// AddProcessor adds a MetricsHook to the slice of metricsProcessor
-func (m *Metrics) AddProcessor(hook MetricsHook) {
-	m.metricsProcessor = append(m.metricsProcessor, hook)
-}
-
-// ApplyProcessorAndSubmit applies the metricsProcessor and submits the metrics to the provided hook
-func ApplyProcessorAndSubmit(ctx context.Context, m *Metrics, hook MetricsHook) {
-
-	// apply metrics processor
-	m.applyProcessor(ctx)
-
-	// submit metrics to hook
-	if hook != nil {
-		hook(ctx, m)
-	}
+// NoopMetricsHook is a no-operation metrics hook
+func NoopMetricsHook(_ context.Context, _ *Metrics) {
+	// noop
 }

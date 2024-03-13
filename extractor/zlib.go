@@ -29,12 +29,12 @@ func IsZlib(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesZlib)
 }
 
-// Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the zlib uncompression from src to dst.
 func UnpackZlib(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressZlibStream, fileExtensionZlib)
+	return uncompress(ctx, src, dst, c, uncompressZlibStream, fileExtensionZlib)
 }
 
-// decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
-func decompressZlibStream(src io.Reader, c *config.Config) (io.Reader, error) {
+// uncompressZlibStream returns an io.Reader that uncompresses src with zlib algorithm
+func uncompressZlibStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return zlib.NewReader(src)
 }

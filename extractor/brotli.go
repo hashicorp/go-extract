@@ -22,12 +22,12 @@ func IsBrotli(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBrotli)
 }
 
-// Unpack sets a timeout for the ctx and starts the brotli decompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the brotli uncompression from src to dst.
 func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressBrotliStream, "br")
+	return uncompress(ctx, src, dst, c, uncompressBrotliStream, "br")
 }
 
-// decompressBrotliStream returns an io.Reader that decompresses src with brotli algorithm
-func decompressBrotliStream(src io.Reader, c *config.Config) (io.Reader, error) {
+// uncompressBrotliStream returns an io.Reader that uncompresses src with brotli algorithm
+func uncompressBrotliStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return brotli.NewReader(src), nil
 }

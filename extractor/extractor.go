@@ -49,21 +49,9 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 		}
 
 		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, fmt.Sprintf("%s.decompressed", newName)
+		return dst, fmt.Sprintf("%s.uncompressed", newName)
 	}
-	return dst, "goextract-decompressed-content"
-}
-
-// limitReader ensures that the input size is limited and the input size is captured
-// remark: this preparation is located in the extractor package so that the
-// different extractor engines can be used independently and keep their
-// functionality.
-func limitReader(src io.Reader, c *config.Config, m *metrics.Metrics) io.Reader {
-	ler := NewLimitErrorReader(src, c.MaxInputSize())
-	m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
-		m.InputSize = int64(ler.ReadBytes())
-	})
-	return ler
+	return dst, "goextract-uncompressed-content"
 }
 
 // checkPatterns checks if the given path matches any of the given patterns.
@@ -87,11 +75,13 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 }
 
 // captureExtractionDuration ensures that the extraction duration is captured
-func captureExtractionDuration(m *metrics.Metrics) {
-	start := now()
-	m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
-		m.ExtractionDuration = time.Since(start) // capture execution time
-	})
+func captureExtractionDuration(m *metrics.Metrics, start time.Time) {
+	m.ExtractionDuration = time.Since(start)
+}
+
+// captureInputSize stores input size in metrics
+func captureInputSize(m *metrics.Metrics, r *LimitErrorReader) {
+	m.InputSize = int64(r.ReadBytes())
 }
 
 // UnpackFunc is a function that extracts the contents from src and extracts them to dst.

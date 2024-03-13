@@ -22,12 +22,12 @@ func IsGZip(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesGZip)
 }
 
-// Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the gzip uncompression from src to dst.
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressGZipStream, fileExtensionGZip)
+	return uncompress(ctx, src, dst, c, uncompressGZipStream, fileExtensionGZip)
 }
 
-// decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm
-func decompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
+// uncompressGZipStream returns an io.Reader that uncompresses src with gzip algorithm
+func uncompressGZipStream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return gzip.NewReader(src)
 }

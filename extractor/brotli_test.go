@@ -69,7 +69,7 @@ func TestUnpackBrotli(t *testing.T) {
 		{
 			name:         "Test unpack brotli with no file extension",
 			archiveName:  "test",
-			expectedName: "test.decompressed",
+			expectedName: "test.uncompressed",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
 			testData:     compressBrotli(inputData),
@@ -77,7 +77,7 @@ func TestUnpackBrotli(t *testing.T) {
 		},
 		{
 			name:         "Test unpack brotli read from buffer",
-			expectedName: "goextract-decompressed-content",
+			expectedName: "goextract-uncompressed-content",
 			cfg:          config.NewConfig(),
 			generator:    createByteReader,
 			testData:     compressBrotli(inputData),
@@ -86,7 +86,7 @@ func TestUnpackBrotli(t *testing.T) {
 		{
 			name:         "Test unpack random bytes",
 			archiveName:  "random",
-			expectedName: "goextract-decompressed-content",
+			expectedName: "goextract-uncompressed-content",
 			cfg:          config.NewConfig(),
 			generator:    createFile,
 			testData:     inputData,

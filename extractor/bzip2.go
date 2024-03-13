@@ -30,11 +30,11 @@ func IsBzip2(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesBzip2)
 }
 
-// Unpack sets a timeout for the ctx and starts the bzip2 decompression from src to dst.
+// Unpack sets a timeout for the ctx and starts the bzip2 uncompression from src to dst.
 func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressBz2Stream, "bz2")
+	return uncompress(ctx, src, dst, c, uncompressBz2Stream, "bz2")
 }
 
-func decompressBz2Stream(src io.Reader, c *config.Config) (io.Reader, error) {
+func uncompressBz2Stream(src io.Reader, c *config.Config) (io.Reader, error) {
 	return bzip2.NewReader(src), nil
 }

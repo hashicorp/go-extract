@@ -2,7 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure file decompression and extraction of following types:
+Secure file uncompression and extraction of following types:
 
 - Brotli
 - Bzip2
@@ -67,7 +67,7 @@ import (
         config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
         config.WithMetricsHook(metricsToLog),         // adjust hook to receive metrics from extraction
-        config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
+        config.WithNoUntarAfterUncompression(false),  // extract tar.* combined
         config.WithOverwrite(false),                  // don't replace existing files
         config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
     )
@@ -134,7 +134,7 @@ Flags:
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
   -M, --metrics                           Print metrics to log after extraction.
-  -N, --no-untar-after-decompression      Disable combined extraction of tar.gz.
+  -N, --no-untar-after-uncompression      Disable combined extraction of tar.*.
   -O, --overwrite                         Overwrite if exist.
   -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
   -v, --verbose                           Verbose logging.

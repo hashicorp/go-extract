@@ -32,8 +32,8 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 
 	// prepare metrics collection and emit
 	m := &metrics.Metrics{ExtractedType: fileExtensionZIP}
-	captureExtractionDuration(m)
-	defer metrics.ApplyProcessorAndSubmit(ctx, m, cfg.MetricsHook())
+	defer cfg.MetricsHook()(ctx, m)
+	defer captureExtractionDuration(m, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
@@ -82,7 +82,8 @@ func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config
 	cfg.Logger().Info("caching zip input")
 
 	// create limit error reader for src
-	ler := limitReader(src, cfg, m)
+	ler := NewLimitErrorReader(src, cfg.MaxInputSize())
+	defer captureInputSize(m, ler)
 
 	// cache src in temp file for extraction
 	if !cfg.CacheInMemory() {
