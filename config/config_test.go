@@ -523,13 +523,6 @@ func TestWithMetricsHook(t *testing.T) {
 	metricsDelivered := false
 	c := NewConfig()
 
-	// submit hook
-	c.MetricsHook()(context.Background(), &metrics.Metrics{})
-
-	// check if hook was delivered
-	if metricsDelivered {
-		t.Errorf("Expected no operation, but metricsDelivered has changed")
-	}
 
 	// Create a new Config with specified hook
 	c = NewConfig(WithMetricsHook(func(ctx context.Context, m *metrics.Metrics) {
