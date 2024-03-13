@@ -517,7 +517,6 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 	}
 }
 
-// TestWithMaxFiles implements test cases
 func TestWithMetricsHook(t *testing.T) {
 
 	// Create a new Config without specified hook
