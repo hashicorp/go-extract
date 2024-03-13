@@ -26,9 +26,9 @@ The module is taken as-is from GitHub to provide a small archive as testing data
 
 ```shell
 ./prep.sh
-mkdir runs
-export CNT=100
-go run main.go -v -p -P -e -s -i $CNT -o runs/$(date "+%Y-%m-%d_%H-%M-%S")_mem_$CNT.pprof *.gz
+mkdir -p runs
+export CNT=1000
+go run main.go --verbose --profile --parallel --extract --slug --iterations $CNT --profile-out runs/$(date "+%Y-%m-%d_%H-%M-%S")_mem_$CNT.pprof *.gz
 go tool pprof -http=:8080 runs/2024-02-06_09-18-46_mem_1000.pprof
 ```
 
