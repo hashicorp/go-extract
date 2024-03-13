@@ -521,11 +521,7 @@ func TestWithMetricsHook(t *testing.T) {
 
 	// Create a new Config without specified hook
 	metricsDelivered := false
-	c := NewConfig()
-
-
-	// Create a new Config with specified hook
-	c = NewConfig(WithMetricsHook(func(ctx context.Context, m *metrics.Metrics) {
+	c := NewConfig(WithMetricsHook(func(ctx context.Context, m *metrics.Metrics) {
 		metricsDelivered = true
 	}))
 
