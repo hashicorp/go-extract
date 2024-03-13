@@ -20,13 +20,16 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// tar extractor should submit the metrics
 	c.Logger().Info("decompress", "fileExt", fileExt)
 	m := &metrics.Metrics{ExtractedType: fileExt}
-	captureExtractionDuration(m)
+	defer c.MetricsHook()(ctx, m)
+	defer captureExtractionDuration(m, now())
 
-	// prepare decompression
-	limitedReader := limitReader(src, c, m)
+	// limit input size
+	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
+	defer captureInputSize(m, limitedReader)
+
+	// start decompression
 	decompressedStream, err := decom(limitedReader, c)
 	if err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "cannot start decompression", err)
 	}
 	defer func() {
@@ -36,20 +39,17 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}()
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
 	// convert to peek header
 	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
 	if err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "cannot read uncompressed header", err)
 	}
 
 	// check if context is canceled
 	if err := ctx.Err(); err != nil {
-		defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 		return handleError(c, m, "context error", err)
 	}
 
@@ -59,17 +59,9 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// check for tar header
 	checkUntar := !c.NoUntarAfterDecompression()
 	if checkUntar && IsTar(headerBytes) {
-		// combine types
-		m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
-			m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, fileExt)
-		})
-
-		// continue with tar extraction
+		m.ExtractedType = fmt.Sprintf("tar.%s", fileExt) // combine types
 		return unpackTar(ctx, headerReader, dst, c, m)
 	}
-
-	// ensure metrics are emitted
-	defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 
 	// determine name and decompress content
 	dst, outputName := determineOutputName(dst, src)

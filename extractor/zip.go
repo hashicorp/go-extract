@@ -28,27 +28,27 @@ func IsZip(data []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
-func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
+func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare metrics collection and emit
 	m := &metrics.Metrics{ExtractedType: fileExtensionZIP}
-	captureExtractionDuration(m)
-	defer metrics.ApplyProcessorAndSubmit(ctx, m, cfg.MetricsHook())
+	defer c.MetricsHook()(ctx, m)
+	defer captureExtractionDuration(m, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpackZipReaderAtSeeker(ctx, sra, dst, cfg, m)
+		return unpackZipReaderAtSeeker(ctx, sra, dst, c, m)
 	}
 
-	return unpackZipCached(ctx, src, dst, cfg, m)
+	return unpackZipCached(ctx, src, dst, c, m)
 }
 
 // unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, cfg *config.Config, m *metrics.Metrics) error {
+func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *metrics.Metrics) error {
 
 	// log extraction
-	cfg.Logger().Info("extracting zip")
+	c.Logger().Info("extracting zip")
 
 	// check if src is a seeker and readerAt
 	s, _ := src.(io.Seeker)
@@ -57,56 +57,57 @@ func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string
 	// get size of input and check if it exceeds maximum input size
 	size, err := s.Seek(0, io.SeekEnd)
 	if err != nil {
-		return handleError(cfg, m, "cannot seek to end of reader", err)
+		return handleError(c, m, "cannot seek to end of reader", err)
 	}
 	m.InputSize = size
-	if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
-		return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
+	if c.MaxInputSize() != -1 && size > c.MaxInputSize() {
+		return handleError(c, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
 	}
 
 	// create zip reader and extract
 	reader, err := zip.NewReader(ra, size)
 	if err != nil {
-		return handleError(cfg, m, "cannot create zip reader", err)
+		return handleError(c, m, "cannot create zip reader", err)
 	}
-	return unpackZip(ctx, reader, dst, cfg, m)
+	return unpackZip(ctx, reader, dst, c, m)
 }
 
 // unpackZipCached checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
 // returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
 // to dst.
-func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *metrics.Metrics) error {
+func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
 
 	// log caching
-	cfg.Logger().Info("caching zip input")
+	c.Logger().Info("caching zip input")
 
 	// create limit error reader for src
-	ler := limitReader(src, cfg, m)
+	ler := NewLimitErrorReader(src, c.MaxInputSize())
+	defer captureInputSize(m, ler)
 
 	// cache src in temp file for extraction
-	if !cfg.CacheInMemory() {
+	if !c.CacheInMemory() {
 		// copy src to tmp file
 		tmpFile, err := os.CreateTemp("", "extractor-*.zip")
 		if err != nil {
-			return handleError(cfg, m, "cannot create tmp file", err)
+			return handleError(c, m, "cannot create tmp file", err)
 		}
 		defer tmpFile.Close()
 		defer os.Remove(tmpFile.Name())
 		if _, err := io.Copy(tmpFile, ler); err != nil {
-			return handleError(cfg, m, "cannot copy reader to file", err)
+			return handleError(c, m, "cannot copy reader to file", err)
 		}
 		// provide tmpFile as readerAt and seeker
-		return unpackZipReaderAtSeeker(ctx, tmpFile, dst, cfg, m)
+		return unpackZipReaderAtSeeker(ctx, tmpFile, dst, c, m)
 	}
 
 	// cache src in memory before starting extraction
 	data, err := io.ReadAll(ler)
 	if err != nil {
-		return handleError(cfg, m, "cannot read all from reader", err)
+		return handleError(c, m, "cannot read all from reader", err)
 	}
 	reader := bytes.NewReader(data)
-	return unpackZipReaderAtSeeker(ctx, reader, dst, cfg, m)
+	return unpackZipReaderAtSeeker(ctx, reader, dst, c, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst. It uses the zip.Reader

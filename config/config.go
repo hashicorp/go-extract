@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -310,5 +311,13 @@ func WithCreateDestination(create bool) ConfigOption {
 
 // MetricsHook returns the metrics hook
 func (c *Config) MetricsHook() metrics.MetricsHook {
+	if c.metricsHook == nil {
+		return NoopMetricsHook
+	}
 	return c.metricsHook
+}
+
+// NoopMetricsHook is a no operation metrics hook
+func NoopMetricsHook(ctx context.Context, m *metrics.Metrics) {
+	// noop
 }

@@ -1,10 +1,13 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"testing"
+
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // TestCheckMaxFiles implements test cases
@@ -512,4 +515,34 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWithMaxFiles implements test cases
+func TestWithMetricsHook(t *testing.T) {
+
+	// Create a new Config without specified hook
+	metricsDelivered := false
+	c := NewConfig()
+
+	// submit hook
+	c.MetricsHook()(context.Background(), &metrics.Metrics{})
+
+	// check if hook was delivered
+	if metricsDelivered {
+		t.Errorf("Expected no operation, but metricsDelivered has changed")
+	}
+
+	// Create a new Config with specified hook
+	c = NewConfig(WithMetricsHook(func(ctx context.Context, m *metrics.Metrics) {
+		metricsDelivered = true
+	}))
+
+	// submit hook
+	c.MetricsHook()(context.Background(), &metrics.Metrics{})
+
+	// check if hook was delivered
+	if !metricsDelivered {
+		t.Errorf("Expected metrics value to be delivered, but it was not")
+	}
+
 }
