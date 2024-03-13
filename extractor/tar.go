@@ -40,7 +40,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 	// object to store m
 	m.ExtractedType = fileExtensionTar
 	captureExtractionDuration(m)
-	defer SubmitMetrics(ctx, m, c.MetricsHook())
+	defer metrics.ApplyProcessorAndSubmit(ctx, m, c.MetricsHook())
 
 	// start extraction
 	c.Logger().Info("extracting tar")

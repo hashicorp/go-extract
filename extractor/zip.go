@@ -33,7 +33,7 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 	// prepare metrics collection and emit
 	m := &metrics.Metrics{ExtractedType: fileExtensionZIP}
 	captureExtractionDuration(m)
-	defer SubmitMetrics(ctx, m, cfg.MetricsHook())
+	defer metrics.ApplyProcessorAndSubmit(ctx, m, cfg.MetricsHook())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {

@@ -192,18 +192,6 @@ func init() {
 	unpackTarget = target.NewOS()
 }
 
-// SubmitMetrics applies the metricsProcessor and submits the metrics to the configured hook
-func SubmitMetrics(ctx context.Context, m *metrics.Metrics, hook metrics.MetricsHook) {
-
-	// apply metrics processor
-	m.ApplyProcessor(ctx)
-
-	// submit metrics to hook
-	if hook != nil {
-		hook(ctx, m)
-	}
-}
-
 func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
 	// check all possible magic bytes until match is found
 	for _, mb := range magicBytes {

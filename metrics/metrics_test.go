@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TestMetricsString tests the String method of the Metrics struct
 func TestMetricsString(t *testing.T) {
 	m := Metrics{
 		ExtractedType:       "tar",
@@ -27,24 +28,32 @@ func TestMetricsString(t *testing.T) {
 	}
 }
 
-func TestSubmit(t *testing.T) {
+// TestSubmitMetrics tests the SubmitMetrics function
+func TestSubmitMetrics(t *testing.T) {
 
-	ctx := context.Background()
-	processorExecuted := false
+	metricsReceived := false
 
 	// Create a new Metrics instance
-	m := Metrics{ExtractedType: "tar"}
+	m := &Metrics{ExtractedType: "tar"}
 
-	// Add a processor
+	// Add a processor to the metrics
 	m.AddProcessor(func(ctx context.Context, m *Metrics) {
-		processorExecuted = true
+		m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, "gz")
 	})
 
-	// Apply hooks
-	m.ApplyProcessor(ctx)
+	// Call SubmitMetrics
+	ApplyProcessorAndSubmit(context.Background(), m, func(ctx context.Context, m *Metrics) {
+		metricsReceived = true
+	})
 
-	// Check if processor was executed
-	if !processorExecuted {
-		t.Error("Expected processor to be executed")
+	// Check if metrics were received
+	if !metricsReceived {
+		t.Error("Expected metrics to be received")
 	}
+
+	// Check if the processor was called
+	if m.ExtractedType != "tar.gz" {
+		t.Errorf("Expected 'tar.gz', but got '%s'", m.ExtractedType)
+	}
+
 }
