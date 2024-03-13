@@ -27,8 +27,8 @@ The module is taken as-is from GitHub to provide a small archive as testing data
 ```shell
 ./prep.sh
 mkdir runs
-export CNT=1000
-go run main.go -p -i $CNT -o runs/$(date "+%Y-%m-%d_%H-%M-%S")_mem_$CNT.pprof *.gz
+export CNT=100
+go run main.go -v -p -P -e -s -i $CNT -o runs/$(date "+%Y-%m-%d_%H-%M-%S")_mem_$CNT.pprof *.gz
 go tool pprof -http=:8080 runs/2024-02-06_09-18-46_mem_1000.pprof
 ```
 
@@ -37,17 +37,20 @@ go tool pprof -http=:8080 runs/2024-02-06_09-18-46_mem_1000.pprof
 A dedicated go script is created to compare `go-slug` and `go-extract`. The script can be used to generate a memory profile after execution.
 
 ```shell
-go run main.go -h
-Usage: main <input-archives> ...
+Usage: main <input-archives> ... [flags]
 
 Arguments:
   <input-archives> ...
 
 Flags:
   -h, --help                       Show context-sensitive help.
+  -c, --cache-in-memory
+  -e, --extract
   -i, --iterations=1
   -p, --profile
   -o, --profile-out="mem.pprof"
+  -P, --parallel
+  -m, --src-from-mem
+  -s, --slug
   -v, --verbose
-
 ```

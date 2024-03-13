@@ -17,6 +17,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 	"github.com/hashicorp/go-slug"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -116,6 +117,12 @@ func main() {
 
 }
 
+var collectedMetrics []metrics.Metrics
+
+func storeMetric(ctx context.Context, m *metrics.Metrics) {
+	collectedMetrics = append(collectedMetrics, *m)
+}
+
 // extractWithSlug extracts the given reader to the given target
 func extractWithSlug(ctx context.Context, reader io.Reader, tmpExtractTarget string) error {
 	return slug.Unpack(reader, tmpExtractTarget)
@@ -131,6 +138,7 @@ var unpackConfigGoExtract = config.NewConfig(
 	config.WithMaxExtractionSize(-1),            // disable check for now
 	config.WithMaxFiles(-1),                     // disable check for now
 	config.WithMaxInputSize(-1),                 // disable check for now
+	config.WithMetricsHook(storeMetric),         // store metrics
 )
 
 // extractWithGoExtract extracts the given reader to the given target
