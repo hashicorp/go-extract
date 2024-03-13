@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // magicBytesZIP contains the magic bytes for a zip archive.
@@ -30,7 +31,7 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 
 	// prepare metrics collection and emit
-	m := &config.Metrics{ExtractedType: fileExtensionZIP}
+	m := &metrics.Metrics{ExtractedType: fileExtensionZIP}
 	captureExtractionDuration(m)
 	defer SubmitMetrics(ctx, m, cfg.MetricsHook())
 
@@ -44,7 +45,7 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, cfg *config.Confi
 
 // unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, cfg *config.Config, m *config.Metrics) error {
+func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, cfg *config.Config, m *metrics.Metrics) error {
 
 	// log extraction
 	cfg.Logger().Info("extracting zip")
@@ -75,7 +76,7 @@ func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string
 // It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
 // returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
 // to dst.
-func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *config.Metrics) error {
+func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config.Config, m *metrics.Metrics) error {
 
 	// log caching
 	cfg.Logger().Info("caching zip input")
@@ -116,7 +117,7 @@ func unpackZipCached(ctx context.Context, src io.Reader, dst string, cfg *config
 // config allows unsupported files, the file is skipped. If the file is a unsupported file mode and the config does not allow unsupported
 // files, the function returns an error. If the extraction size exceeds the maximum extraction size, the function returns an error.
 // If the extraction size does not exceed the maximum extraction size, the function returns nil.
-func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *config.Metrics) error {
+func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
 
 	// check for to many files in archive
 	if err := c.CheckMaxObjects(int64(len(src.File))); err != nil {

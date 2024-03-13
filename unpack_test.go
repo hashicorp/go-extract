@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // TestGetUnpackFunction implements test cases
@@ -434,7 +435,7 @@ func TestMetriksHook(t *testing.T) {
 		WithMaxExtractionSize int64
 		WithMaxFiles          int64
 		WithOverwrite         bool
-		expectedMetrics       config.Metrics
+		expectedMetrics       metrics.Metrics
 		expectError           bool
 	}{
 		{
@@ -446,7 +447,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -464,7 +465,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -483,7 +484,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -502,7 +503,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -520,7 +521,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -538,7 +539,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1023,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -556,7 +557,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   5,
 				ExtractionErrors: 0,
@@ -574,7 +575,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          4,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   4,
 				ExtractionErrors: 1,
@@ -592,7 +593,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 5,
@@ -607,7 +608,7 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithMaxFiles:          1,
 			WithMaxExtractionSize: 14,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -621,7 +622,7 @@ func TestMetriksHook(t *testing.T) {
 			inputGenerator:        createTestZip,
 			dst:                   ".",
 			WithMaxExtractionSize: 10,
-			expectedMetrics: config.Metrics{
+			expectedMetrics: metrics.Metrics{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -645,8 +646,8 @@ func TestMetriksHook(t *testing.T) {
 			}
 
 			// prepare config
-			var collectedMetrics *config.Metrics
-			hook := func(ctx context.Context, metrics *config.Metrics) {
+			var collectedMetrics *metrics.Metrics
+			hook := func(ctx context.Context, metrics *metrics.Metrics) {
 				collectedMetrics = metrics
 			}
 

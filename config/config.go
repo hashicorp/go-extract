@@ -1,10 +1,11 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
+
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // ConfigOption is a function pointer to implement the option pattern
@@ -48,7 +49,7 @@ type Config struct {
 
 	// metricsHook is a function pointer to consume metrics after finished extraction
 	// Important: do not adjust this value after extraction started
-	metricsHook MetricsHook
+	metricsHook metrics.MetricsHook
 
 	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
 	noUntarAfterDecompression bool
@@ -111,11 +112,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
-// MetricsHook is a function pointer to implement the option pattern
-type MetricsHook func(context.Context, *Metrics)
-
 // WithMetricsHook options pattern function to set a metrics hook
-func WithMetricsHook(hook MetricsHook) ConfigOption {
+func WithMetricsHook(hook metrics.MetricsHook) ConfigOption {
 	return func(c *Config) {
 		c.metricsHook = hook
 	}
@@ -311,6 +309,6 @@ func WithCreateDestination(create bool) ConfigOption {
 }
 
 // MetricsHook returns the metrics hook
-func (c *Config) MetricsHook() MetricsHook {
+func (c *Config) MetricsHook() metrics.MetricsHook {
 	return c.metricsHook
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 type decompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
@@ -18,7 +19,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// remark: do not defer MetricsHook here, bc/ in case of tar.<compression>, the
 	// tar extractor should submit the metrics
 	c.Logger().Info("decompress", "fileExt", fileExt)
-	m := &config.Metrics{ExtractedType: fileExt}
+	m := &metrics.Metrics{ExtractedType: fileExt}
 	captureExtractionDuration(m)
 
 	// prepare decompression
@@ -59,7 +60,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	checkUntar := !c.NoUntarAfterDecompression()
 	if checkUntar && IsTar(headerBytes) {
 		// combine types
-		m.AddProcessor(func(ctx context.Context, m *config.Metrics) {
+		m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
 			m.ExtractedType = fmt.Sprintf("%s.%s", m.ExtractedType, fileExt)
 		})
 

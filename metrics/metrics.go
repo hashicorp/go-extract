@@ -1,4 +1,4 @@
-package config
+package metrics
 
 import (
 	"context"
@@ -71,6 +71,9 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 		Alias:               (*Alias)(&m),
 	})
 }
+
+// MetricsHook is a function pointer to implement the option pattern
+type MetricsHook func(context.Context, *Metrics)
 
 // MetricsHook emits metrics to hook and applies all registered metricsProcessor
 func (m *Metrics) ApplyProcessor(ctx context.Context) {

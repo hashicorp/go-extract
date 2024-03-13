@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 	"github.com/hashicorp/go-extract/target"
 )
 
@@ -57,9 +58,9 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 // remark: this preparation is located in the extractor package so that the
 // different extractor engines can be used independently and keep their
 // functionality.
-func limitReader(src io.Reader, c *config.Config, m *config.Metrics) io.Reader {
+func limitReader(src io.Reader, c *config.Config, m *metrics.Metrics) io.Reader {
 	ler := NewLimitErrorReader(src, c.MaxInputSize())
-	m.AddProcessor(func(ctx context.Context, m *config.Metrics) {
+	m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
 		m.InputSize = int64(ler.ReadBytes())
 	})
 	return ler
@@ -86,9 +87,9 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 }
 
 // captureExtractionDuration ensures that the extraction duration is captured
-func captureExtractionDuration(m *config.Metrics) {
+func captureExtractionDuration(m *metrics.Metrics) {
 	start := now()
-	m.AddProcessor(func(ctx context.Context, m *config.Metrics) {
+	m.AddProcessor(func(ctx context.Context, m *metrics.Metrics) {
 		m.ExtractionDuration = time.Since(start) // capture execution time
 	})
 }
@@ -192,7 +193,7 @@ func init() {
 }
 
 // SubmitMetrics applies the metricsProcessor and submits the metrics to the configured hook
-func SubmitMetrics(ctx context.Context, m *config.Metrics, hook config.MetricsHook) {
+func SubmitMetrics(ctx context.Context, m *metrics.Metrics, hook metrics.MetricsHook) {
 
 	// apply metrics processor
 	m.ApplyProcessor(ctx)
@@ -223,7 +224,7 @@ func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
 
 // handleError increases the error counter, sets the latest error and
 // decides if extraction should continue.
-func handleError(c *config.Config, metrics *config.Metrics, msg string, err error) error {
+func handleError(c *config.Config, metrics *metrics.Metrics, msg string, err error) error {
 
 	// increase error counter and set error
 	metrics.ExtractionErrors++

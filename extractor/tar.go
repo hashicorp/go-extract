@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // offsetTar is the offset where the magic bytes are located in the file
@@ -29,12 +30,12 @@ func IsTar(data []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	m := &config.Metrics{ExtractedType: fileExtensionTar}
+	m := &metrics.Metrics{ExtractedType: fileExtensionTar}
 	return unpackTar(ctx, src, dst, c, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, m *config.Metrics) error {
+func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
 
 	// object to store m
 	m.ExtractedType = fileExtensionTar

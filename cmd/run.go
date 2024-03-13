@@ -14,6 +14,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -61,7 +62,7 @@ func Run(version, commit, date string) {
 	}))
 
 	// setup metrics hook
-	metricsToLog := func(ctx context.Context, metrics *config.Metrics) {
+	metricsToLog := func(ctx context.Context, metrics *metrics.Metrics) {
 		if cli.Metrics {
 			logger.Info("extraction finished", "metrics", metrics)
 		}
