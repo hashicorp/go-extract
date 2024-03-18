@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 func TestMatchesMagicBytes(t *testing.T) {
@@ -60,7 +61,7 @@ func TestMatchesMagicBytes(t *testing.T) {
 
 func TestHandleError(t *testing.T) {
 	c := config.NewConfig(config.WithContinueOnError(false))
-	metrics := &config.Metrics{}
+	metrics := &metrics.Metrics{}
 
 	err := errors.New("test error")
 	if err := handleError(c, metrics, "test message", err); err == nil {

@@ -1,6 +1,7 @@
-package config
+package metrics
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 )
@@ -67,3 +68,6 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 		Alias:               (*Alias)(&m),
 	})
 }
+
+// MetricsHook is a function type that performs operations on metrics
+type MetricsHook func(context.Context, *Metrics)

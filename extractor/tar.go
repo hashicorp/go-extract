@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/metrics"
 )
 
 // offsetTar is the offset where the magic bytes are located in the file
@@ -30,27 +31,25 @@ func IsTar(data []byte) bool {
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
-	// capture extraction duration
-	captureExtractionDuration(c)
+	// prepare telemetry capturing
+	m := &metrics.Metrics{ExtractedType: fileExtensionTar}
+	defer c.MetricsHook()(ctx, m)
+	defer captureExtractionDuration(m, now())
 
-	return unpackTar(ctx, src, dst, c)
+	// prepare reader
+	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
+	defer captureInputSize(m, limitedReader)
+
+	// start extraction
+	return unpackTar(ctx, limitedReader, dst, c, m)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-
-	// object to store m
-	m := &config.Metrics{ExtractedType: fileExtensionTar}
-
-	// anonymous function to emit metrics
-	defer c.MetricsHook(ctx, m)
+func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
 
 	// start extraction
 	c.Logger().Info("extracting tar")
-	limitedReader := limitReader(src, c)
-	tr := tar.NewReader(limitedReader)
-
-	// walk through tar
+	tr := tar.NewReader(src)
 	var objectCounter int64
 	var extractionSize uint64
 	for {

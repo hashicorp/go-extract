@@ -1,4 +1,4 @@
-package config
+package metrics
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TestMetricsString tests the String method of the Metrics struct
 func TestMetricsString(t *testing.T) {
 	m := Metrics{
 		ExtractedType:       "tar",
