@@ -67,10 +67,10 @@ import (
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
-        config.WithTelemetryHook(telemetryToLog),     // adjust hook to receive telemetry from extraction
         config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
         config.WithOverwrite(false),                  // don't replace existing files
         config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
+        config.WithTelemetryHook(telemetryToLog),     // adjust hook to receive telemetry from extraction
     )
 
     // extract archive

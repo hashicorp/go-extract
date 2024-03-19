@@ -79,10 +79,10 @@ func Run(version, commit, date string) {
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithMaxInputSize(cli.MaxInputSize),
-		config.WithTelemetryHook(telemetryDataToLog),
 		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		config.WithOverwrite(cli.Overwrite),
 		config.WithPatterns(cli.Pattern...),
+		config.WithTelemetryHook(telemetryDataToLog),
 	)
 
 	// open archive
