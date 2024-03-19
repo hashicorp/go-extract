@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
 	"github.com/hashicorp/go-extract/target"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // now is a function point that returns time.Now to the caller.
@@ -75,13 +75,13 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 }
 
 // captureExtractionDuration captures the duration of the extraction
-func captureExtractionDuration(m *metrics.Metrics, start time.Time) {
+func captureExtractionDuration(m *telemetry.Data, start time.Time) {
 	stop := now()
 	m.ExtractionDuration = stop.Sub(start)
 }
 
 // captureInputSize captures the input size of the extraction
-func captureInputSize(m *metrics.Metrics, ler *LimitErrorReader) {
+func captureInputSize(m *telemetry.Data, ler *LimitErrorReader) {
 	m.InputSize = int64(ler.ReadBytes())
 }
 
@@ -203,11 +203,11 @@ func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
 
 // handleError increases the error counter, sets the latest error and
 // decides if extraction should continue.
-func handleError(c *config.Config, metrics *metrics.Metrics, msg string, err error) error {
+func handleError(c *config.Config, td *telemetry.Data, msg string, err error) error {
 
 	// increase error counter and set error
-	metrics.ExtractionErrors++
-	metrics.LastExtractionError = fmt.Errorf("%s: %s", msg, err)
+	td.ExtractionErrors++
+	td.LastExtractionError = fmt.Errorf("%s: %s", msg, err)
 
 	// do not end on error
 	if c.ContinueOnError() {
@@ -216,5 +216,5 @@ func handleError(c *config.Config, metrics *metrics.Metrics, msg string, err err
 	}
 
 	// end extraction on error
-	return metrics.LastExtractionError
+	return td.LastExtractionError
 }

@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // TestGetUnpackFunction implements test cases
@@ -423,8 +423,8 @@ func genTarGzWith5Files(t *testing.T, dstDir string) string {
 	return gzipFileName
 }
 
-// TestMetriksHook is a test function for the metriks hook
-func TestMetriksHook(t *testing.T) {
+// TestTelemetryHook is a test function for the telemetry hook
+func TestTelemetryHook(t *testing.T) {
 	cases := []struct {
 		name                  string
 		inputGenerator        func(*testing.T, string) string
@@ -435,7 +435,7 @@ func TestMetriksHook(t *testing.T) {
 		WithMaxExtractionSize int64
 		WithMaxFiles          int64
 		WithOverwrite         bool
-		expectedMetrics       metrics.Metrics
+		expectedTelemetryData telemetry.Data
 		expectError           bool
 	}{
 		{
@@ -447,7 +447,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -465,7 +465,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -484,7 +484,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -503,7 +503,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -521,7 +521,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1024,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -539,7 +539,7 @@ func TestMetriksHook(t *testing.T) {
 			WithMaxExtractionSize: 1023,
 			WithMaxFiles:          1,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -554,10 +554,10 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
-			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxExtractionSize: -1, // no limit, remark: the size(tar-archive) > 1025 * 5
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   5,
 				ExtractionErrors: 0,
@@ -572,10 +572,10 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
-			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxExtractionSize: -1, // no limit, remark: the size(tar-archive) > 1025 * 5
 			WithMaxFiles:          4,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   4,
 				ExtractionErrors: 1,
@@ -590,10 +590,10 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   "sub",
 			WithContinueOnError:   true,
 			WithCreateDestination: false,
-			WithMaxExtractionSize: -1, // no limit, remark: the .tar > expectedMetrics.ExtractionSize
+			WithMaxExtractionSize: -1, // no limit, remark: the size(tar-archive) > 1025 * 5
 			WithMaxFiles:          5,
 			WithOverwrite:         false,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 5,
@@ -608,7 +608,7 @@ func TestMetriksHook(t *testing.T) {
 			dst:                   ".",
 			WithMaxFiles:          1,
 			WithMaxExtractionSize: 14,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   1,
 				ExtractionErrors: 0,
@@ -622,7 +622,7 @@ func TestMetriksHook(t *testing.T) {
 			inputGenerator:        createTestZip,
 			dst:                   ".",
 			WithMaxExtractionSize: 10,
-			expectedMetrics: metrics.Metrics{
+			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
 				ExtractionErrors: 1,
@@ -646,9 +646,9 @@ func TestMetriksHook(t *testing.T) {
 			}
 
 			// prepare config
-			var collectedMetrics *metrics.Metrics
-			hook := func(ctx context.Context, metrics *metrics.Metrics) {
-				collectedMetrics = metrics
+			var td *telemetry.Data
+			hook := func(ctx context.Context, d *telemetry.Data) {
+				td = d
 			}
 
 			cfg := config.NewConfig(
@@ -657,7 +657,7 @@ func TestMetriksHook(t *testing.T) {
 				config.WithMaxExtractionSize(tc.WithMaxExtractionSize),
 				config.WithMaxFiles(tc.WithMaxFiles),
 				config.WithOverwrite(tc.WithOverwrite),
-				config.WithMetricsHook(hook),
+				config.WithTelemetryHook(hook),
 			)
 
 			// perform actual tests
@@ -671,24 +671,24 @@ func TestMetriksHook(t *testing.T) {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, tc.expectError, err)
 			}
 
-			// compare collected and expected metrics ExtractedFiles
-			if collectedMetrics.ExtractedFiles != tc.expectedMetrics.ExtractedFiles {
-				t.Errorf("test case %d failed: %s (ExtractedFiles)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractedFiles, collectedMetrics.ExtractedFiles)
+			// compare collected and expected ExtractedFiles
+			if td.ExtractedFiles != tc.expectedTelemetryData.ExtractedFiles {
+				t.Errorf("test case %d failed: %s (ExtractedFiles)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractedFiles, td.ExtractedFiles)
 			}
 
-			// compare collected and expected metrics ExtractionErrors
-			if collectedMetrics.ExtractionErrors != tc.expectedMetrics.ExtractionErrors {
-				t.Errorf("test case %d failed: %s (ExtractionErrors)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractionErrors, collectedMetrics.ExtractionErrors)
+			// compare collected and expected ExtractionErrors
+			if td.ExtractionErrors != tc.expectedTelemetryData.ExtractionErrors {
+				t.Errorf("test case %d failed: %s (ExtractionErrors)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractionErrors, td.ExtractionErrors)
 			}
 
-			// compare collected and expected metrics ExtractionSize
-			if collectedMetrics.ExtractionSize != tc.expectedMetrics.ExtractionSize {
-				t.Errorf("test case %d failed: %s (ExtractionSize [e:%v|g:%v])\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractionSize, collectedMetrics.ExtractionSize, tc.expectedMetrics.ExtractionSize, collectedMetrics.ExtractionSize)
+			// compare collected and expected ExtractionSize
+			if td.ExtractionSize != tc.expectedTelemetryData.ExtractionSize {
+				t.Errorf("test case %d failed: %s (ExtractionSize [e:%v|g:%v])\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractionSize, td.ExtractionSize, tc.expectedTelemetryData.ExtractionSize, td.ExtractionSize)
 			}
 
-			// compare collected and expected metrics ExtractedType
-			if collectedMetrics.ExtractedType != tc.expectedMetrics.ExtractedType {
-				t.Errorf("test case %d failed: %s (ExtractedType)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedMetrics.ExtractedType, collectedMetrics.ExtractedType)
+			// compare collected and expected ExtractedType
+			if td.ExtractedType != tc.expectedTelemetryData.ExtractedType {
+				t.Errorf("test case %d failed: %s (ExtractedType)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractedType, td.ExtractedType)
 			}
 
 		})

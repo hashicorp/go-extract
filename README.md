@@ -31,6 +31,7 @@ import (
     ...
     "github.com/hashicorp/go-extract"
     "github.com/hashicorp/go-extract/config"
+    "github.com/hashicorp/go-extract/telemetry"
     ...
 )
 
@@ -49,9 +50,9 @@ import (
       Level: slog.LevelInfo,
     }))
 
-    // setup metrics hook
-    metricsToLog := func(ctx context.Context, metrics config.Metrics) {
-      logger.Info("extraction finished", "metrics", metrics)
+    // setup telemetry hook
+    telemetryToLog := func(ctx context.Context, td telemetry.Data) {
+      logger.Info("extraction finished", "telemetryData", td)
     }
 
     // prepare config (these are the default values)
@@ -66,7 +67,7 @@ import (
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
         config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
-        config.WithMetricsHook(metricsToLog),         // adjust hook to receive metrics from extraction
+        config.WithTelemetryHook(telemetryToLog),     // adjust hook to receive telemetry from extraction
         config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
         config.WithOverwrite(false),                  // don't replace existing files
         config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
@@ -114,7 +115,7 @@ make install
 
 ```cli
 $ goextract -h
-Usage: goextract <archive> [<destination>]
+Usage: goextract <archive> [<destination>] [flags]
 
 A secure extraction utility
 
@@ -133,19 +134,19 @@ Flags:
       --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
-  -M, --metrics                           Print metrics to log after extraction.
   -N, --no-untar-after-decompression      Disable combined extraction of tar.gz.
   -O, --overwrite                         Overwrite if exist.
   -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
+  -T, --telemetry                         Print telemetry data to log after extraction.
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```
 
-## Metrics
+## Telemetry data
 
-It is possible to collect metrics ether by specifying a metrics hook via the config option `config.WithMetricsHook(metricsToLog)` or as a cli parameter `-M, --metrics`.
+It is possible to collect telemetry data ether by specifying a telemetry hook via the config option `config.WithTelemetryHook(telemetryToLog)` or as a cli parameter `-T, --telemetry`.
 
-Here is an example collected metrics for the extraction of [`terraform-aws-iam-5.34.0.tar.gz`](https://github.com/terraform-aws-modules/terraform-aws-iam/releases/tag/v5.34.0):
+Here is an example collected telemetry data for the extraction of [`terraform-aws-iam-5.34.0.tar.gz`](https://github.com/terraform-aws-modules/terraform-aws-iam/releases/tag/v5.34.0):
 
 ```json
 {
@@ -199,7 +200,7 @@ Here is an example collected metrics for the extraction of [`terraform-aws-iam-5
 - [x] function documentation
 - [x] check for windows
 - [x] Allow/deny symlinks in general
-- [x] Metrics call back function
+- [x] Telemetry call back function
 - [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
 - [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
 - [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
