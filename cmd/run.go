@@ -14,7 +14,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -30,10 +30,10 @@ type CLI struct {
 	MaxExtractionSize          int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime          int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
 	MaxInputSize               int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
-	Metrics                    bool             `short:"M" optional:"" default:"false" help:"Print metrics to log after extraction."`
 	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
+	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version                    kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -61,10 +61,10 @@ func Run(version, commit, date string) {
 		Level: logLevel,
 	}))
 
-	// setup metrics hook
-	metricsToLog := func(ctx context.Context, metrics *metrics.Metrics) {
-		if cli.Metrics {
-			logger.Info("extraction finished", "metrics", metrics)
+	// setup telemetry hook
+	telemetryDataToLog := func(ctx context.Context, td *telemetry.Data) {
+		if cli.Telemetry {
+			logger.Info("extraction finished", "telemetryData", td)
 		}
 	}
 
@@ -79,10 +79,10 @@ func Run(version, commit, date string) {
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
 		config.WithMaxFiles(cli.MaxFiles),
 		config.WithMaxInputSize(cli.MaxInputSize),
-		config.WithMetricsHook(metricsToLog),
 		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		config.WithOverwrite(cli.Overwrite),
 		config.WithPatterns(cli.Pattern...),
+		config.WithTelemetryHook(telemetryDataToLog),
 	)
 
 	// open archive

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 func TestMatchesMagicBytes(t *testing.T) {
@@ -61,23 +61,23 @@ func TestMatchesMagicBytes(t *testing.T) {
 
 func TestHandleError(t *testing.T) {
 	c := config.NewConfig(config.WithContinueOnError(false))
-	metrics := &metrics.Metrics{}
+	td := &telemetry.Data{}
 
 	err := errors.New("test error")
-	if err := handleError(c, metrics, "test message", err); err == nil {
+	if err := handleError(c, td, "test message", err); err == nil {
 		t.Error("handleError should return an error when continueOnError is false")
 	}
 
-	if metrics.ExtractionErrors != int64(1) {
+	if td.ExtractionErrors != int64(1) {
 		t.Error("ExtractionErrors was not incremented")
 	}
 
-	if metrics.LastExtractionError.Error() != "test message: test error" {
+	if td.LastExtractionError.Error() != "test message: test error" {
 		t.Error("LastExtractionError was not set correctly")
 	}
 
 	c = config.NewConfig(config.WithContinueOnError(true))
-	err = handleError(c, metrics, "test message", err)
+	err = handleError(c, td, "test message", err)
 	if err != nil {
 		t.Error("handleError should return nil when continueOnError is true")
 	}

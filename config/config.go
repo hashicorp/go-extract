@@ -6,7 +6,7 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // ConfigOption is a function pointer to implement the option pattern
@@ -48,9 +48,9 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxInputSize int64
 
-	// metricsHook is a function pointer to consume metrics after finished extraction
+	// telemetryHook is a function pointer to consume telemetry data after finished extraction
 	// Important: do not adjust this value after extraction started
-	metricsHook metrics.MetricsHook
+	telemetryHook telemetry.TelemetryHook
 
 	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
 	noUntarAfterDecompression bool
@@ -113,10 +113,10 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
-// WithMetricsHook options pattern function to set a metrics hook
-func WithMetricsHook(hook metrics.MetricsHook) ConfigOption {
+// WithTelemetryHook options pattern function to set a telemetry hook
+func WithTelemetryHook(hook telemetry.TelemetryHook) ConfigOption {
 	return func(c *Config) {
-		c.metricsHook = hook
+		c.telemetryHook = hook
 	}
 }
 
@@ -309,15 +309,15 @@ func WithCreateDestination(create bool) ConfigOption {
 	}
 }
 
-// MetricsHook returns the metrics hook
-func (c *Config) MetricsHook() metrics.MetricsHook {
-	if c.metricsHook == nil {
-		return NoopMetricsHook
+// TelemetryHook returns the  telemetry hook
+func (c *Config) TelemetryHook() telemetry.TelemetryHook {
+	if c.telemetryHook == nil {
+		return NoopTelemetryHook
 	}
-	return c.metricsHook
+	return c.telemetryHook
 }
 
-// NoopMetricsHook is a no operation metrics hook
-func NoopMetricsHook(ctx context.Context, m *metrics.Metrics) {
+// NoopTelemetryHook is a no operation telemetry hook
+func NoopTelemetryHook(ctx context.Context, d *telemetry.Data) {
 	// noop
 }

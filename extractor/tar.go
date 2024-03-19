@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // offsetTar is the offset where the magic bytes are located in the file
@@ -32,8 +32,8 @@ func IsTar(data []byte) bool {
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare telemetry capturing
-	m := &metrics.Metrics{ExtractedType: fileExtensionTar}
-	defer c.MetricsHook()(ctx, m)
+	m := &telemetry.Data{ExtractedType: fileExtensionTar}
+	defer c.TelemetryHook()(ctx, m)
 	defer captureExtractionDuration(m, now())
 
 	// prepare reader
@@ -45,7 +45,7 @@ func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 }
 
 // unpack checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
+func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, td *telemetry.Data) error {
 
 	// start extraction
 	c.Logger().Info("extracting tar")
@@ -70,7 +70,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 
 		// return any other error
 		case err != nil:
-			return handleError(c, m, "error reading tar", err)
+			return handleError(c, td, "error reading tar", err)
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case hdr == nil:
@@ -82,17 +82,17 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 
 		// check if maximum of objects is exceeded
 		if err := c.CheckMaxObjects(objectCounter); err != nil {
-			return handleError(c, m, "max objects check failed", err)
+			return handleError(c, td, "max objects check failed", err)
 		}
 
 		// check if file needs to match patterns
 		match, err := checkPatterns(c.Patterns(), hdr.Name)
 		if err != nil {
-			return handleError(c, m, "cannot check pattern", err)
+			return handleError(c, td, "cannot check pattern", err)
 		}
 		if !match {
 			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
-			m.PatternMismatches++
+			td.PatternMismatches++
 			continue
 		}
 
@@ -104,7 +104,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 
 			// handle directory
 			if err := unpackTarget.CreateSafeDir(c, dst, hdr.Name); err != nil {
-				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
+				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
 					return err
 				}
 
@@ -112,8 +112,8 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 				continue
 			}
 
-			// store metrics and continue
-			m.ExtractedDirs++
+			// store telemetry and continue
+			td.ExtractedDirs++
 			continue
 
 		// if it's a file create it
@@ -122,14 +122,14 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 			// check extraction size
 			extractionSize = extractionSize + uint64(hdr.Size)
 			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				return handleError(c, m, "max extraction size exceeded", err)
+				return handleError(c, td, "max extraction size exceeded", err)
 			}
 
 			// create file
 			if err := unpackTarget.CreateSafeFile(c, dst, hdr.Name, tr, os.FileMode(hdr.Mode)); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, m, "failed to create safe file", err); err != nil {
+				if err := handleError(c, td, "failed to create safe file", err); err != nil {
 					return err
 				}
 
@@ -137,9 +137,9 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 				continue
 			}
 
-			// store metrics
-			m.ExtractionSize = int64(extractionSize)
-			m.ExtractedFiles++
+			// store telemetry
+			td.ExtractionSize = int64(extractionSize)
+			td.ExtractedFiles++
 			continue
 
 		// its a symlink !!
@@ -150,12 +150,12 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 
 				// check for continue for unsupported files
 				if c.ContinueOnUnsupportedFiles() {
-					m.UnsupportedFiles++
-					m.LastUnsupportedFile = hdr.Name
+					td.UnsupportedFiles++
+					td.LastUnsupportedFile = hdr.Name
 					continue
 				}
 
-				if err := handleError(c, m, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
+				if err := handleError(c, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
 					return err
 				}
 
@@ -167,7 +167,7 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 			if err := unpackTarget.CreateSafeSymlink(c, dst, hdr.Name, hdr.Linkname); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {
+				if err := handleError(c, td, "failed to create safe symlink", err); err != nil {
 					return err
 				}
 
@@ -175,8 +175,8 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 				continue
 			}
 
-			// store metrics and continue
-			m.ExtractedSymlinks++
+			// store telemetry and continue
+			td.ExtractedSymlinks++
 			continue
 
 		default:
@@ -188,13 +188,13 @@ func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config,
 
 			// check if unsupported files should be skipped
 			if c.ContinueOnUnsupportedFiles() {
-				m.UnsupportedFiles++
-				m.LastUnsupportedFile = hdr.Name
+				td.UnsupportedFiles++
+				td.LastUnsupportedFile = hdr.Name
 				continue
 			}
 
 			// increase error counter, set error and end if necessary
-			if err := handleError(c, m, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)); err != nil {
+			if err := handleError(c, td, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", hdr.Typeflag)); err != nil {
 				return err
 			}
 

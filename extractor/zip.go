@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // magicBytesZIP contains the magic bytes for a zip archive.
@@ -30,22 +30,22 @@ func IsZip(data []byte) bool {
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
 func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
-	// prepare metrics collection and emit
-	m := &metrics.Metrics{ExtractedType: fileExtensionZIP}
-	defer c.MetricsHook()(ctx, m)
-	defer captureExtractionDuration(m, now())
+	// prepare telemetry data collection and emit
+	td := &telemetry.Data{ExtractedType: fileExtensionZIP}
+	defer c.TelemetryHook()(ctx, td)
+	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpackZipReaderAtSeeker(ctx, sra, dst, c, m)
+		return unpackZipReaderAtSeeker(ctx, sra, dst, c, td)
 	}
 
-	return unpackZipCached(ctx, src, dst, c, m)
+	return unpackZipCached(ctx, src, dst, c, td)
 }
 
 // unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *metrics.Metrics) error {
+func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	c.Logger().Info("extracting zip")
@@ -76,7 +76,7 @@ func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string
 // It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
 // returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
 // to dst.
-func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
+func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log caching
 	c.Logger().Info("caching zip input")
@@ -118,7 +118,7 @@ func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.C
 // config allows unsupported files, the file is skipped. If the file is a unsupported file mode and the config does not allow unsupported
 // files, the function returns an error. If the extraction size exceeds the maximum extraction size, the function returns an error.
 // If the extraction size does not exceed the maximum extraction size, the function returns nil.
-func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *metrics.Metrics) error {
+func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// check for to many files in archive
 	if err := c.CheckMaxObjects(int64(len(src.File))); err != nil {
@@ -167,7 +167,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 					return err
 				}
 
-				// don't collect metrics on failure
+				// don't collect telemetry data on failure
 				continue
 			}
 
@@ -214,7 +214,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 					return err
 				}
 
-				// don't collect metrics on failure
+				// don't collect telemetry data on failure
 				continue
 			}
 
@@ -240,7 +240,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 					return err
 				}
 
-				// don't collect metrics on failure
+				// don't collect telemetry data on failure
 				continue
 			}
 
@@ -250,7 +250,7 @@ func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Confi
 					return err
 				}
 
-				// don't collect metrics on failure
+				// don't collect telemetry data on failure
 				continue
 			}
 

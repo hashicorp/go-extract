@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 type decompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
@@ -16,11 +16,11 @@ type decompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
 func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config, decom decompressionFunction, fileExt string) error {
 
 	// prepare telemetry capturing
-	// remark: do not defer MetricsHook here, bc/ in case of tar.<compression>, the
-	// tar extractor should submit the metrics
+	// remark: do not defer TelemetryHook here, bc/ in case of tar.<compression>, the
+	// tar extractor should submit the telemetry data
 	c.Logger().Info("decompress", "fileExt", fileExt)
-	m := &metrics.Metrics{ExtractedType: fileExt}
-	defer c.MetricsHook()(ctx, m)
+	m := &telemetry.Data{ExtractedType: fileExt}
+	defer c.TelemetryHook()(ctx, m)
 	defer captureExtractionDuration(m, now())
 
 	// limit input size

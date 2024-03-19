@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // TestCheckMaxFiles implements test cases
@@ -517,20 +517,20 @@ func TestCheckWithFollowSymlinks(t *testing.T) {
 	}
 }
 
-func TestWithMetricsHook(t *testing.T) {
+func TestWithTelemetryHook(t *testing.T) {
 
 	// Create a new Config without specified hook
-	metricsDelivered := false
-	c := NewConfig(WithMetricsHook(func(ctx context.Context, m *metrics.Metrics) {
-		metricsDelivered = true
+	telemetryDelivered := false
+	c := NewConfig(WithTelemetryHook(func(ctx context.Context, m *telemetry.Data) {
+		telemetryDelivered = true
 	}))
 
 	// submit hook
-	c.MetricsHook()(context.Background(), &metrics.Metrics{})
+	c.TelemetryHook()(context.Background(), &telemetry.Data{})
 
 	// check if hook was delivered
-	if !metricsDelivered {
-		t.Errorf("Expected metrics value to be delivered, but it was not")
+	if !telemetryDelivered {
+		t.Errorf("Expected telemetry data to be delivered, but it was not")
 	}
 
 }

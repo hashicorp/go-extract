@@ -1,4 +1,4 @@
-package metrics
+package telemetry
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-// TestMetricsString tests the String method of the Metrics struct
-func TestMetricsString(t *testing.T) {
-	m := Metrics{
+// TestDataString tests the String method of the data struct
+func TestDataString(t *testing.T) {
+	m := Data{
 		ExtractedType:       "tar",
 		ExtractionDuration:  time.Duration(5 * time.Millisecond),
 		ExtractionSize:      1024,

@@ -17,7 +17,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/metrics"
+	"github.com/hashicorp/go-extract/telemetry"
 	"github.com/hashicorp/go-slug"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -117,10 +117,10 @@ func main() {
 
 }
 
-var collectedMetrics []metrics.Metrics
+var td []telemetry.Data
 
-func storeMetric(ctx context.Context, m *metrics.Metrics) {
-	collectedMetrics = append(collectedMetrics, *m)
+func storeTelemetryData(ctx context.Context, d *telemetry.Data) {
+	td = append(td, *d)
 }
 
 // extractWithSlug extracts the given reader to the given target
@@ -132,13 +132,13 @@ func extractWithSlug(ctx context.Context, reader io.Reader, tmpExtractTarget str
 // behavior of the previous slug.Unpack. This is used to ensure that
 // the new implementation is a drop-in replacement for the old one.
 var unpackConfigGoExtract = config.NewConfig(
-	config.WithContinueOnError(true),            // taken from go-slug
-	config.WithContinueOnUnsupportedFiles(true), // taken from go-slug
-	config.WithDenySymlinkExtraction(true),      // taken from go-slug
-	config.WithMaxExtractionSize(-1),            // disable check for now
-	config.WithMaxFiles(-1),                     // disable check for now
-	config.WithMaxInputSize(-1),                 // disable check for now
-	config.WithMetricsHook(storeMetric),         // store metrics
+	config.WithContinueOnError(true),             // taken from go-slug
+	config.WithContinueOnUnsupportedFiles(true),  // taken from go-slug
+	config.WithDenySymlinkExtraction(true),       // taken from go-slug
+	config.WithMaxExtractionSize(-1),             // disable check for now
+	config.WithMaxFiles(-1),                      // disable check for now
+	config.WithMaxInputSize(-1),                  // disable check for now
+	config.WithTelemetryHook(storeTelemetryData), // store telemetry data
 )
 
 // extractWithGoExtract extracts the given reader to the given target
@@ -296,7 +296,7 @@ func unpackParallel(ctx context.Context, slugTarget string, body io.Reader) erro
 		// read from the pipe as the other goroutine writes to it
 		defer pipeRead.Close()
 
-		// unpack archive into temporary metrics dir
+		// unpack archive into temporary telemetry dir
 		return extract.Unpack(ctx, pipeRead, goExtractTarget, unpackConfigGoExtract)
 	})
 

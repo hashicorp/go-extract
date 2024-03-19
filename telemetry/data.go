@@ -1,4 +1,4 @@
-package metrics
+package telemetry
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Metrics is a struct type that holds all metrics of an extraction
-type Metrics struct {
+// Data is a struct type that holds all telemetry data of an extraction
+type Data struct {
 
 	// ExtractedDirs is the number of extracted directories
 	ExtractedDirs int64
@@ -46,20 +46,20 @@ type Metrics struct {
 	LastUnsupportedFile string
 }
 
-// String returns a string representation of the metrics
-func (m Metrics) String() string {
+// String returns a string representation of the telemetry data
+func (m Data) String() string {
 	b, _ := json.Marshal(m)
 	return string(b)
 }
 
 // MarshalJSON implements the json.Marshaler interface
-func (m Metrics) MarshalJSON() ([]byte, error) {
+func (m Data) MarshalJSON() ([]byte, error) {
 	var lastError string
 	if m.LastExtractionError != nil {
 		lastError = m.LastExtractionError.Error()
 	}
 
-	type Alias Metrics
+	type Alias Data
 	return json.Marshal(&struct {
 		LastExtractionError string `json:"LastExtractionError"`
 		*Alias
@@ -69,5 +69,5 @@ func (m Metrics) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// MetricsHook is a function type that performs operations on metrics
-type MetricsHook func(context.Context, *Metrics)
+// TelemetryHook is a function type that performs operations on telemetry data
+type TelemetryHook func(context.Context, *Data)
