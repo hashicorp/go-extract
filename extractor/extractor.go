@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"archive/tar"
 	"bytes"
 	"context"
 	"fmt"
@@ -81,8 +82,8 @@ func captureExtractionDuration(m *telemetry.Data, start time.Time) {
 }
 
 // captureInputSize captures the input size of the extraction
-func captureInputSize(m *telemetry.Data, ler *LimitErrorReader) {
-	m.InputSize = int64(ler.ReadBytes())
+func captureInputSize(td *telemetry.Data, ler *LimitErrorReader) {
+	td.InputSize = int64(ler.ReadBytes())
 }
 
 // UnpackFunc is a function that extracts the contents from src and extracts them to dst.
@@ -217,4 +218,232 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 
 	// end extraction on error
 	return td.LastExtractionError
+}
+
+type archiveEntry interface {
+	Mode() fs.FileMode
+	Type() fs.FileMode
+	Name() string
+	Linkname() string
+	Size() int64
+	Read([]byte) (int, error)
+	IsRegular() bool
+	IsDir() bool
+	IsSymlink() bool
+}
+
+type archiveWalker interface {
+	Type() string
+	Next() (archiveEntry, error)
+}
+
+// extract checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
+func extract(ctx context.Context, src archiveWalker, dst string, c *config.Config, td *telemetry.Data) error {
+
+	// start extraction
+	c.Logger().Info("start extraction", "type", src.Type())
+	var objectCounter int64
+	var extractionSize uint64
+
+	for {
+		// check if context is canceled
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		// get next file
+		ae, err := src.Next()
+
+		switch {
+
+		// if no more files are found exit loop
+		case err == io.EOF:
+			// extraction finished
+			return nil
+
+		// return any other error
+		case err != nil:
+			return handleError(c, td, "error reading", err)
+
+		// if the header is nil, just skip it (not sure how this happens)
+		case ae == nil:
+			continue
+		}
+
+		// check for to many objects in archive
+		objectCounter++
+
+		// check if maximum of objects is exceeded
+		if err := c.CheckMaxObjects(objectCounter); err != nil {
+			return handleError(c, td, "max objects check failed", err)
+		}
+
+		// check if file needs to match patterns
+		match, err := checkPatterns(c.Patterns(), ae.Name())
+		if err != nil {
+			return handleError(c, td, "cannot check pattern", err)
+		}
+		if !match {
+			c.Logger().Info("skipping file (pattern mismatch)", "name", ae.Name())
+			td.PatternMismatches++
+			continue
+		}
+
+		c.Logger().Debug("extract", "name", ae.Name())
+		switch {
+
+		// if its a dir and it doesn't exist create it
+		case ae.IsDir():
+
+			// handle directory
+			if err := unpackTarget.CreateSafeDir(c, dst, ae.Name()); err != nil {
+				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
+			// store telemetry and continue
+			td.ExtractedDirs++
+			continue
+
+		// if it's a file create it
+		case ae.IsRegular():
+
+			// check extraction size
+			extractionSize = extractionSize + uint64(ae.Size())
+			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
+				return handleError(c, td, "max extraction size exceeded", err)
+			}
+
+			// create file
+			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), ae, ae.Mode()); err != nil {
+
+				// increase error counter, set error and end if necessary
+				if err := handleError(c, td, "failed to create safe file", err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
+			// store telemetry
+			td.ExtractionSize = int64(extractionSize)
+			td.ExtractedFiles++
+			continue
+
+		// its a symlink !!
+		case ae.IsSymlink():
+
+			// check if symlinks are allowed
+			if c.DenySymlinkExtraction() {
+
+				// check for continue for unsupported files
+				if c.ContinueOnUnsupportedFiles() {
+					td.UnsupportedFiles++
+					td.LastUnsupportedFile = ae.Name()
+					continue
+				}
+
+				if err := handleError(c, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
+			// create link
+			if err := unpackTarget.CreateSafeSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
+
+				// increase error counter, set error and end if necessary
+				if err := handleError(c, td, "failed to create safe symlink", err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
+			// store telemetry and continue
+			td.ExtractedSymlinks++
+			continue
+
+		default:
+
+			// tar specific: check for git comment file `pax_global_header` from type `67` and skip
+			if ae.Type()&tar.TypeXGlobalHeader == tar.TypeXGlobalHeader && ae.Name() == "pax_global_header" {
+				continue
+			}
+
+			// check if unsupported files should be skipped
+			if c.ContinueOnUnsupportedFiles() {
+				td.UnsupportedFiles++
+				td.LastUnsupportedFile = ae.Name()
+				continue
+			}
+
+			// increase error counter, set error and end if necessary
+			if err := handleError(c, td, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", ae.Mode())); err != nil {
+				return err
+			}
+
+			// do not end on error
+			continue
+		}
+	}
+}
+
+// ReaderToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
+func ReaderToReaderAtSeeker(c *config.Config, r io.Reader) (SeekerReaderAt, error) {
+
+	if s, ok := r.(SeekerReaderAt); ok {
+		return s, nil
+	}
+
+	// check if reader is a file
+	if f, ok := r.(*os.File); ok {
+		return f, nil
+	}
+
+	// check if reader is a buffer
+	if b, ok := r.(*bytes.Buffer); ok {
+		return bytes.NewReader(b.Bytes()), nil
+	}
+
+	// limit reader
+	ler := NewLimitErrorReader(r, c.MaxInputSize())
+
+	// check how to cache
+	if c.CacheInMemory() {
+		b, err := io.ReadAll(ler)
+		if err != nil {
+			return nil, fmt.Errorf("cannot read all from reader: %w", err)
+		}
+		return bytes.NewReader(b), nil
+	}
+
+	// create temp file
+	tmpFile, err := os.CreateTemp("", "extractor-*")
+	if err != nil {
+		return nil, err
+	}
+
+	// copy reader to temp file
+	if _, err := io.Copy(tmpFile, ler); err != nil {
+		defer os.Remove(tmpFile.Name())
+		return nil, fmt.Errorf("cannot copy reader to file: %w", err)
+	}
+
+	// seek to start
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		defer os.Remove(tmpFile.Name())
+		return nil, err
+	}
+
+	// return temp file
+	return tmpFile, nil
 }
