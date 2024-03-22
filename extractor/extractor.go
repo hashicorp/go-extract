@@ -162,6 +162,12 @@ var AvailableExtractors = []struct {
 		MagicBytes:    magicBytesZstd,
 		FileExtension: fileExtensionZstd,
 	},
+	{
+		Unpacker:      Unpack7Zip,
+		HeaderCheck:   Is7zip,
+		MagicBytes:    magicBytes7zip,
+		FileExtension: fileExtension7zip,
+	},
 }
 
 var MaxHeaderLength int
@@ -218,23 +224,6 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 
 	// end extraction on error
 	return td.LastExtractionError
-}
-
-type archiveEntry interface {
-	Mode() fs.FileMode
-	Type() fs.FileMode
-	Name() string
-	Linkname() string
-	Size() int64
-	Read([]byte) (int, error)
-	IsRegular() bool
-	IsDir() bool
-	IsSymlink() bool
-}
-
-type archiveWalker interface {
-	Type() string
-	Next() (archiveEntry, error)
 }
 
 // extract checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
@@ -318,8 +307,15 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 				return handleError(c, td, "max extraction size exceeded", err)
 			}
 
+			// open file inm archive
+			fin, err := ae.Open()
+			if err != nil {
+				return handleError(c, td, "failed to open file", err)
+			}
+			defer fin.Close()
+
 			// create file
-			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), ae, ae.Mode()); err != nil {
+			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create safe file", err); err != nil {

@@ -156,3 +156,16 @@ func createFile(target string, data []byte) io.Reader {
 func createByteReader(target string, data []byte) io.Reader {
 	return bytes.NewReader(data)
 }
+
+type simpleReader struct {
+	r io.Reader
+}
+
+func (s *simpleReader) Read(p []byte) (n int, err error) {
+	return s.r.Read(p)
+}
+
+// createByteReader creates a reader for the given data
+func createSimpleReader(target string, data []byte) io.Reader {
+	return &simpleReader{r: createByteReader(target, data)}
+}

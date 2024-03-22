@@ -135,53 +135,10 @@ func (z *zipEntry) IsSymlink() bool {
 	return z.zf.FileHeader.Mode().Type() == os.ModeSymlink
 }
 
-func (z *zipEntry) Read(b []byte) (int, error) {
-	rc, err := z.zf.Open()
-	if err != nil {
-		return 0, err
-	}
-	defer rc.Close()
-	return rc.Read(b)
+func (z *zipEntry) Open() (io.ReadCloser, error) {
+	return z.zf.Open()
 }
 
 func (z *zipEntry) Type() fs.FileMode {
 	return z.zf.FileHeader.Mode().Type()
 }
-
-// // unpackZipCached checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-// // It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
-// // returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
-// // to dst.
-// func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.Config, m *telemetry.Data) error {
-
-// 	// log caching
-// 	c.Logger().Info("caching zip input")
-
-// 	// create limit error reader for src
-// 	ler := NewLimitErrorReader(src, c.MaxInputSize())
-// 	defer captureInputSize(m, ler)
-
-// 	// cache src in temp file for extraction
-// 	if !c.CacheInMemory() {
-// 		// copy src to tmp file
-// 		tmpFile, err := os.CreateTemp("", "extractor-*.zip")
-// 		if err != nil {
-// 			return handleError(c, m, "cannot create tmp file", err)
-// 		}
-// 		defer tmpFile.Close()
-// 		defer os.Remove(tmpFile.Name())
-// 		if _, err := io.Copy(tmpFile, ler); err != nil {
-// 			return handleError(c, m, "cannot copy reader to file", err)
-// 		}
-// 		// provide tmpFile as readerAt and seeker
-// 		return unpackZipReaderAtSeeker(ctx, tmpFile, dst, c, m)
-// 	}
-
-// 	// cache src in memory before starting extraction
-// 	data, err := io.ReadAll(ler)
-// 	if err != nil {
-// 		return handleError(c, m, "cannot read all from reader", err)
-// 	}
-// 	reader := bytes.NewReader(data)
-// 	return unpackZipReaderAtSeeker(ctx, reader, dst, c, m)
-// }

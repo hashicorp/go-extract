@@ -97,8 +97,8 @@ func (t *tarEntry) IsSymlink() bool {
 	return t.hdr.Typeflag == tar.TypeSymlink
 }
 
-func (t *tarEntry) Read(b []byte) (int, error) {
-	return t.tr.Read(b)
+func (t *tarEntry) Open() (io.ReadCloser, error) {
+	return &NoopReaderCloser{t.tr}, nil
 }
 
 func (t *tarEntry) Type() fs.FileMode {

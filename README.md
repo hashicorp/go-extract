@@ -4,6 +4,7 @@
 
 Secure file decompression and extraction of following types:
 
+- 7-Zip
 - Brotli
 - Bzip2
 - GZip
@@ -178,7 +179,7 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
   - [x] xz
   - [x] snappy
   - [ ] rar
-  - [ ] 7zip
+  - [x] 7zip
   - [x] zstandard
   - [x] zlib
   - [x] lz4
