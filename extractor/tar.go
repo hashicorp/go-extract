@@ -44,18 +44,22 @@ func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config)
 	return unpackTar(ctx, limitedReader, dst, c, td)
 }
 
+// unpackTar extracts the tar archive from src to dst
 func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, td *telemetry.Data) error {
 	return extract(ctx, &tarWalker{tr: tar.NewReader(src)}, dst, c, td)
 }
 
+// tarWalker is a walker for tar files
 type tarWalker struct {
 	tr *tar.Reader
 }
 
+// Type returns the file extension for tar files
 func (t *tarWalker) Type() string {
 	return fileExtensionTar
 }
 
+// Next returns the next entry in the tar archive
 func (t *tarWalker) Next() (archiveEntry, error) {
 	hdr, err := t.tr.Next()
 	if err != nil {
@@ -64,43 +68,53 @@ func (t *tarWalker) Next() (archiveEntry, error) {
 	return &tarEntry{hdr, t.tr}, nil
 }
 
+// tarEntry is an entry in a tar archive
 type tarEntry struct {
 	hdr *tar.Header
 	tr  *tar.Reader
 }
 
+// Name returns the name of the entry
 func (t *tarEntry) Name() string {
 	return t.hdr.Name
 }
 
+// Size returns the size of the entry
 func (t *tarEntry) Size() int64 {
 	return t.hdr.Size
 }
 
+// Mode returns the mode of the entry
 func (t *tarEntry) Mode() os.FileMode {
 	return t.hdr.FileInfo().Mode()
 }
 
+// Linkname returns the linkname of the entry
 func (t *tarEntry) Linkname() string {
 	return t.hdr.Linkname
 }
 
+// IsRegular returns true if the entry is a regular file
 func (t *tarEntry) IsRegular() bool {
 	return t.hdr.Typeflag == tar.TypeReg
 }
 
+// IsDir returns true if the entry is a directory
 func (t *tarEntry) IsDir() bool {
 	return t.hdr.Typeflag == tar.TypeDir
 }
 
+// IsSymlink returns true if the entry is a symlink
 func (t *tarEntry) IsSymlink() bool {
 	return t.hdr.Typeflag == tar.TypeSymlink
 }
 
+// Open returns a reader for the entry
 func (t *tarEntry) Open() (io.ReadCloser, error) {
 	return &NoopReaderCloser{t.tr}, nil
 }
 
+// Type returns the type of the entry
 func (t *tarEntry) Type() fs.FileMode {
 	return fs.FileMode(t.hdr.Typeflag)
 }

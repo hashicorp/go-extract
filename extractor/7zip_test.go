@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// TestIs7zip tests the Is7zip function
 func TestIs7zip(t *testing.T) {
 
 	// test cases
@@ -32,6 +33,7 @@ func TestIs7zip(t *testing.T) {
 
 }
 
+// TestUnpack7zip tests the Unpack7zip function
 func TestUnpack7zip(t *testing.T) {
 
 	archiveName := "test.7z"

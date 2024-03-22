@@ -36,7 +36,7 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpackZipReaderAtSeeker(ctx, sra, dst, c, td)
+		return unpackZip(ctx, sra, dst, c, td)
 	}
 
 	// convert
@@ -51,12 +51,12 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config)
 		}
 	}()
 
-	return unpackZipReaderAtSeeker(ctx, sra, dst, c, td)
+	return unpackZip(ctx, sra, dst, c, td)
 }
 
-// unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpackZip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	c.Logger().Info("extracting zip")
@@ -83,15 +83,18 @@ func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string
 	return extract(ctx, &zipWalker{zr: reader}, dst, c, m)
 }
 
+// zipWalker is a walker for zip files
 type zipWalker struct {
 	zr *zip.Reader
 	fp int
 }
 
+// Type returns the file extension for zip files
 func (z zipWalker) Type() string {
 	return fileExtensionZIP
 }
 
+// Next returns the next entry in the zip archive
 func (z *zipWalker) Next() (archiveEntry, error) {
 	if z.fp >= len(z.zr.File) {
 		return nil, io.EOF
@@ -100,22 +103,27 @@ func (z *zipWalker) Next() (archiveEntry, error) {
 	return &zipEntry{z.zr.File[z.fp]}, nil
 }
 
+// zipEntry is an entry in a zip archive
 type zipEntry struct {
 	zf *zip.File
 }
 
+// Name returns the name of the entry
 func (z *zipEntry) Name() string {
 	return z.zf.FileHeader.Name
 }
 
+// Size returns the size of the entry
 func (z *zipEntry) Size() int64 {
 	return int64(z.zf.FileHeader.UncompressedSize64)
 }
 
+// Mode returns the mode of the entry
 func (z *zipEntry) Mode() os.FileMode {
 	return z.zf.FileHeader.Mode()
 }
 
+// Linkname returns the linkname of the entry
 func (z *zipEntry) Linkname() string {
 	rc, _ := z.zf.Open()
 	defer func() { rc.Close() }()
@@ -123,22 +131,27 @@ func (z *zipEntry) Linkname() string {
 	return string(data)
 }
 
+// IsRegular returns true if the entry is a regular file
 func (z *zipEntry) IsRegular() bool {
 	return z.zf.FileHeader.Mode().Type() == 0
 }
 
+// IsDir returns true if the entry is a directory
 func (z *zipEntry) IsDir() bool {
 	return z.zf.FileHeader.Mode().Type() == os.ModeDir
 }
 
+// IsSymlink returns true if the entry is a symlink
 func (z *zipEntry) IsSymlink() bool {
 	return z.zf.FileHeader.Mode().Type() == os.ModeSymlink
 }
 
+// Open returns a reader for the entry
 func (z *zipEntry) Open() (io.ReadCloser, error) {
 	return z.zf.Open()
 }
 
+// Type returns the type of the entry
 func (z *zipEntry) Type() fs.FileMode {
 	return z.zf.FileHeader.Mode().Type()
 }
