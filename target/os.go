@@ -67,8 +67,12 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 			if config.FollowSymlinks() {
 				config.Logger().Warn("following symlink", "sub-dir", subDirs)
 			} else {
-				target, _ := getSymlinkTarget(checkDir)
-				return fmt.Errorf(fmt.Sprintf("symlink in path: %s -> %s", checkDir, target))
+				target, err := getSymlinkTarget(checkDir)
+				if err != nil {
+					return fmt.Errorf("symlink in path: %s -> (error: %w)", checkDir, err)
+				} else {
+					return fmt.Errorf(fmt.Sprintf("symlink in path: %s -> %s", checkDir, target)
+				}
 			}
 		}
 	}
