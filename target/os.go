@@ -29,7 +29,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 
 	// check for escape out of dstBase
 	if !filepath.IsLocal(targetDirectory) {
-		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
+		return fmt.Errorf("path traversal detected: %s", targetDirectory)
 	}
 
 	// check each dir in path
@@ -67,7 +67,12 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 			if config.FollowSymlinks() {
 				config.Logger().Warn("following symlink", "sub-dir", subDirs)
 			} else {
-				return fmt.Errorf(fmt.Sprintf("symlink in path (%s) %s", subDirs, checkDir))
+				target, err := getSymlinkTarget(checkDir)
+				if err != nil {
+					return fmt.Errorf("symlink in path: %s -> (error: %w)", checkDir, err)
+				} else {
+					return fmt.Errorf(fmt.Sprintf("symlink in path: %s -> %s", checkDir, target))
+				}
 			}
 		}
 	}
@@ -99,6 +104,24 @@ func isSymlink(path string) bool {
 	return false
 }
 
+// getSymlinkTarget returns the target of a symlink
+func getSymlinkTarget(path string) (string, error) {
+
+	// check if path is a symlink
+	if !isSymlink(path) {
+		return "", fmt.Errorf("not a symlink")
+	}
+
+	// get target
+	target, err := os.Readlink(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read symlink target (%s)", err)
+	}
+
+	return target, nil
+
+}
+
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
 
@@ -128,7 +151,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 	}
 
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return fmt.Errorf("path traversal detected (%s)", err)
+		return fmt.Errorf("path traversal detected: %w", err)
 	}
 
 	// create dirs
@@ -230,7 +253,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 
 	// create target dir && check for traversal in file name
 	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory); err != nil {
-		return fmt.Errorf("cannot create directory for symlink (%s)", newLinkDirectory)
+		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
 	}
 
 	// check link target for traversal

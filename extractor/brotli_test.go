@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// TestIsBrotli tests the IsBrotli function
 func TestIsBrotli(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -44,6 +45,7 @@ func TestIsBrotli(t *testing.T) {
 	}
 }
 
+// TestUnpackBrotli tests the UnpackBrotli function
 func TestUnpackBrotli(t *testing.T) {
 
 	inputData := []byte("Hello, World!")

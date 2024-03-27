@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -40,6 +41,11 @@ func TestGetUnpackFunction(t *testing.T) {
 			name:           "get gzip extractor from file",
 			createTestFile: createTestGzipWithFile,
 			expected:       extractor.UnpackGZip,
+		},
+		{
+			name:           "get 7zip extractor for 7z file",
+			createTestFile: create7zip,
+			expected:       extractor.Unpack7Zip,
 		},
 		{
 			name:           "get nil extractor fot textfile",
@@ -101,6 +107,18 @@ func createGzip(dstFile string, input io.Reader) {
 
 	// Flush the gzip writer to ensure all data is written
 	gzipWriter.Flush()
+}
+
+func create7zip(t *testing.T, dstDir string) string {
+	tmpFile := filepath.Join(t.TempDir(), "test.7z")
+	archiveBytes, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
+	if err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(tmpFile, archiveBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+	return tmpFile
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
@@ -724,6 +742,11 @@ func TestIsKnownArchiveFileExtension(t *testing.T) {
 		{
 			name:     "known extension",
 			filename: "test.bZ2",
+			want:     true,
+		},
+		{
+			name:     "known extension",
+			filename: "test.7z",
 			want:     true,
 		},
 		{

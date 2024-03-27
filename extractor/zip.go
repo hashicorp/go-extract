@@ -2,12 +2,11 @@ package extractor
 
 import (
 	"archive/zip"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
-	"path/filepath"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/telemetry"
@@ -37,15 +36,27 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpackZipReaderAtSeeker(ctx, sra, dst, c, td)
+		return unpackZip(ctx, sra, dst, c, td)
 	}
 
-	return unpackZipCached(ctx, src, dst, c, td)
+	// convert
+	sra, err := ReaderToReaderAtSeeker(c, src)
+	if err != nil {
+		return handleError(c, td, "cannot convert reader to readerAt and seeker", err)
+	}
+	defer func() {
+		if f, ok := src.(*os.File); ok {
+			f.Close()
+			os.Remove(f.Name())
+		}
+	}()
+
+	return unpackZip(ctx, sra, dst, c, td)
 }
 
-// unpackZipReaderAtSeeker checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpackZip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	c.Logger().Info("extracting zip")
@@ -69,235 +80,78 @@ func unpackZipReaderAtSeeker(ctx context.Context, src SeekerReaderAt, dst string
 	if err != nil {
 		return handleError(c, m, "cannot create zip reader", err)
 	}
-	return unpackZip(ctx, reader, dst, c, m)
+	return extract(ctx, &zipWalker{zr: reader}, dst, c, m)
 }
 
-// unpackZipCached checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
-// It caches the input on disc or in memory before starting extraction. If the input is larger than the maximum input size, the function
-// returns an error. If the input is smaller than the maximum input size, the function creates a zip reader and extracts the contents
-// to dst.
-func unpackZipCached(ctx context.Context, src io.Reader, dst string, c *config.Config, m *telemetry.Data) error {
-
-	// log caching
-	c.Logger().Info("caching zip input")
-
-	// create limit error reader for src
-	ler := NewLimitErrorReader(src, c.MaxInputSize())
-	defer captureInputSize(m, ler)
-
-	// cache src in temp file for extraction
-	if !c.CacheInMemory() {
-		// copy src to tmp file
-		tmpFile, err := os.CreateTemp("", "extractor-*.zip")
-		if err != nil {
-			return handleError(c, m, "cannot create tmp file", err)
-		}
-		defer tmpFile.Close()
-		defer os.Remove(tmpFile.Name())
-		if _, err := io.Copy(tmpFile, ler); err != nil {
-			return handleError(c, m, "cannot copy reader to file", err)
-		}
-		// provide tmpFile as readerAt and seeker
-		return unpackZipReaderAtSeeker(ctx, tmpFile, dst, c, m)
-	}
-
-	// cache src in memory before starting extraction
-	data, err := io.ReadAll(ler)
-	if err != nil {
-		return handleError(c, m, "cannot read all from reader", err)
-	}
-	reader := bytes.NewReader(data)
-	return unpackZipReaderAtSeeker(ctx, reader, dst, c, m)
+// zipWalker is a walker for zip files
+type zipWalker struct {
+	zr *zip.Reader
+	fp int
 }
 
-// unpack checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst. It uses the zip.Reader
-// to extract the contents to dst. It checks if the file names match the patterns given in the config. If a file name does not match
-// the patterns, the file is skipped. If a file name matches the patterns, the file is extracted to dst. If the file is a directory,
-// the directory is created in dst. If the file is a symlink, the symlink is created in dst. If the file is a regular file, the file
-// is created in dst. If the file is a unsupported file mode, the file is skipped. If the file is a unsupported file mode and the
-// config allows unsupported files, the file is skipped. If the file is a unsupported file mode and the config does not allow unsupported
-// files, the function returns an error. If the extraction size exceeds the maximum extraction size, the function returns an error.
-// If the extraction size does not exceed the maximum extraction size, the function returns nil.
-func unpackZip(ctx context.Context, src *zip.Reader, dst string, c *config.Config, m *telemetry.Data) error {
-
-	// check for to many files in archive
-	if err := c.CheckMaxObjects(int64(len(src.File))); err != nil {
-		return handleError(c, m, "max objects check failed", err)
-	}
-
-	// summarize file-sizes
-	var extractionSize uint64
-
-	// walk over archive
-	for _, archiveFile := range src.File {
-
-		// check if context is canceled
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-
-		// get next file
-		hdr := archiveFile.FileHeader
-
-		// check if file needs to match patterns
-		match, err := checkPatterns(c.Patterns(), hdr.Name)
-		if err != nil {
-			return handleError(c, m, "cannot check pattern", err)
-		}
-		if !match {
-			c.Logger().Info("skipping file (pattern mismatch)", "name", hdr.Name)
-			m.PatternMismatches++
-			continue
-		}
-
-		c.Logger().Info("extract", "name", hdr.Name)
-
-		switch hdr.Mode() & os.ModeType {
-
-		case os.ModeDir: // handle directory
-
-			// check if dir is just current working dir
-			if filepath.Clean(hdr.Name) == "." {
-				continue
-			}
-
-			// create dir and check for errors, format and handle them
-			if err := unpackTarget.CreateSafeDir(c, dst, hdr.Name); err != nil {
-				if err := handleError(c, m, "failed to create safe directory", err); err != nil {
-					return err
-				}
-
-				// don't collect telemetry data on failure
-				continue
-			}
-
-			// next item
-			m.ExtractedDirs++
-			continue
-
-		case os.ModeSymlink: // handle symlink
-
-			// check if symlinks are allowed
-			if c.DenySymlinkExtraction() {
-
-				// check for continue for unsupported files
-				if c.ContinueOnUnsupportedFiles() {
-					m.UnsupportedFiles++
-					m.LastUnsupportedFile = hdr.Name
-					continue
-				}
-
-				if err := handleError(c, m, "cannot extract symlink", fmt.Errorf("symlinks are not allowed")); err != nil {
-					return err
-				}
-
-				// do not end on error
-				continue
-			}
-
-			// extract link target
-			linkTarget, err := readLinkTargetFromZip(archiveFile)
-
-			// check for errors, format and handle them
-			if err != nil {
-				if err := handleError(c, m, "failed to read symlink target", err); err != nil {
-					return err
-				}
-
-				// step over creation
-				continue
-			}
-
-			// create link
-			if err := unpackTarget.CreateSafeSymlink(c, dst, hdr.Name, linkTarget); err != nil {
-				if err := handleError(c, m, "failed to create safe symlink", err); err != nil {
-					return err
-				}
-
-				// don't collect telemetry data on failure
-				continue
-			}
-
-			// next item
-			m.ExtractedSymlinks++
-			continue
-
-		case 0: // handle regular files
-
-			// check for file size
-			extractionSize = extractionSize + archiveFile.UncompressedSize64
-			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				return handleError(c, m, "maximum extraction size exceeded", err)
-			}
-
-			// open stream
-			fileInArchive, err := archiveFile.Open()
-			defer fileInArchive.Close()
-
-			// check for errors, format and handle them
-			if err != nil {
-				if err := handleError(c, m, "cannot open file in archive", err); err != nil {
-					return err
-				}
-
-				// don't collect telemetry data on failure
-				continue
-			}
-
-			// create the file
-			if err := unpackTarget.CreateSafeFile(c, dst, hdr.Name, fileInArchive, archiveFile.Mode()); err != nil {
-				if err := handleError(c, m, "failed to create safe file", err); err != nil {
-					return err
-				}
-
-				// don't collect telemetry data on failure
-				continue
-			}
-
-			// next item
-			m.ExtractionSize = int64(extractionSize)
-			m.ExtractedFiles++
-			continue
-
-		default: // catch all for unsupported file modes
-
-			// check if unsupported files should be skipped
-			if c.ContinueOnUnsupportedFiles() {
-				m.UnsupportedFiles++
-				m.LastUnsupportedFile = hdr.Name
-				continue
-			}
-
-			// increase error counter, set error and end if necessary
-			if err := handleError(c, m, "cannot extract file", fmt.Errorf("unsupported file mode (%x)", hdr.Mode())); err != nil {
-				return err
-			}
-		}
-	}
-
-	// finished without problems
-	return nil
+// Type returns the file extension for zip files
+func (z zipWalker) Type() string {
+	return fileExtensionZIP
 }
 
-// readLinkTargetFromZip extracts the symlink destination for symlinkFile from the zip archive.
-// It returns the symlink destination or an error if the symlink destination could not be extracted.
-func readLinkTargetFromZip(symlinkFile *zip.File) (string, error) {
-	// read content to determine symlink destination
-	rc, err := symlinkFile.Open()
-	if err != nil {
-		return "", fmt.Errorf("cannot open file in archive: %s", err)
+// Next returns the next entry in the zip archive
+func (z *zipWalker) Next() (archiveEntry, error) {
+	if z.fp >= len(z.zr.File) {
+		return nil, io.EOF
 	}
-	defer func() {
-		rc.Close()
-	}()
+	defer func() { z.fp++ }()
+	return &zipEntry{z.zr.File[z.fp]}, nil
+}
 
-	// read link target
-	data, err := io.ReadAll(rc)
-	if err != nil {
-		return "", fmt.Errorf("cannot read symlink target: %s", err)
-	}
-	symlinkTarget := string(data)
+// zipEntry is an entry in a zip archive
+type zipEntry struct {
+	zf *zip.File
+}
 
-	// return result
-	return symlinkTarget, nil
+// Name returns the name of the entry
+func (z *zipEntry) Name() string {
+	return z.zf.FileHeader.Name
+}
+
+// Size returns the size of the entry
+func (z *zipEntry) Size() int64 {
+	return int64(z.zf.FileHeader.UncompressedSize64)
+}
+
+// Mode returns the mode of the entry
+func (z *zipEntry) Mode() os.FileMode {
+	return z.zf.FileHeader.Mode()
+}
+
+// Linkname returns the linkname of the entry
+func (z *zipEntry) Linkname() string {
+	rc, _ := z.zf.Open()
+	defer func() { rc.Close() }()
+	data, _ := io.ReadAll(rc)
+	return string(data)
+}
+
+// IsRegular returns true if the entry is a regular file
+func (z *zipEntry) IsRegular() bool {
+	return z.zf.FileHeader.Mode().Type() == 0
+}
+
+// IsDir returns true if the entry is a directory
+func (z *zipEntry) IsDir() bool {
+	return z.zf.FileHeader.Mode().Type() == os.ModeDir
+}
+
+// IsSymlink returns true if the entry is a symlink
+func (z *zipEntry) IsSymlink() bool {
+	return z.zf.FileHeader.Mode().Type() == os.ModeSymlink
+}
+
+// Open returns a reader for the entry
+func (z *zipEntry) Open() (io.ReadCloser, error) {
+	return z.zf.Open()
+}
+
+// Type returns the type of the entry
+func (z *zipEntry) Type() fs.FileMode {
+	return z.zf.FileHeader.Mode().Type()
 }
