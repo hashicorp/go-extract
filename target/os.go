@@ -125,20 +125,6 @@ func getSymlinkTarget(path string) (string, error) {
 // CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
 func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string, perm fs.FileMode) error {
 
-	// check if dst exist
-	if len(dstBase) > 0 {
-		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
-			if config.CreateDestination() {
-				if err := os.MkdirAll(dstBase, perm); err != nil {
-					return fmt.Errorf("failed to create destination directory %s", err)
-				}
-				config.Logger().Info("created destination directory", "path", dstBase)
-			} else {
-				return fmt.Errorf("destination does not exist (%s)", dstBase)
-			}
-		}
-	}
-
 	// Check if newDir starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
 		config.Logger().Debug("remove absolute path prefix", "prefix", start)
