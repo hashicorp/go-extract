@@ -62,6 +62,8 @@ import (
         config.WithContinueOnError(false),            // fail on error
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
+        config.WithDefaultDirPermission(0750),        // r/w as user and r as group
+        config.WithDefaultFilePermission(0640),       // r/w as user and r as group
         config.WithDenySymlinkExtraction(false),      // allow symlink creation
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
         config.WithLogger(logger),                    // adjust logger (default: io.Discard)
@@ -129,6 +131,8 @@ Flags:
   -C, --continue-on-error                 Continue extraction on error.
   -S, --continue-on-unsupported-files     Skip extraction of unsupported files.
   -c, --create-destination                Create destination directory if it does not exist.
+      --default-dir-permission=0750       Default directory permission for extracted directories. (octal notation, e.g. 0750)
+      --default-file-permission=0640      Default file permission for extracted files. (octal notation, e.g. 0640)
   -D, --deny-symlinks                     Deny symlink extraction.
   -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
       --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
