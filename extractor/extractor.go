@@ -285,7 +285,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsDir():
 
 			// handle directory
-			if err := unpackTarget.CreateSafeDir(c, dst, ae.Name()); err != nil {
+			if err := unpackTarget.CreateSafeDir(c, dst, ae.Name(), ae.Mode().Perm()); err != nil {
 				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
 					return err
 				}

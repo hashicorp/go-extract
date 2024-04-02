@@ -66,7 +66,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	// determine name and decompress content
 	dst, outputName := determineOutputName(dst, src)
 	c.Logger().Debug("determined output name", "name", outputName)
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, 0644); err != nil {
+	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, c.DefaultFilePermission()); err != nil {
 		return handleError(c, m, "cannot create file", err)
 	}
 

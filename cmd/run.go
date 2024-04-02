@@ -23,6 +23,8 @@ type CLI struct {
 	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
 	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
 	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
+	DefaultDirPermission       os.FileMode      `optional:"" default:"0750" help:"Default directory permission for extracted directories. (octal notation, e.g. 0750)"`
+	DefaultFilePermission      os.FileMode      `optional:"" default:"0640" help:"Default file permission for extracted files. (octal notation, e.g. 0640)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -73,6 +75,8 @@ func Run(version, commit, date string) {
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
+		config.WithDefaultDirPermission(cli.DefaultDirPermission),
+		config.WithDefaultFilePermission(cli.DefaultFilePermission),
 		config.WithDenySymlinkExtraction(cli.DenySymlinks),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
