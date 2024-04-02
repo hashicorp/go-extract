@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/andybalholm/brotli"
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
@@ -767,4 +768,119 @@ func TestIsKnownArchiveFileExtension(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestUnpackWithTypes is a test function
+func TestUnpackWithTypes(t *testing.T) {
+
+	// test cases
+	cases := []struct {
+		name        string
+		cfg         *config.Config
+		archiveName string
+		content     []byte
+		gen         func(target string, data []byte) io.Reader
+		expectError bool
+	}{
+		{
+			name:        "get zip extractor from file",
+			cfg:         config.NewConfig(config.WithExtractType("gz")),
+			archiveName: "TestZip.gz",
+			content:     compressGzip([]byte("foobar content")),
+			gen:         createFile,
+			expectError: false,
+		},
+		{
+			name:        "get gzip extractor from file",
+			cfg:         config.NewConfig(config.WithExtractType("foo")),
+			archiveName: "TestZip.gz",
+			content:     compressGzip([]byte("foobar content")),
+			gen:         createFile,
+			expectError: true,
+		},
+		{
+			name:        "get brotli extractor for file",
+			cfg:         config.NewConfig(),
+			archiveName: "TestBrotli.br",
+			content:     compressBrotli([]byte("foobar content")),
+			gen:         createFile,
+			expectError: false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// create testing directory
+			testDir := t.TempDir()
+
+			// prepare vars
+			want := tc.expectError
+
+			// perform actual tests
+			archive := tc.gen(filepath.Join(testDir, tc.archiveName), tc.content)
+			err := Unpack(
+				context.Background(),
+				archive,
+				testDir,
+				tc.cfg,
+			)
+
+			// success if both are nil and no engine found
+			if want != (err != nil) {
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+			}
+		})
+	}
+
+}
+
+// createFile creates a file with the given data and returns a reader for it.
+func createFile(target string, data []byte) io.Reader {
+
+	// Write the compressed data to the file
+	if err := os.WriteFile(target, data, 0640); err != nil {
+		panic(fmt.Errorf("error writing compressed data to file: %w", err))
+	}
+
+	// Open the file
+	newFile, err := os.Open(target)
+	if err != nil {
+		panic(fmt.Errorf("error opening file: %w", err))
+	}
+
+	return newFile
+}
+
+// compressGzip compresses data using gzip algorithm
+func compressGzip(data []byte) []byte {
+	buf := &bytes.Buffer{}
+	gzWriter := gzip.NewWriter(buf)
+	if _, err := gzWriter.Write(data); err != nil {
+		panic(err)
+	}
+	if err := gzWriter.Close(); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+// Compress a byte slice with Brotli
+func compressBrotli(data []byte) []byte {
+	// Create a new Brotli writer
+	brotliBuf := new(bytes.Buffer)
+	brotliWriter := brotli.NewWriter(brotliBuf)
+
+	// Write the data to the Brotli writer
+	_, err := brotliWriter.Write(data)
+	if err != nil {
+		return nil
+	}
+
+	// Close the Brotli writer
+	err = brotliWriter.Close()
+	if err != nil {
+		return nil
+	}
+
+	return brotliBuf.Bytes()
 }

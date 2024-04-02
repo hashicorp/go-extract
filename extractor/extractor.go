@@ -92,77 +92,78 @@ type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
 // HeaderCheck is a function that checks if the given header matches the expected magic bytes.
 type HeaderCheck func([]byte) bool
 
-// AvailableExtractors is collection of new extractor functions with
-// the required magic bytes and potential offset
-var AvailableExtractors = []struct {
+type AvailableExtractor struct {
 	Unpacker      UnpackFunc
 	HeaderCheck   HeaderCheck
 	MagicBytes    [][]byte
 	Offset        int
 	FileExtension string
-}{
-	{
+}
+
+// AvailableExtractors is collection of new extractor functions with
+// the required magic bytes and potential offset
+var AvailableExtractors = map[string]AvailableExtractor{
+	fileExtensionBrotli: {
 		Unpacker:      UnpackBrotli,
 		HeaderCheck:   IsBrotli,
-		MagicBytes:    magicBytesBrotli,
 		FileExtension: fileExtensionBrotli,
 	},
-	{
+	fileExtensionBzip2: {
 		Unpacker:      UnpackBzip2,
 		HeaderCheck:   IsBzip2,
 		MagicBytes:    magicBytesBzip2,
 		FileExtension: fileExtensionBzip2,
 	},
-	{
+	fileExtensionGZip: {
 		Unpacker:      UnpackGZip,
 		HeaderCheck:   IsGZip,
 		MagicBytes:    magicBytesGZip,
 		FileExtension: fileExtensionGZip,
 	},
-	{
+	fileExtensionLZ4: {
 		Unpacker:      UnpackLZ4,
 		HeaderCheck:   IsLZ4,
 		MagicBytes:    magicBytesLZ4,
 		FileExtension: fileExtensionLZ4,
 	},
-	{
+	fileExtensionSnappy: {
 		Unpacker:      UnpackSnappy,
 		HeaderCheck:   IsSnappy,
 		MagicBytes:    magicBytesSnappy,
 		FileExtension: fileExtensionSnappy,
 	},
-	{
+	fileExtensionTar: {
 		Unpacker:      UnpackTar,
 		HeaderCheck:   IsTar,
 		MagicBytes:    magicBytesTar,
 		Offset:        offsetTar,
 		FileExtension: fileExtensionTar,
 	},
-	{
+	fileExtensionXz: {
 		Unpacker:      UnpackXz,
 		HeaderCheck:   IsXz,
 		MagicBytes:    magicBytesXz,
 		FileExtension: fileExtensionXz,
 	},
-	{
+	fileExtensionZIP: {
 		Unpacker:      UnpackZip,
 		HeaderCheck:   IsZip,
 		MagicBytes:    magicBytesZIP,
 		FileExtension: fileExtensionZIP,
 	},
-	{
+	fileExtensionZlib: {
 		Unpacker:      UnpackZlib,
 		HeaderCheck:   IsZlib,
 		MagicBytes:    magicBytesZlib,
 		FileExtension: fileExtensionZlib,
 	},
-	{
+	fileExtensionZstd: {
 		Unpacker:      UnpackZstd,
 		HeaderCheck:   IsZstd,
 		MagicBytes:    magicBytesZstd,
 		FileExtension: fileExtensionZstd,
 	},
-	{
+	fileExtension7zip: {
 		Unpacker:      Unpack7Zip,
 		HeaderCheck:   Is7zip,
 		MagicBytes:    magicBytes7zip,

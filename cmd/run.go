@@ -34,6 +34,7 @@ type CLI struct {
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
+	Type                       string           `short:"t" optional:"" default:"" name:"type" help:"Type of archive. (7z, br, bz2, gz, lz4, sz, tar, xz, zip, zst, zz)"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version                    kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -74,6 +75,7 @@ func Run(version, commit, date string) {
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
 		config.WithDenySymlinkExtraction(cli.DenySymlinks),
+		config.WithExtractType(cli.Type),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
 		config.WithLogger(logger),
 		config.WithMaxExtractionSize(cli.MaxExtractionSize),
