@@ -824,9 +824,13 @@ func TestUnpackWithTypes(t *testing.T) {
 				testDir,
 				tc.cfg,
 			)
-			if closeErr := archive.(io.Closer).Close(); closeErr != nil {
-				t.Fatal(closeErr)
-			}
+			defer func() {
+				if closer, ok := archive.(io.Closer); ok {
+					if closeErr := closer.Close(); closeErr != nil {
+						t.Fatal(closeErr)
+					}
+				}
+			}()
 
 			// success if both are nil and no engine found
 			if want != (err != nil) {
