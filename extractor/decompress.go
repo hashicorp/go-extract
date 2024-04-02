@@ -23,6 +23,13 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	defer c.TelemetryHook()(ctx, m)
 	defer captureExtractionDuration(m, now())
 
+	// check if dst needs to be created
+	if c.CreateDestination() {
+		if err := unpackTarget.CreateSafeDir(c, dst, ".", c.DefaultDirPermission()); err != nil {
+			return handleError(c, m, "cannot create destination", err)
+		}
+	}
+
 	// limit input size
 	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
 	defer captureInputSize(m, limitedReader)

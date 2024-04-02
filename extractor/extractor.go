@@ -229,6 +229,13 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 // extract checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
 func extract(ctx context.Context, src archiveWalker, dst string, c *config.Config, td *telemetry.Data) error {
 
+	// check if dst needs to be created
+	if c.CreateDestination() {
+		if err := unpackTarget.CreateSafeDir(c, dst, ".", c.DefaultDirPermission()); err != nil {
+			return handleError(c, td, "cannot create destination", err)
+		}
+	}
+
 	// start extraction
 	c.Logger().Info("start extraction", "type", src.Type())
 	var objectCounter int64
@@ -314,11 +321,24 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 			defer fin.Close()
 
+			// ensure path to file exists
+			aePath := filepath.Dir(ae.Name())
+			if err := unpackTarget.CreateSafeDir(c, dst, aePath, ae.Mode()); err != nil {
+
+				// increase error counter, set error and end if necessary
+				if err := handleError(c, td, "failed to create directory", err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
 			// create file
 			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, td, "failed to create safe file", err); err != nil {
+				if err := handleError(c, td, "failed to create file", err); err != nil {
 					return err
 				}
 
@@ -345,6 +365,19 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 				}
 
 				if err := handleError(c, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
+
+			// ensure path to file exists
+			aePath := filepath.Dir(ae.Name())
+			if err := unpackTarget.CreateSafeDir(c, dst, aePath, ae.Mode()); err != nil {
+
+				// increase error counter, set error and end if necessary
+				if err := handleError(c, td, "failed to create directory", err); err != nil {
 					return err
 				}
 

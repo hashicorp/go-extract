@@ -738,10 +738,10 @@ func createTestFile(path string, content string) *os.File {
 	return newFile
 }
 
-// createTestTarWithSymlink is a helper function to generate test content
+// createTestZipWithZipSlip is a helper function to generate test content
 func createTestZipWithZipSlip(t *testing.T, dstDir string) string {
 
-	zipFile := filepath.Join(dstDir, "ZipWithZipSlip.tar")
+	zipFile := filepath.Join(dstDir, "ZipWithZipSlip.zip")
 
 	// prepare generated zip+writer
 	f, zipWriter := createZip(zipFile)

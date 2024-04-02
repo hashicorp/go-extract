@@ -190,11 +190,6 @@ func TestCreateSafeSymlink(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "legit link in sub dir",
-			input:       fnInput{name: "te/bar", target: "baz"},
-			expectError: false,
-		},
-		{
 			name:        "legit link name with path with traversal",
 			input:       fnInput{name: "test/../bar", target: "baz"},
 			expectError: false,
@@ -229,12 +224,6 @@ func TestCreateSafeSymlink(t *testing.T) {
 			input:       fnInput{name: "test3", target: "../baz"},
 			expectError: true,
 		},
-		{
-			name:        "legit link",
-			input:       fnInput{name: "foo/test3", target: "../baz"},
-			expectError: false,
-		},
-
 		{
 			name:        "malicious link target with more complex path traversal",
 			input:       fnInput{name: "test4", target: "./foo/bar/../test/../../../outside"},
@@ -388,27 +377,6 @@ func TestCreateSafeFile(t *testing.T) {
 			config:      config.NewConfig(), // default settings are fine
 			expectError: false,
 		},
-
-		{
-			name: "legit file in sub-dir",
-			input: fnInput{
-				name:   "test/foo",
-				reader: bytes.NewReader([]byte("data")),
-				mode:   0,
-			},
-			config:      config.NewConfig(), // default settings are fine
-			expectError: false,
-		},
-		{
-			name: "legit file in sub-dir with legit traversal",
-			input: fnInput{
-				name:   "test/foo/../bar",
-				reader: bytes.NewReader([]byte("data")),
-				mode:   0,
-			},
-			config:      config.NewConfig(), // default settings are fine
-			expectError: false,
-		},
 		{
 			name: "malicious file with traversal",
 			input: fnInput{
@@ -498,7 +466,7 @@ func TestOverwriteFile(t *testing.T) {
 			name: "allow overwrite",
 
 			input: fnInput{
-				name:   "aaa/bbb",
+				name:   "bar",
 				reader: bytes.NewReader([]byte("data")),
 				mode:   0640,
 			},

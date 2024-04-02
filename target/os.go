@@ -139,11 +139,6 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 		}
 	}
 
-	// no action needed
-	if newDir == "." {
-		return nil
-	}
-
 	// Check if newDir starts with an absolute path, if so -> remove
 	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
 		config.Logger().Debug("remove absolute path prefix", "prefix", start)
@@ -151,7 +146,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 	}
 
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return fmt.Errorf("path traversal detected: %w", err)
+		return fmt.Errorf("security check failed: %w", err)
 	}
 
 	// create dirs
@@ -178,9 +173,10 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
-	// create target dir && check for path traversal // zip-slip
-	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.DefaultDirPermission()); err != nil {
-		return fmt.Errorf("cannot create directory for file (%s)", err)
+	// check for path traversal // zip-slip
+	newFilePath := filepath.Dir(newFileName)
+	if err := securityCheckPath(cfg, dstBase, newFilePath); err != nil {
+		return fmt.Errorf("security check failed: %w", err)
 	}
 
 	// Check for file existence//overwrite
@@ -251,9 +247,9 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	newLinkName = filepath.Clean(newLinkName)
 	newLinkDirectory := filepath.Dir(newLinkName)
 
-	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory, config.DefaultDirPermission()); err != nil {
-		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
+	// check for path traversal // zip-slip
+	if err := securityCheckPath(config, dstBase, newLinkDirectory); err != nil {
+		return fmt.Errorf("security check failed: %w", err)
 	}
 
 	// check link target for traversal
