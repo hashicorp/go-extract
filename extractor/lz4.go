@@ -11,7 +11,7 @@ import (
 // magicBytesLZ4 is the magic bytes for LZ4 files.
 // reference https://android.googlesource.com/platform/external/lz4/+/HEAD/doc/lz4_Frame_format.md
 var magicBytesLZ4 = [][]byte{
-	{0x18, 0x4D, 0x22, 0x04},
+	{0x04, 0x22, 0x4D, 0x18},
 }
 
 // fileExtensionLZ4 is the file extension for LZ4 files.
