@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -23,8 +24,8 @@ type CLI struct {
 	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
 	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
 	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
-	DefaultDirPermission       os.FileMode      `optional:"" default:"0750" help:"Default directory permission for extracted directories. (octal notation, e.g. 0750)"`
-	DefaultFilePermission      os.FileMode      `optional:"" default:"0640" help:"Default file permission for extracted files. (octal notation, e.g. 0640)"`
+	DefaultDirPermission       int              `optional:"" default:"750" help:"Default directory permission for extracted directories. (octal)"`
+	DefaultFilePermission      int              `optional:"" default:"640" help:"Default file permission for extracted files. (octal)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -70,6 +71,10 @@ func Run(version, commit, date string) {
 		}
 	}
 
+	// convert decimal to octal
+	cli.DefaultDirPermission = asOctal(cli.DefaultDirPermission)
+	cli.DefaultFilePermission = asOctal(cli.DefaultFilePermission)
+
 	// process cli params
 	config := config.NewConfig(
 		config.WithContinueOnError(cli.ContinueOnError),
@@ -114,4 +119,10 @@ func Run(version, commit, date string) {
 		log.Println(fmt.Errorf("error during extraction: %s", err))
 		os.Exit(-1)
 	}
+}
+
+// asOctal interprets the given decimal value as octal
+func asOctal(v int) int {
+	t, _ := strconv.ParseInt(fmt.Sprintf("0%d", v), 8, 32)
+	return int(t)
 }

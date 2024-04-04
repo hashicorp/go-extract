@@ -278,17 +278,18 @@ func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	}
 }
 
-// WithDefaultFilePermission options pattern function to set default file permission
-func WithDefaultFilePermission(perm fs.FileMode) ConfigOption {
+// WithDefaultFilePermission options pattern function to set default file permission (perm needs to be octal)
+func WithDefaultFilePermission(perm int) ConfigOption {
 	return func(c *Config) {
-		c.defaultFilePermission = perm
+		c.defaultFilePermission = fs.FileMode(perm)
 	}
 }
 
-// WithDefaultDirPermission options pattern function to set default directory permission
-func WithDefaultDirPermission(perm fs.FileMode) ConfigOption {
+// WithDefaultDirPermission options pattern function to set default directory permission (perm needs to be octal)
+func WithDefaultDirPermission(perm int) ConfigOption {
+	fmt.Printf("DefaultDirPermission: %d %o", perm, perm)
 	return func(c *Config) {
-		c.defaultDirPermission = perm
+		c.defaultDirPermission = fs.FileMode(perm)
 	}
 }
 
