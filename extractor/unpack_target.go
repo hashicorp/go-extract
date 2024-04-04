@@ -15,7 +15,11 @@ import (
 // unpackTarget is the target that is used for extraction
 var unpackTarget target.Target
 
-func createNewFile(c *config.Config, base string, name string, reader io.Reader, perm fs.FileMode, maxSize int64) (int64, error) {
+// createFile creates a new file at name with the content from reader. If maxSize is set to a
+// positive value, the file will be truncated to that size and en error thrown. If overwrite
+// is set to true, the file will be overwritten if it already exists. If maxSize is set to -1,
+// the file will be fully written. If a directory along the path does not exist, an error is thrown.
+func createFile(c *config.Config, base string, name string, reader io.Reader, perm fs.FileMode, maxSize int64) (int64, error) {
 
 	// check if a name is provided
 	if len(name) == 0 {
@@ -39,6 +43,8 @@ func createNewFile(c *config.Config, base string, name string, reader io.Reader,
 	return unpackTarget.CreateFile(newFilePath, reader, perm, c.Overwrite(), maxSize)
 }
 
+// createDir creates a new directory at name with the provided permissions. If a directory along the base
+// does not exist, it is created as well. If the directory already exists, the creation it is skipped.
 func createDir(config *config.Config, base string, name string, perm fs.FileMode) error {
 	// Check if newDir starts with an absolute path, if so -> remove
 	if start := getStartOfAbsolutePath(name); len(start) > 0 {
@@ -60,6 +66,9 @@ func createDir(config *config.Config, base string, name string, perm fs.FileMode
 	return nil
 }
 
+// createSymlink creates a new symlink at name pointing to target. If overwrite is set to true,
+// the existing file will be overwritten. if name is a non-empty folder and overwrite is set, an error is thrown.
+// If a folder along the path of name is missing, an error is thrown.
 func createSymlink(config *config.Config, base string, name string, target string) error {
 
 	// check if symlink extraction is denied
@@ -106,6 +115,7 @@ func createSymlink(config *config.Config, base string, name string, target strin
 	return unpackTarget.CreateSymlink(linkName, target, config.Overwrite())
 }
 
+// lstat is a wrapper for the target.Lstat function
 func lstat(path string) (fs.FileInfo, error) {
 	return unpackTarget.Lstat(path)
 }
@@ -115,6 +125,9 @@ func SetTarget(t target.Target) {
 	unpackTarget = t
 }
 
+// securityCheckPath checks if the targetDirectory contains a path traversal, an error is returned.
+// The function checks if the targetDirectory contains a symlink. If symlink following is enabled,
+// a warning is logged. If symlink following is disabled, an error is returned.
 func securityCheckPath(config *config.Config, dstBase string, targetDirectory string) error {
 
 	// clean the target

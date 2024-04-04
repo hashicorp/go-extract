@@ -338,7 +338,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// create file
-			writtenBytes, err := createNewFile(c, dst, ae.Name(), fin, ae.Mode(), c.MaxExtractionSize()-extractedBytes)
+			writtenBytes, err := createFile(c, dst, ae.Name(), fin, ae.Mode(), c.MaxExtractionSize()-extractedBytes)
 			if err != nil {
 
 				// increase error counter, set error and end if necessary

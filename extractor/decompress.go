@@ -80,7 +80,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 
 	// decompress content and write to file
-	if _, err := createNewFile(c, dst, outputName, headerReader, c.DefaultFilePermission(), c.MaxExtractionSize()); err != nil {
+	if _, err := createFile(c, dst, outputName, headerReader, c.DefaultFilePermission(), c.MaxExtractionSize()); err != nil {
 		return handleError(c, td, "cannot create file", err)
 	}
 
