@@ -20,9 +20,6 @@ import (
 // now is a function point that returns time.Now to the caller.
 var now = time.Now
 
-// unpackTarget is the target that is used for extraction
-var unpackTarget target.Target
-
 // SeekerReaderAt is a struct that combines the io.ReaderAt and io.Seeker interfaces
 type SeekerReaderAt interface {
 	io.ReaderAt
@@ -231,15 +228,20 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 	// check if dst needs to be created
 	if c.CreateDestination() {
-		if err := unpackTarget.CreateSafeDir(c, dst, ".", c.DefaultDirPermission()); err != nil {
+		if err := unpackTarget.CreateDir(dst, c.DefaultDirPermission()); err != nil {
 			return handleError(c, td, "cannot create destination", err)
 		}
+	}
+
+	// check if dst exist
+	if _, err := unpackTarget.Lstat(dst); err != nil {
+		return handleError(c, td, "destination does not exist", err)
 	}
 
 	// start extraction
 	c.Logger().Info("start extraction", "type", src.Type())
 	var objectCounter int64
-	var extractionSize uint64
+	var extractedBytes int64
 
 	for {
 		// check if context is canceled
@@ -292,7 +294,8 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsDir():
 
 			// handle directory
-			if err := unpackTarget.CreateSafeDir(c, dst, ae.Name(), ae.Mode().Perm()); err != nil {
+
+			if err := createDir(c, dst, ae.Name(), ae.Mode().Perm()); err != nil {
 				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
 					return err
 				}
@@ -309,12 +312,12 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsRegular():
 
 			// check extraction size
-			extractionSize = extractionSize + uint64(ae.Size())
-			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
+
+			if err := c.CheckExtractionSize(extractedBytes + ae.Size()); err != nil {
 				return handleError(c, td, "max extraction size exceeded", err)
 			}
 
-			// open file inm archive
+			// open file in archive
 			fin, err := ae.Open()
 			if err != nil {
 				return handleError(c, td, "failed to open file", err)
@@ -323,7 +326,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 			// ensure path to file exists
 			aePath := filepath.Dir(ae.Name())
-			if err := unpackTarget.CreateSafeDir(c, dst, aePath, ae.Mode()); err != nil {
+			if err := createDir(c, dst, aePath, ae.Mode()); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create directory", err); err != nil {
@@ -335,7 +338,8 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// create file
-			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
+			writtenBytes, err := createNewFile(c, dst, ae.Name(), fin, ae.Mode(), c.MaxExtractionSize()-extractedBytes)
+			if err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create file", err); err != nil {
@@ -345,9 +349,10 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 				// do not end on error
 				continue
 			}
+			extractedBytes = extractedBytes + writtenBytes
 
 			// store telemetry
-			td.ExtractionSize = int64(extractionSize)
+			td.ExtractionSize = int64(extractedBytes)
 			td.ExtractedFiles++
 			continue
 
@@ -359,6 +364,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 				// check for continue for unsupported files
 				if c.ContinueOnUnsupportedFiles() {
+					c.Logger().Info("skipped symlink extraction", "name", ae.Name(), "target", ae.Linkname())
 					td.UnsupportedFiles++
 					td.LastUnsupportedFile = ae.Name()
 					continue
@@ -374,7 +380,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 			// ensure path to file exists
 			aePath := filepath.Dir(ae.Name())
-			if err := unpackTarget.CreateSafeDir(c, dst, aePath, ae.Mode()); err != nil {
+			if err := createDir(c, dst, aePath, ae.Mode()); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create directory", err); err != nil {
@@ -386,10 +392,10 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// create link
-			if err := unpackTarget.CreateSafeSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
+			if err := createSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, td, "failed to create safe symlink", err); err != nil {
+				if err := handleError(c, td, "failed to create symlink", err); err != nil {
 					return err
 				}
 

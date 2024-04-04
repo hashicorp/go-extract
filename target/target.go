@@ -3,19 +3,20 @@ package target
 import (
 	"io"
 	"io/fs"
-
-	"github.com/hashicorp/go-extract/config"
 )
 
 // Target specifies all function that are needed to be implemented to extract contents from an archive
 type Target interface {
 
-	// CreateSafeFile is used to create a file in directory dstDir, with name and reader as content
-	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, perm fs.FileMode) error
+	// CreateFile is used to create a file with name and content
+	CreateFile(name string, content io.Reader, perm fs.FileMode, overwrite bool, maxSize int64) (int64, error)
 
-	// CreateSafeDir creates dirName in dstDir
-	CreateSafeDir(config *config.Config, dstDir string, dirName string, perm fs.FileMode) error
+	// CreateDir creates directory with name and perm
+	CreateDir(name string, perm fs.FileMode) error
 
-	// CreateSafeSymlink creates symlink name with destination linkTarget in dstDir
-	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
+	// CreateSymlink creates symlink name with destination linkTarget in dstDir
+	CreateSymlink(name string, target string, overwrite bool) error
+
+	// Lstat returns the FileInfo of the file at path
+	Lstat(path string) (fs.FileInfo, error)
 }

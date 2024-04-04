@@ -614,7 +614,7 @@ func TestTelemetryHook(t *testing.T) {
 			expectedTelemetryData: telemetry.Data{
 				ExtractedDirs:    0,
 				ExtractedFiles:   0,
-				ExtractionErrors: 5,
+				ExtractionErrors: 1, // only  for destination not existing
 				ExtractionSize:   0,
 				ExtractedType:    "tar.gz",
 			},
@@ -696,7 +696,7 @@ func TestTelemetryHook(t *testing.T) {
 
 			// compare collected and expected ExtractionErrors
 			if td.ExtractionErrors != tc.expectedTelemetryData.ExtractionErrors {
-				t.Errorf("test case %d failed: %s (ExtractionErrors)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractionErrors, td.ExtractionErrors)
+				t.Errorf("test case %d failed: %s (ExtractionErrors)\nexpected: %v\ngot: %v\ntelemetry: %s", i, tc.name, tc.expectedTelemetryData.ExtractionErrors, td.ExtractionErrors, td)
 			}
 
 			// compare collected and expected ExtractionSize
