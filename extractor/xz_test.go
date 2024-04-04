@@ -43,14 +43,14 @@ func TestUnpackXz(t *testing.T) {
 		{
 			name:      "UnpackXz",
 			cfg:       config.NewConfig(),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  compressXz([]byte("test")),
 			wantErr:   false,
 		},
 		{
 			name:          "UnpackXz with cancel",
 			cfg:           config.NewConfig(),
-			generator:     createFile,
+			generator:     createFileAndOpen,
 			testData:      compressXz([]byte("test")),
 			cancelContext: true,
 			wantErr:       true,
@@ -58,14 +58,14 @@ func TestUnpackXz(t *testing.T) {
 		{
 			name:      "UnpackXz with limited input",
 			cfg:       config.NewConfig(config.WithMaxInputSize(1)),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  compressXz([]byte("test")),
 			wantErr:   true,
 		},
 		{
 			name:      "UnpackXz with invalid input",
 			cfg:       config.NewConfig(),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  []byte("this is not valid xz data"),
 			wantErr:   true,
 		},

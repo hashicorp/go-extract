@@ -226,7 +226,7 @@ func TestTarUnpackNew(t *testing.T) {
 			ctx := tc.ctx
 
 			// perform actual tests
-			input := createFile(filepath.Join(testDir, "test.tar"), tc.content)
+			input := createFileAndOpen(filepath.Join(testDir, "test.tar"), tc.content)
 			want := tc.expectError
 			err := UnpackTar(ctx, input, testDir, config.NewConfig(tc.opts...))
 			defer input.(io.Closer).Close()

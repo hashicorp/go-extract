@@ -44,14 +44,14 @@ func TestUnpackZlib(t *testing.T) {
 		{
 			name:      "UnpackZlib",
 			cfg:       config.NewConfig(),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  compressZlib([]byte("test")),
 			wantErr:   false,
 		},
 		{
 			name:          "UnpackZlib with cancel",
 			cfg:           config.NewConfig(),
-			generator:     createFile,
+			generator:     createFileAndOpen,
 			testData:      compressZlib([]byte("test")),
 			cancelContext: true,
 			wantErr:       true,
@@ -59,14 +59,14 @@ func TestUnpackZlib(t *testing.T) {
 		{
 			name:      "UnpackZlib with limited input",
 			cfg:       config.NewConfig(config.WithMaxInputSize(1)),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  compressZlib([]byte("test")),
 			wantErr:   true,
 		},
 		{
 			name:      "UnpackZlib with invalid input",
 			cfg:       config.NewConfig(),
-			generator: createFile,
+			generator: createFileAndOpen,
 			testData:  []byte("this is not valid zlib data"),
 			wantErr:   true,
 		},
