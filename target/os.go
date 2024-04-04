@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"strings"
 )
 
 // OS is the struct type that holds all information for interacting with the filesystem
@@ -19,7 +18,8 @@ func NewOS() *OS {
 	return os
 }
 
-// CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
+// CreateDir creates a new directory at name with the provided permissions. If a directory along the path
+// does not exist, it is created as well.
 func (o *OS) CreateDir(name string, perm fs.FileMode) error {
 
 	if err := os.MkdirAll(name, perm); err != nil {
@@ -29,8 +29,10 @@ func (o *OS) CreateDir(name string, perm fs.FileMode) error {
 	return nil
 }
 
-// CreateSafeFile creates newFileName in dstBase with content from reader and file
-// headers as provided in mode
+// CreateFile creates a new file at name with the content from reader. If maxSize is set to a
+// positive value, the file will be truncated to that size and en error thrown. If overwrite
+// is set to true, the file will be overwritten if it already exists. If maxSize is set to -1,
+// the file will be fully written. If a directory along the path does not exist, an error is thrown.
 func (o *OS) CreateFile(name string, reader io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 
 	// Check for file existence//overwrite
@@ -39,7 +41,6 @@ func (o *OS) CreateFile(name string, reader io.Reader, mode fs.FileMode, overwri
 			return 0, fmt.Errorf("file already exists")
 		}
 	}
-	// TODO: check behaviour for symlinks
 
 	// create dst file
 	dstFile, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
@@ -60,7 +61,9 @@ func (o *OS) CreateFile(name string, reader io.Reader, mode fs.FileMode, overwri
 	return io.Copy(dstFile, reader)
 }
 
-// CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
+// CreateSymlink creates a new symlink at name pointing to target. If overwrite is set to true,
+// the existing file will be overwritten. if name is a non-empty folder and overwrite is set, an error is thrown.
+// If a folder along the path of name is missing, an error is thrown.
 func (o *OS) CreateSymlink(name string, target string, overwrite bool) error {
 
 	// Check for file existence and if it should be overwritten
@@ -85,24 +88,4 @@ func (o *OS) CreateSymlink(name string, target string, overwrite bool) error {
 // Lstat returns the FileInfo of the file at path
 func (o *OS) Lstat(path string) (fs.FileInfo, error) {
 	return os.Lstat(path)
-}
-
-func GetStartOfAbsolutePath(path string) string {
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, "/") {
-		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, `\`) {
-		return fmt.Sprintf("%s%s", `\`, GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on windows
-	if p := []rune(path); len(p) > 2 && p[1] == rune(':') {
-		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutePath(path[3:]))
-	}
-
-	return ""
 }
