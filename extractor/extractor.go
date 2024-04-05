@@ -228,7 +228,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 	// check if dst needs to be created
 	if c.CreateDestination() {
-		if err := unpackTarget.CreateDir(dst, c.DefaultDirPermission()); err != nil {
+		if err := createDir(c, dst, ".", c.DefaultDirPermission()); err != nil {
 			return handleError(c, td, "cannot create destination", err)
 		}
 	}
