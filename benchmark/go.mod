@@ -4,7 +4,7 @@ go 1.21.0
 
 require (
 	github.com/alecthomas/kong v0.9.0
-	github.com/hashicorp/go-extract v0.5.1-0.20240405084057-7007729eeeba
+	github.com/hashicorp/go-extract v0.5.1-0.20240405085022-93e67d421e7c
 	github.com/hashicorp/go-slug v0.14.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/sync v0.6.0
