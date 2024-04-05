@@ -73,26 +73,13 @@ func createSymlink(config *config.Config, base string, name string, target strin
 
 	// check if symlink extraction is denied
 	if config.DenySymlinkExtraction() {
-		config.Logger().Info("skipped symlink extraction", "name", name, "target", target)
+		config.Logger().Info("skipped symlink extraction (disabled)", "name", name, "target", target)
 		return nil
 	}
 
 	// check if a name is provided
 	if len(name) == 0 {
 		return fmt.Errorf("cannot create symlink without name")
-	}
-
-	// Check if link target is absolute path
-	if start := getStartOfAbsolutePath(target); len(start) > 0 {
-
-		// // continue on error?
-		// if config.ContinueOnError() {
-		// 	config.Logger().Info("skip symlink with absolute path as target", "target", target)
-		// 	return nil
-		// }
-
-		// return error
-		return fmt.Errorf("symlink with absolute path as target: %s", target)
 	}
 
 	// clean filename
@@ -102,6 +89,11 @@ func createSymlink(config *config.Config, base string, name string, target strin
 	// check for path traversal // zip-slip
 	if err := securityCheckPath(config, base, path); err != nil {
 		return fmt.Errorf("symlink name security check failed: %w", err)
+	}
+
+	// Check if link target is absolute path
+	if start := getStartOfAbsolutePath(target); len(start) > 0 {
+		return fmt.Errorf("symlink with absolute path as target: %s", target)
 	}
 
 	// check link target for traversal
