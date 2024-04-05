@@ -9,13 +9,12 @@ import (
 
 // OS is the struct type that holds all information for interacting with the filesystem
 type OS struct {
-	p []byte // buffer for memory optimized read
 }
 
 // NewOS creates a new Os and applies provided options from opts
 func NewOS() *OS {
 	// create object
-	os := &OS{p: make([]byte, 32*1024)}
+	os := &OS{}
 	return os
 }
 
@@ -55,11 +54,11 @@ func (o *OS) CreateFile(name string, reader io.Reader, mode fs.FileMode, overwri
 	// encapsulate reader with limit reader
 	if maxSize >= 0 {
 		limitedWriter := NewLimitErrorWriter(dstFile, maxSize)
-		return io.CopyBuffer(limitedWriter, reader, o.p)
+		return io.Copy(limitedWriter, reader)
 	}
 
 	// write data straight to file
-	return io.CopyBuffer(dstFile, reader, o.p)
+	return io.Copy(dstFile, reader)
 }
 
 // CreateSymlink creates a new symlink at name pointing to target. If overwrite is set to true,
