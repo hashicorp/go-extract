@@ -15,7 +15,7 @@ var magicBytesXz = [][]byte{
 }
 
 // fileExtensionXz is the file extension for xz files.
-var fileExtensionXz = "xz"
+var fileExtensionXz = FileTypeXz
 
 // IsXz checks if the header matches the xz magic bytes.
 func IsXz(header []byte) bool {

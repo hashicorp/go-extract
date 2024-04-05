@@ -14,7 +14,7 @@ var magicBytesSnappy = [][]byte{
 }
 
 // fileExtensionSnappy is the file extension for snappy files.
-var fileExtensionSnappy = "sz"
+var fileExtensionSnappy = FileTypeSnappy
 
 // IsSnappy checks if the header matches the snappy magic bytes.
 func IsSnappy(header []byte) bool {

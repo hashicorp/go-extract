@@ -22,7 +22,7 @@ var magicBytesZlib = [][]byte{
 }
 
 // fileExtensionZlib is the file extension for Zlib files.
-var fileExtensionZlib = "zz"
+var fileExtensionZlib = FileTypeZlib
 
 // IsZlib checks if the header matches the Zlib magic bytes.
 func IsZlib(header []byte) bool {

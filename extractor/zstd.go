@@ -15,7 +15,7 @@ var magicBytesZstd = [][]byte{
 }
 
 // fileExtensionZstd is the file extension for zstandard files.
-var fileExtensionZstd = "zst"
+var fileExtensionZstd = FileTypeZstd
 
 // IsZstd checks if the header matches the zstandard magic bytes.
 func IsZstd(header []byte) bool {

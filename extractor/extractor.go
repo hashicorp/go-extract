@@ -100,9 +100,29 @@ type AvailableExtractor struct {
 	FileExtension string
 }
 
+const (
+	FileType7zip   = "7z"
+	FileTypeBrotli = "br"
+	FileTypeBzip2  = "bz2"
+	FileTypeGZip   = "gz"
+	FileTypeLZ4    = "lz4"
+	FileTypeSnappy = "sz"
+	FileTypeTar    = "tar"
+	FileTypeXz     = "xz"
+	FileTypeZIP    = "zip"
+	FileTypeZlib   = "zz"
+	FileTypeZstd   = "zst"
+)
+
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = map[string]AvailableExtractor{
+	fileExtension7zip: {
+		Unpacker:      Unpack7Zip,
+		HeaderCheck:   Is7zip,
+		MagicBytes:    magicBytes7zip,
+		FileExtension: fileExtension7zip,
+	},
 	fileExtensionBrotli: {
 		Unpacker:      UnpackBrotli,
 		HeaderCheck:   IsBrotli,
@@ -162,12 +182,6 @@ var AvailableExtractors = map[string]AvailableExtractor{
 		HeaderCheck:   IsZstd,
 		MagicBytes:    magicBytesZstd,
 		FileExtension: fileExtensionZstd,
-	},
-	fileExtension7zip: {
-		Unpacker:      Unpack7Zip,
-		HeaderCheck:   Is7zip,
-		MagicBytes:    magicBytes7zip,
-		FileExtension: fileExtension7zip,
 	},
 }
 

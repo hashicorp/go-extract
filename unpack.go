@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-extract/config"
@@ -111,4 +112,14 @@ func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 // IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
 func IsKnownArchiveFileExtension(src string) bool {
 	return GetUnpackFunctionByFileName(src) != nil
+}
+
+// ValidTypes returns a string with all available types.
+func ValidTypes() string {
+	var types []string
+	for t := range extractor.AvailableExtractors {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	return strings.Join(types, ", ")
 }

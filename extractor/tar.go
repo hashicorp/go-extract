@@ -15,7 +15,7 @@ import (
 const offsetTar = 257
 
 // fileExtensionTar is the file extension for tar files
-var fileExtensionTar = "tar"
+var fileExtensionTar = FileTypeTar
 
 // magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{

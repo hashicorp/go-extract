@@ -9,7 +9,7 @@ import (
 )
 
 // fileExtensionBrotli is the file extension for brotli files
-var fileExtensionBrotli = "br"
+var fileExtensionBrotli = FileTypeBrotli
 
 // IsBrotli returns always false, because the brotli magic bytes are not unique
 func IsBrotli(header []byte) bool {

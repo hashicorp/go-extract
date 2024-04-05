@@ -15,7 +15,7 @@ var magicBytesGZip = [][]byte{
 }
 
 // fileExtensionGZip is the file extension for gzip files
-var fileExtensionGZip = "gz"
+var fileExtensionGZip = FileTypeGZip
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
