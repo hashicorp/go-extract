@@ -287,7 +287,6 @@ func WithDefaultFilePermission(perm int) ConfigOption {
 
 // WithDefaultDirPermission options pattern function to set default directory permission (perm needs to be octal)
 func WithDefaultDirPermission(perm int) ConfigOption {
-	fmt.Printf("DefaultDirPermission: %d %o", perm, perm)
 	return func(c *Config) {
 		c.defaultDirPermission = fs.FileMode(perm)
 	}
