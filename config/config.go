@@ -330,7 +330,7 @@ func NoopTelemetryHook(ctx context.Context, d *telemetry.Data) {
 // WithExtractType options pattern function to set the extraction type in the config
 func WithExtractType(extractionType string) ConfigOption {
 	return func(c *Config) {
-		if len(extractionType) > 0 && extractionType != "*" {
+		if len(extractionType) > 0 {
 			c.extractionType = extractionType
 		}
 	}

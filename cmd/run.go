@@ -34,7 +34,7 @@ type CLI struct {
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
-	Type                       string           `short:"t" optional:"" default:"*" name:"type" help:"Type of archive. (${valid_types})"`
+	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version                    kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -47,8 +47,9 @@ func Run(version, commit, date string) {
 		kong.Description("A secure extraction utility"),
 		kong.UsageOnError(),
 		kong.Vars{
-			"version":     fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types": extract.ValidTypes(),
+			"version":      fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
+			"valid_types":  extract.ValidTypes(),
+			"default_type": "", // default is empty, but needs to be set to avoid kong error
 		},
 	)
 
