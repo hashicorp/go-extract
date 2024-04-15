@@ -775,20 +775,22 @@ func TestUnpackWithTypes(t *testing.T) {
 
 	// test cases
 	cases := []struct {
-		name        string
-		cfg         *config.Config
-		archiveName string
-		content     []byte
-		gen         func(target string, data []byte) io.Reader
-		expectError bool
+		name          string
+		cfg           *config.Config
+		archiveName   string
+		content       []byte
+		gen           func(target string, data []byte) io.Reader
+		expectedFiles []string
+		expectError   bool
 	}{
 		{
-			name:        "get zip extractor from file",
-			cfg:         config.NewConfig(config.WithExtractType(FileTypeGZip)),
-			archiveName: "TestZip.gz",
-			content:     compressGzip([]byte("foobar content")),
-			gen:         createFile,
-			expectError: false,
+			name:          "get zip extractor from file",
+			cfg:           config.NewConfig(config.WithExtractType(FileTypeGZip)),
+			archiveName:   "TestZip.gz",
+			content:       compressGzip([]byte("foobar content")),
+			gen:           createFile,
+			expectedFiles: []string{"TestZip"},
+			expectError:   false,
 		},
 		{
 			name:        "set type to non-valid type and expect error",
@@ -799,12 +801,13 @@ func TestUnpackWithTypes(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name:        "get brotli extractor for file",
-			cfg:         config.NewConfig(),
-			archiveName: "TestBrotli.br",
-			content:     compressBrotli([]byte("foobar content")),
-			gen:         createFile,
-			expectError: false,
+			name:          "get brotli extractor for file",
+			cfg:           config.NewConfig(),
+			archiveName:   "TestBrotli.br",
+			content:       compressBrotli([]byte("foobar content")),
+			gen:           createFile,
+			expectedFiles: []string{"TestBrotli"},
+			expectError:   false,
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to tar.gz",
@@ -819,8 +822,9 @@ func TestUnpackWithTypes(t *testing.T) {
 					Filetype:   tar.TypeReg,
 				},
 			})),
-			gen:         createFile,
-			expectError: false,
+			gen:           createFile,
+			expectedFiles: []string{"example.json.zip"},
+			expectError:   false,
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to zip, so that it fails",
@@ -867,6 +871,14 @@ func TestUnpackWithTypes(t *testing.T) {
 			// success if both are nil and no engine found
 			if want != (err != nil) {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+			}
+
+			// check for created files
+			for _, file := range tc.expectedFiles {
+				_, err := os.Stat(filepath.Join(testDir, file))
+				if err != nil {
+					t.Errorf("test case %d failed: %s\nexpected file: %s\ngot: %s", i, tc.name, file, err)
+				}
 			}
 		})
 	}
