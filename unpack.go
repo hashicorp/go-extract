@@ -27,7 +27,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 		}
 
 		//
-		return fmt.Errorf("not supported file extension %s", c.ExtractType())
+		return fmt.Errorf("not supported file type %s (valid: %s)", c.ExtractType(), ValidTypes())
 	}
 
 	// read headerReader to identify archive type
