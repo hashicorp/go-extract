@@ -20,6 +20,9 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 	// check if type is set
 	if len(c.ExtractType()) > 0 {
 		if ae, found := extractor.AvailableExtractors[c.ExtractType()]; found {
+			if c.ExtractType() == extractor.FileTypeTarGZip {
+				c.SetNoUntarAfterDecompression(false)
+			}
 			return ae.Unpacker(ctx, src, dst, c)
 		}
 
