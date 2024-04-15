@@ -340,3 +340,8 @@ func WithExtractType(extractionType string) ConfigOption {
 func (c *Config) ExtractType() string {
 	return c.extractionType
 }
+
+// SetNoUntarAfterDecompression sets the noUntarAfterDecompression option
+func (c *Config) SetNoUntarAfterDecompression(b bool) {
+	c.noUntarAfterDecompression = b
+}
