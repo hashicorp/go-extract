@@ -15,7 +15,10 @@ var magicBytesGZip = [][]byte{
 }
 
 // fileExtensionGZip is the file extension for gzip files
-var fileExtensionGZip = FileTypeGZip
+const fileExtensionGZip = "gz"
+
+// fileExtensionTarGZip is the file extension for tgz files, which are tar archives compressed with gzip
+const fileExtensionTarGZip = "tgz"
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {

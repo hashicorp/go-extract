@@ -19,7 +19,7 @@ var magicBytesZIP = [][]byte{
 }
 
 // fileExtensionZIP is the file extension for zip files.
-var fileExtensionZIP = FileTypeZIP
+const fileExtensionZIP = "zip"
 
 // IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func IsZip(data []byte) bool {

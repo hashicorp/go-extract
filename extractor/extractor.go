@@ -101,17 +101,18 @@ type AvailableExtractor struct {
 }
 
 const (
-	FileType7zip   = "7z"
-	FileTypeBrotli = "br"
-	FileTypeBzip2  = "bz2"
-	FileTypeGZip   = "gz"
-	FileTypeLZ4    = "lz4"
-	FileTypeSnappy = "sz"
-	FileTypeTar    = "tar"
-	FileTypeXz     = "xz"
-	FileTypeZIP    = "zip"
-	FileTypeZlib   = "zz"
-	FileTypeZstd   = "zst"
+	FileType7zip    = fileExtension7zip
+	FileTypeBrotli  = fileExtensionBrotli
+	FileTypeBzip2   = fileExtensionBzip2
+	FileTypeGZip    = fileExtensionGZip
+	FileTypeLZ4     = fileExtensionLZ4
+	FileTypeSnappy  = fileExtensionSnappy
+	FileTypeTar     = fileExtensionTar
+	FileTypeTarGZip = fileExtensionTarGZip
+	FileTypeXz      = fileExtensionXz
+	FileTypeZIP     = fileExtensionZIP
+	FileTypeZlib    = fileExtensionZlib
+	FileTypeZstd    = fileExtensionZstd
 )
 
 // AvailableExtractors is collection of new extractor functions with
@@ -158,6 +159,12 @@ var AvailableExtractors = map[string]AvailableExtractor{
 		MagicBytes:    magicBytesTar,
 		Offset:        offsetTar,
 		FileExtension: fileExtensionTar,
+	},
+	fileExtensionTarGZip: {
+		Unpacker:      UnpackGZip,
+		HeaderCheck:   IsGZip,
+		MagicBytes:    magicBytesGZip,
+		FileExtension: fileExtensionTarGZip,
 	},
 	fileExtensionXz: {
 		Unpacker:      UnpackXz,

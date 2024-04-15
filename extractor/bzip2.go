@@ -23,7 +23,7 @@ var magicBytesBzip2 = [][]byte{
 }
 
 // fileExtensionBzip2 is the file extension for bzip2 files
-var fileExtensionBzip2 = FileTypeBzip2
+const fileExtensionBzip2 = "bz2"
 
 // IsBzip2 checks if the header matches the magic bytes for bzip2 compressed files
 func IsBzip2(header []byte) bool {

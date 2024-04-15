@@ -13,7 +13,7 @@ import (
 )
 
 // fileExtension7zip is the file extension for 7zip files
-var fileExtension7zip = FileType7zip
+const fileExtension7zip = "7z"
 
 // magicBytes7zip are the magic bytes for 7zip files
 var magicBytes7zip = [][]byte{

@@ -15,7 +15,7 @@ var magicBytesLZ4 = [][]byte{
 }
 
 // fileExtensionLZ4 is the file extension for LZ4 files.
-var fileExtensionLZ4 = FileTypeLZ4
+const fileExtensionLZ4 = "lz4"
 
 // IsLZ4 checks if the header matches the LZ4 magic bytes.
 func IsLZ4(header []byte) bool {
