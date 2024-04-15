@@ -8,6 +8,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
     steps:
 
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
@@ -34,9 +35,8 @@ jobs:
         name: test-coverage
         path: coverage.html
 
-    - name: Write test coverage into PR comment
+    - name: Write test coverage into PR comment (only for manual runs)
       uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
-      if: env.COVERAGE_REPORT_ON_PR == 'TRUE'
       with:
         script: |
           github.rest.issues.createComment({
