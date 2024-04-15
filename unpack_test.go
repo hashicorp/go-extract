@@ -784,14 +784,14 @@ func TestUnpackWithTypes(t *testing.T) {
 	}{
 		{
 			name:        "get zip extractor from file",
-			cfg:         config.NewConfig(config.WithExtractType("gz")),
+			cfg:         config.NewConfig(config.WithExtractType(FileTypeGZip)),
 			archiveName: "TestZip.gz",
 			content:     compressGzip([]byte("foobar content")),
 			gen:         createFile,
 			expectError: false,
 		},
 		{
-			name:        "get gzip extractor from file",
+			name:        "set type to non-valid type and expect error",
 			cfg:         config.NewConfig(config.WithExtractType("foo")),
 			archiveName: "TestZip.gz",
 			content:     compressGzip([]byte("foobar content")),
@@ -805,6 +805,38 @@ func TestUnpackWithTypes(t *testing.T) {
 			content:     compressBrotli([]byte("foobar content")),
 			gen:         createFile,
 			expectError: false,
+		},
+		{
+			name:        "extract zip file inside a tar.gz archive with extract type set to tar.gz",
+			cfg:         config.NewConfig(config.WithExtractType(FileTypeTarGZip)),
+			archiveName: "example.json.zip.tar.gz",
+			content: compressGzip(packTarWithContent([]tarContent{
+				{
+					Content:    packZipWithContent([]zipContent{{Name: "example.json", Content: []byte(`{"foo": "bar"}`)}}),
+					Linktarget: "",
+					Mode:       0644,
+					Name:       "example.json.zip",
+					Filetype:   tar.TypeReg,
+				},
+			})),
+			gen:         createFile,
+			expectError: false,
+		},
+		{
+			name:        "extract zip file inside a tar.gz archive with extract type set to zip, so that it fails",
+			cfg:         config.NewConfig(config.WithExtractType(FileTypeZIP)),
+			archiveName: "example.json.zip.tar.gz",
+			content: compressGzip(packTarWithContent([]tarContent{
+				{
+					Content:    packZipWithContent([]zipContent{{Name: "example.json", Content: []byte(`{"foo": "bar"}`)}}),
+					Linktarget: "",
+					Mode:       0644,
+					Name:       "example.json.zip",
+					Filetype:   tar.TypeReg,
+				},
+			})),
+			gen:         createFile,
+			expectError: true,
 		},
 	}
 
@@ -922,4 +954,84 @@ func TestValidTypes(t *testing.T) {
 			}
 		})
 	}
+}
+
+// tarContent is a struct to store the content of a tar file
+type tarContent struct {
+	Content    []byte
+	Linktarget string
+	Mode       os.FileMode
+	Name       string
+	Filetype   byte
+}
+
+// packTarWithContent creates a tar file with the given content
+func packTarWithContent(content []tarContent) []byte {
+
+	// create tar writer
+	writeBuffer := bytes.NewBuffer([]byte{})
+	tw := tar.NewWriter(writeBuffer)
+
+	// write content
+	for _, c := range content {
+
+		// create header
+		hdr := &tar.Header{
+			Name:     c.Name,
+			Mode:     int64(c.Mode),
+			Size:     int64(len(c.Content)),
+			Linkname: c.Linktarget,
+			Typeflag: c.Filetype,
+		}
+
+		// write header
+		if err := tw.WriteHeader(hdr); err != nil {
+			panic(err)
+		}
+
+		// write data
+		if _, err := tw.Write(c.Content); err != nil {
+			panic(err)
+		}
+	}
+
+	// close tar writer
+	if err := tw.Close(); err != nil {
+		panic(err)
+	}
+
+	return writeBuffer.Bytes()
+}
+
+type zipContent struct {
+	Name    string
+	Content []byte
+}
+
+func packZipWithContent(content []zipContent) []byte {
+	// create zip writer
+	writeBuffer := bytes.NewBuffer([]byte{})
+	zw := zip.NewWriter(writeBuffer)
+
+	// write content
+	for _, c := range content {
+
+		// create header
+		f, err := zw.Create(c.Name)
+		if err != nil {
+			panic(err)
+		}
+
+		// write data
+		if _, err := f.Write(c.Content); err != nil {
+			panic(err)
+		}
+	}
+
+	// close zip writer
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
+
+	return writeBuffer.Bytes()
 }
