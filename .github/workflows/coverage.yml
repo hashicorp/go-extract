@@ -1,4 +1,4 @@
-name: Calculate test coverage
+name: Calculate test coverage (on manual execution)
 
 on:
   pull_request:
