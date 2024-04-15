@@ -117,6 +117,22 @@ func IsKnownArchiveFileExtension(src string) bool {
 	return GetUnpackFunctionByFileName(src) != nil
 }
 
+// Available file types
+const (
+	FileType7zip    = extractor.FileExtension7zip
+	FileTypeBrotli  = extractor.FileExtensionBrotli
+	FileTypeBzip2   = extractor.FileExtensionBzip2
+	FileTypeGZip    = extractor.FileExtensionGZip
+	FileTypeLZ4     = extractor.FileExtensionLZ4
+	FileTypeSnappy  = extractor.FileExtensionSnappy
+	FileTypeTar     = extractor.FileExtensionTar
+	FileTypeTarGZip = extractor.FileExtensionTarGZip
+	FileTypeXz      = extractor.FileExtensionXz
+	FileTypeZIP     = extractor.FileExtensionZIP
+	FileTypeZlib    = extractor.FileExtensionZlib
+	FileTypeZstd    = extractor.FileExtensionZstd
+)
+
 // ValidTypes returns a string with all available types.
 func ValidTypes() string {
 	var types []string

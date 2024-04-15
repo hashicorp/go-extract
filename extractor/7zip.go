@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
-// fileExtension7zip is the file extension for 7zip files
-const fileExtension7zip = "7z"
+// FileExtension7zip is the file extension for 7zip files
+const FileExtension7zip = "7z"
 
 // magicBytes7zip are the magic bytes for 7zip files
 var magicBytes7zip = [][]byte{
@@ -29,7 +29,7 @@ func Is7zip(data []byte) bool {
 func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare telemetry data collection and emit
-	td := &telemetry.Data{ExtractedType: fileExtension7zip}
+	td := &telemetry.Data{ExtractedType: FileExtension7zip}
 	defer c.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
@@ -90,7 +90,7 @@ type sevenZipWalker struct {
 
 // Type returns the file extension for 7zip files
 func (z sevenZipWalker) Type() string {
-	return fileExtension7zip
+	return FileExtension7zip
 }
 
 // Next returns the next entry in the 7zip file

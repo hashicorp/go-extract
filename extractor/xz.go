@@ -14,8 +14,8 @@ var magicBytesXz = [][]byte{
 	{0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00},
 }
 
-// fileExtensionXz is the file extension for xz files.
-const fileExtensionXz = "xz"
+// FileExtensionXz is the file extension for xz files.
+const FileExtensionXz = "xz"
 
 // IsXz checks if the header matches the xz magic bytes.
 func IsXz(header []byte) bool {
@@ -24,7 +24,7 @@ func IsXz(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the xz decompression from src to dst.
 func UnpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressXzStream, fileExtensionXz)
+	return decompress(ctx, src, dst, c, decompressXzStream, FileExtensionXz)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with xz algorithm

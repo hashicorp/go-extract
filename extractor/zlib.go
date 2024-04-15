@@ -21,8 +21,8 @@ var magicBytesZlib = [][]byte{
 	{0x78, 0xf9},
 }
 
-// fileExtensionZlib is the file extension for Zlib files.
-const fileExtensionZlib = "zz"
+// FileExtensionZlib is the file extension for Zlib files.
+const FileExtensionZlib = "zz"
 
 // IsZlib checks if the header matches the Zlib magic bytes.
 func IsZlib(header []byte) bool {
@@ -31,7 +31,7 @@ func IsZlib(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
 func UnpackZlib(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressZlibStream, fileExtensionZlib)
+	return decompress(ctx, src, dst, c, decompressZlibStream, FileExtensionZlib)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm

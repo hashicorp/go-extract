@@ -93,102 +93,74 @@ type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
 type HeaderCheck func([]byte) bool
 
 type AvailableExtractor struct {
-	Unpacker      UnpackFunc
-	HeaderCheck   HeaderCheck
-	MagicBytes    [][]byte
-	Offset        int
-	FileExtension string
+	Unpacker    UnpackFunc
+	HeaderCheck HeaderCheck
+	MagicBytes  [][]byte
+	Offset      int
 }
-
-const (
-	FileType7zip    = fileExtension7zip
-	FileTypeBrotli  = fileExtensionBrotli
-	FileTypeBzip2   = fileExtensionBzip2
-	FileTypeGZip    = fileExtensionGZip
-	FileTypeLZ4     = fileExtensionLZ4
-	FileTypeSnappy  = fileExtensionSnappy
-	FileTypeTar     = fileExtensionTar
-	FileTypeTarGZip = fileExtensionTarGZip
-	FileTypeXz      = fileExtensionXz
-	FileTypeZIP     = fileExtensionZIP
-	FileTypeZlib    = fileExtensionZlib
-	FileTypeZstd    = fileExtensionZstd
-)
 
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = map[string]AvailableExtractor{
-	fileExtension7zip: {
-		Unpacker:      Unpack7Zip,
-		HeaderCheck:   Is7zip,
-		MagicBytes:    magicBytes7zip,
-		FileExtension: fileExtension7zip,
+	FileExtension7zip: {
+		Unpacker:    Unpack7Zip,
+		HeaderCheck: Is7zip,
+		MagicBytes:  magicBytes7zip,
 	},
-	fileExtensionBrotli: {
-		Unpacker:      UnpackBrotli,
-		HeaderCheck:   IsBrotli,
-		FileExtension: fileExtensionBrotli,
+	FileExtensionBrotli: {
+		Unpacker:    UnpackBrotli,
+		HeaderCheck: IsBrotli,
 	},
-	fileExtensionBzip2: {
-		Unpacker:      UnpackBzip2,
-		HeaderCheck:   IsBzip2,
-		MagicBytes:    magicBytesBzip2,
-		FileExtension: fileExtensionBzip2,
+	FileExtensionBzip2: {
+		Unpacker:    UnpackBzip2,
+		HeaderCheck: IsBzip2,
+		MagicBytes:  magicBytesBzip2,
 	},
-	fileExtensionGZip: {
-		Unpacker:      UnpackGZip,
-		HeaderCheck:   IsGZip,
-		MagicBytes:    magicBytesGZip,
-		FileExtension: fileExtensionGZip,
+	FileExtensionGZip: {
+		Unpacker:    UnpackGZip,
+		HeaderCheck: IsGZip,
+		MagicBytes:  magicBytesGZip,
 	},
-	fileExtensionLZ4: {
-		Unpacker:      UnpackLZ4,
-		HeaderCheck:   IsLZ4,
-		MagicBytes:    magicBytesLZ4,
-		FileExtension: fileExtensionLZ4,
+	FileExtensionLZ4: {
+		Unpacker:    UnpackLZ4,
+		HeaderCheck: IsLZ4,
+		MagicBytes:  magicBytesLZ4,
 	},
-	fileExtensionSnappy: {
-		Unpacker:      UnpackSnappy,
-		HeaderCheck:   IsSnappy,
-		MagicBytes:    magicBytesSnappy,
-		FileExtension: fileExtensionSnappy,
+	FileExtensionSnappy: {
+		Unpacker:    UnpackSnappy,
+		HeaderCheck: IsSnappy,
+		MagicBytes:  magicBytesSnappy,
 	},
-	fileExtensionTar: {
-		Unpacker:      UnpackTar,
-		HeaderCheck:   IsTar,
-		MagicBytes:    magicBytesTar,
-		Offset:        offsetTar,
-		FileExtension: fileExtensionTar,
+	FileExtensionTar: {
+		Unpacker:    UnpackTar,
+		HeaderCheck: IsTar,
+		MagicBytes:  magicBytesTar,
+		Offset:      offsetTar,
 	},
-	fileExtensionTarGZip: {
-		Unpacker:      UnpackGZip,
-		HeaderCheck:   IsGZip,
-		MagicBytes:    magicBytesGZip,
-		FileExtension: fileExtensionTarGZip,
+	FileExtensionTarGZip: {
+		Unpacker:    UnpackGZip,
+		HeaderCheck: IsGZip,
+		MagicBytes:  magicBytesGZip,
 	},
-	fileExtensionXz: {
-		Unpacker:      UnpackXz,
-		HeaderCheck:   IsXz,
-		MagicBytes:    magicBytesXz,
-		FileExtension: fileExtensionXz,
+	FileExtensionXz: {
+		Unpacker:    UnpackXz,
+		HeaderCheck: IsXz,
+		MagicBytes:  magicBytesXz,
 	},
-	fileExtensionZIP: {
-		Unpacker:      UnpackZip,
-		HeaderCheck:   IsZip,
-		MagicBytes:    magicBytesZIP,
-		FileExtension: fileExtensionZIP,
+	FileExtensionZIP: {
+		Unpacker:    UnpackZip,
+		HeaderCheck: IsZip,
+		MagicBytes:  magicBytesZIP,
 	},
-	fileExtensionZlib: {
-		Unpacker:      UnpackZlib,
-		HeaderCheck:   IsZlib,
-		MagicBytes:    magicBytesZlib,
-		FileExtension: fileExtensionZlib,
+	FileExtensionZlib: {
+		Unpacker:    UnpackZlib,
+		HeaderCheck: IsZlib,
+		MagicBytes:  magicBytesZlib,
 	},
-	fileExtensionZstd: {
-		Unpacker:      UnpackZstd,
-		HeaderCheck:   IsZstd,
-		MagicBytes:    magicBytesZstd,
-		FileExtension: fileExtensionZstd,
+	FileExtensionZstd: {
+		Unpacker:    UnpackZstd,
+		HeaderCheck: IsZstd,
+		MagicBytes:  magicBytesZstd,
 	},
 }
 

@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// fileExtensionBrotli is the file extension for brotli files
-const fileExtensionBrotli = "br"
+// FileExtensionBrotli is the file extension for brotli files
+const FileExtensionBrotli = "br"
 
 // IsBrotli returns always false, because the brotli magic bytes are not unique
 func IsBrotli(header []byte) bool {
