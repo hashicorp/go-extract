@@ -101,8 +101,10 @@ func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 	// get file extension from file name
 	src = strings.ToLower(src)
-	src = filepath.Ext(src)
-	src = strings.Replace(src, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
+	if strings.Contains(src, ".") {
+		src = filepath.Ext(src)
+		src = strings.Replace(src, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
+	}
 
 	if ae, found := extractor.AvailableExtractors[src]; found {
 		return ae.Unpacker

@@ -760,6 +760,11 @@ func TestIsKnownArchiveFileExtension(t *testing.T) {
 			filename: "test",
 			want:     false,
 		},
+		{
+			name:     "test if only the extension is provided",
+			filename: "zip",
+			want:     true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
