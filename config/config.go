@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 
 	"github.com/hashicorp/go-extract/telemetry"
@@ -26,6 +27,12 @@ type Config struct {
 
 	// create destination directory if it does not exist
 	createDestination bool
+
+	// createDirMode is the file mode for created directories, that are not defined in the archive
+	createDirMode fs.FileMode
+
+	// decompressFileMode is the file mode for a decompressed file
+	decompressFileMode fs.FileMode
 
 	// denySymlinkExtraction offers the option to enable/disable the extraction of symlinks
 	denySymlinkExtraction bool
@@ -118,6 +125,16 @@ func (c *Config) CreateDestination() bool {
 	return c.createDestination
 }
 
+// CreateDirMode returns the file mode for created directories
+func (c *Config) CreateDirMode() fs.FileMode {
+	return c.createDirMode
+}
+
+// DecompressFileMode returns the file mode for a decompressed file
+func (c *Config) DecompressFileMode() fs.FileMode {
+	return c.decompressFileMode
+}
+
 // DenySymlinkExtraction returns true if symlinks are NOT allowed
 func (c *Config) DenySymlinkExtraction() bool {
 	return c.denySymlinkExtraction
@@ -190,6 +207,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		continueOnError            = false
 		continueOnUnsupportedFiles = false
 		createDestination          = false
+		createDirMode              = 0750
+		decompressFileMode         = 0640
 		denySymlinkExtraction      = false
 		extractionType             = ""
 		followSymlinks             = false
@@ -210,6 +229,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		cacheInMemory:              cacheInMemory,
 		continueOnError:            continueOnError,
 		createDestination:          createDestination,
+		createDirMode:              createDirMode,
+		decompressFileMode:         decompressFileMode,
 		denySymlinkExtraction:      denySymlinkExtraction,
 		extractionType:             extractionType,
 		followSymlinks:             followSymlinks,
@@ -263,6 +284,20 @@ func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
 		c.createDestination = create
+	}
+}
+
+// WithCreateDirMode options pattern function to set the file mode for created directories
+func WithCreateDirMode(mode fs.FileMode) ConfigOption {
+	return func(c *Config) {
+		c.createDirMode = mode
+	}
+}
+
+// WithDecompressFileMode options pattern function to set the file mode for a decompressed file
+func WithDecompressFileMode(mode fs.FileMode) ConfigOption {
+	return func(c *Config) {
+		c.decompressFileMode = mode
 	}
 }
 
