@@ -18,8 +18,8 @@ var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
-// fileExtensionZIP is the file extension for zip files.
-var fileExtensionZIP = "zip"
+// FileExtensionZIP is the file extension for zip files.
+const FileExtensionZIP = "zip"
 
 // IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func IsZip(data []byte) bool {
@@ -30,7 +30,7 @@ func IsZip(data []byte) bool {
 func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare telemetry data collection and emit
-	td := &telemetry.Data{ExtractedType: fileExtensionZIP}
+	td := &telemetry.Data{ExtractedType: FileExtensionZIP}
 	defer c.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
@@ -91,7 +91,7 @@ type zipWalker struct {
 
 // Type returns the file extension for zip files
 func (z zipWalker) Type() string {
-	return fileExtensionZIP
+	return FileExtensionZIP
 }
 
 // Next returns the next entry in the zip archive

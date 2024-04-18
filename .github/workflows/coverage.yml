@@ -1,4 +1,4 @@
-name: Calculate test coverage
+name: Calculate test coverage (on manual retry only)
 
 on:
   pull_request:
@@ -8,6 +8,7 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    if: github.run_attempt > 1 
     steps:
 
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9

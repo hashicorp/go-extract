@@ -14,8 +14,8 @@ var magicBytesZstd = [][]byte{
 	{0x28, 0xb5, 0x2f, 0xfd},
 }
 
-// fileExtensionZstd is the file extension for zstandard files.
-var fileExtensionZstd = "zst"
+// FileExtensionZstd is the file extension for zstandard files.
+const FileExtensionZstd = "zst"
 
 // IsZstd checks if the header matches the zstandard magic bytes.
 func IsZstd(header []byte) bool {
@@ -24,7 +24,7 @@ func IsZstd(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the zstandard decompression from src to dst.
 func UnpackZstd(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressZstdStream, fileExtensionZstd)
+	return decompress(ctx, src, dst, c, decompressZstdStream, FileExtensionZstd)
 }
 
 // decompressZstdStream returns an io.Reader that decompresses src with zstandard algorithm

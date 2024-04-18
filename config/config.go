@@ -70,6 +70,9 @@ type Config struct {
 
 	// verbose log extraction to stderr
 	verbose bool
+
+	// extractionType is the type of extraction algorithm
+	extractionType string
 }
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -83,6 +86,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		defaultFilePermission      = 0640
 		defaultDirPermission       = 0750
 		denySymlinkExtraction      = false
+		extractionType             = ""
 		followSymlinks             = false
 		maxFiles                   = 1000          // 1k files
 		maxExtractionSize          = 1 << (10 * 3) // 1 Gb
@@ -104,6 +108,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		defaultDirPermission:       defaultDirPermission,
 		defaultFilePermission:      defaultFilePermission,
 		denySymlinkExtraction:      denySymlinkExtraction,
+		extractionType:             extractionType,
 		followSymlinks:             followSymlinks,
 		logger:                     logger,
 		maxFiles:                   maxFiles,
@@ -355,4 +360,23 @@ func WithTelemetryHook(hook telemetry.TelemetryHook) ConfigOption {
 	return func(c *Config) {
 		c.telemetryHook = hook
 	}
+}
+
+// WithExtractType options pattern function to set the extraction type in the config
+func WithExtractType(extractionType string) ConfigOption {
+	return func(c *Config) {
+		if len(extractionType) > 0 {
+			c.extractionType = extractionType
+		}
+	}
+}
+
+// ExtractType returns the type of extraction algorithm
+func (c *Config) ExtractType() string {
+	return c.extractionType
+}
+
+// SetNoUntarAfterDecompression sets the noUntarAfterDecompression option
+func (c *Config) SetNoUntarAfterDecompression(b bool) {
+	c.noUntarAfterDecompression = b
 }
