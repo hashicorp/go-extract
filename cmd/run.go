@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -23,6 +24,8 @@ type CLI struct {
 	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
 	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
 	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
+	CustomCreateDirMode        int              `optional:"" default:"750" help:"File mode for created directories."`
+	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files."`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
@@ -76,6 +79,8 @@ func Run(version, commit, date string) {
 		config.WithContinueOnError(cli.ContinueOnError),
 		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
 		config.WithCreateDestination(cli.CreateDestination),
+		config.WithCustomCreateDirMode(toFileMode(cli.CustomCreateDirMode)),
+		config.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
 		config.WithDenySymlinkExtraction(cli.DenySymlinks),
 		config.WithExtractType(cli.Type),
 		config.WithFollowSymlinks(cli.FollowSymlinks),
@@ -114,4 +119,14 @@ func Run(version, commit, date string) {
 		log.Println(fmt.Errorf("error during extraction: %s", err))
 		os.Exit(-1)
 	}
+}
+
+// asFileMode interprets the given decimal value as os.FileMode
+func toFileMode(v int) os.FileMode {
+
+	// convert to octal
+	oct, _ := strconv.ParseInt(fmt.Sprintf("0%d", v), 8, 32)
+
+	// return as os.FileMode
+	return os.FileMode(oct)
 }
