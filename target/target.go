@@ -14,7 +14,7 @@ type Target interface {
 	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
 
 	// CreateSafeDir creates dirName in dstDir
-	CreateSafeDir(config *config.Config, dstDir string, dirName string) error
+	CreateSafeDir(config *config.Config, dstDir string, dirName string, mode fs.FileMode) error
 
 	// CreateSafeSymlink creates symlink name with destination linkTarget in dstDir
 	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
