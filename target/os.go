@@ -129,7 +129,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
 			if config.CreateDestination() {
-				if err := os.MkdirAll(dstBase, config.CreateDirMode().Perm()); err != nil {
+				if err := os.MkdirAll(dstBase, config.CustomCreateDirMode()); err != nil {
 					return fmt.Errorf("failed to create destination directory %s", err)
 				}
 				config.Logger().Info("created destination directory", "path", dstBase)
@@ -179,7 +179,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	}
 
 	// create target dir && check for path traversal // zip-slip
-	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.CreateDirMode()); err != nil {
+	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.CustomCreateDirMode()); err != nil {
 		return fmt.Errorf("cannot create directory for file (%s)", err)
 	}
 
@@ -252,7 +252,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	newLinkDirectory := filepath.Dir(newLinkName)
 
 	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory, config.CreateDirMode()); err != nil {
+	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory, config.CustomCreateDirMode()); err != nil {
 		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
 	}
 
