@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-extract/config"
@@ -15,20 +17,39 @@ import (
 // in dst. opts can be given to adjust the config.
 func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
+	// check if type is set
+	if len(c.ExtractType()) > 0 {
+		if ae, found := extractor.AvailableExtractors[c.ExtractType()]; found {
+			if c.ExtractType() == extractor.FileExtensionTarGZip {
+				c.SetNoUntarAfterDecompression(false)
+			}
+			return ae.Unpacker(ctx, src, dst, c)
+		}
+
+		//
+		return fmt.Errorf("not supported file type %s (valid: %s)", c.ExtractType(), ValidTypes())
+	}
+
 	// read headerReader to identify archive type
 	header, reader, err := getHeader(src)
 	if err != nil {
 		return fmt.Errorf("failed to read header: %s", err)
 	}
 
-	// find extractor for header
-	unpacker := GetUnpackFunction(header)
-	if unpacker == nil {
-		return fmt.Errorf("archive type not supported")
+	// find extractor by header
+	if unpacker := GetUnpackFunction(header); unpacker != nil {
+		return unpacker(ctx, reader, dst, c)
+	}
+
+	// find extractor by file extension
+	if fin, ok := src.(*os.File); ok {
+		if unpacker := GetUnpackFunctionByFileName(fin.Name()); unpacker != nil {
+			return unpacker(ctx, reader, dst, c)
+		}
 	}
 
 	// perform extraction with identified reader
-	return unpacker(ctx, reader, dst, c)
+	return fmt.Errorf("no supported archive type ether not detected")
 }
 
 // getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
@@ -76,16 +97,50 @@ func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 	return nil
 }
 
-// IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
-func IsKnownArchiveFileExtension(filename string) bool {
-
-	chkExt := strings.Replace(strings.ToLower(filepath.Ext(filename)), ".", "", -1)
-	for _, ex := range extractor.AvailableExtractors {
-
-		knownExt := strings.ToLower(ex.FileExtension)
-		if chkExt == knownExt {
-			return true
-		}
+// GetUnpackFunctionByFileName identifies the correct extractor based on file extension.
+func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
+	// get file extension from file name
+	src = strings.ToLower(src)
+	if strings.Contains(src, ".") {
+		src = filepath.Ext(src)
+		src = strings.Replace(src, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
 	}
-	return false
+
+	if ae, found := extractor.AvailableExtractors[src]; found {
+		return ae.Unpacker
+	}
+
+	// no matching reader found
+	return nil
+}
+
+// IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
+func IsKnownArchiveFileExtension(src string) bool {
+	return GetUnpackFunctionByFileName(src) != nil
+}
+
+// Available file types
+const (
+	FileType7zip    = extractor.FileExtension7zip
+	FileTypeBrotli  = extractor.FileExtensionBrotli
+	FileTypeBzip2   = extractor.FileExtensionBzip2
+	FileTypeGZip    = extractor.FileExtensionGZip
+	FileTypeLZ4     = extractor.FileExtensionLZ4
+	FileTypeSnappy  = extractor.FileExtensionSnappy
+	FileTypeTar     = extractor.FileExtensionTar
+	FileTypeTarGZip = extractor.FileExtensionTarGZip
+	FileTypeXz      = extractor.FileExtensionXz
+	FileTypeZIP     = extractor.FileExtensionZIP
+	FileTypeZlib    = extractor.FileExtensionZlib
+	FileTypeZstd    = extractor.FileExtensionZstd
+)
+
+// ValidTypes returns a string with all available types.
+func ValidTypes() string {
+	var types []string
+	for t := range extractor.AvailableExtractors {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	return strings.Join(types, ", ")
 }

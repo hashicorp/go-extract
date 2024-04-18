@@ -63,6 +63,7 @@ import (
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
         config.WithDenySymlinkExtraction(false),      // allow symlink creation
+        config.WithExtractType("<ext>")               // specify explicitly a file extension to determine extractor
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
         config.WithLogger(logger),                    // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
@@ -139,6 +140,7 @@ Flags:
   -O, --overwrite                         Overwrite if exist.
   -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
   -T, --telemetry                         Print telemetry data to log after extraction.
+  -t, --type=""                           Type of archive. (7z, br, bz2, gz, lz4, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                           Verbose logging.
   -V, --version                           Print release version information.
 ```

@@ -14,8 +14,11 @@ var magicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
 
-// fileExtensionGZip is the file extension for gzip files
-var fileExtensionGZip = "gz"
+// FileExtensionGZip is the file extension for gzip files
+const FileExtensionGZip = "gz"
+
+// FileExtensionTarGZip is the file extension for tgz files, which are tar archives compressed with gzip
+const FileExtensionTarGZip = "tgz"
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
@@ -24,7 +27,7 @@ func IsGZip(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.
 func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressGZipStream, fileExtensionGZip)
+	return decompress(ctx, src, dst, c, decompressGZipStream, FileExtensionGZip)
 }
 
 // decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm

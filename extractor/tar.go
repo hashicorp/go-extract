@@ -14,8 +14,8 @@ import (
 // offsetTar is the offset where the magic bytes are located in the file
 const offsetTar = 257
 
-// fileExtensionTar is the file extension for tar files
-var fileExtensionTar = "tar"
+// FileExtensionTar is the file extension for tar files
+const FileExtensionTar = "tar"
 
 // magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{
@@ -32,7 +32,7 @@ func IsTar(data []byte) bool {
 func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// prepare telemetry capturing
-	td := &telemetry.Data{ExtractedType: fileExtensionTar}
+	td := &telemetry.Data{ExtractedType: FileExtensionTar}
 	defer c.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
@@ -56,7 +56,7 @@ type tarWalker struct {
 
 // Type returns the file extension for tar files
 func (t *tarWalker) Type() string {
-	return fileExtensionTar
+	return FileExtensionTar
 }
 
 // Next returns the next entry in the tar archive

@@ -13,8 +13,8 @@ var magicBytesSnappy = [][]byte{
 	append([]byte{0xff, 0x06, 0x00, 0x00}, []byte("sNaPpY")...),
 }
 
-// fileExtensionSnappy is the file extension for snappy files.
-var fileExtensionSnappy = "sz"
+// FileExtensionSnappy is the file extension for snappy files.
+const FileExtensionSnappy = "sz"
 
 // IsSnappy checks if the header matches the snappy magic bytes.
 func IsSnappy(header []byte) bool {
@@ -23,7 +23,7 @@ func IsSnappy(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.
 func UnpackSnappy(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressSnappyStream, fileExtensionSnappy)
+	return decompress(ctx, src, dst, c, decompressSnappyStream, FileExtensionSnappy)
 }
 
 // decompressSnappyStream returns an io.Reader that decompresses src with snappy algorithm

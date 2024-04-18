@@ -14,8 +14,8 @@ var magicBytesLZ4 = [][]byte{
 	{0x04, 0x22, 0x4D, 0x18},
 }
 
-// fileExtensionLZ4 is the file extension for LZ4 files.
-var fileExtensionLZ4 = "lz4"
+// FileExtensionLZ4 is the file extension for LZ4 files.
+const FileExtensionLZ4 = "lz4"
 
 // IsLZ4 checks if the header matches the LZ4 magic bytes.
 func IsLZ4(header []byte) bool {
@@ -24,7 +24,7 @@ func IsLZ4(header []byte) bool {
 
 // Unpack sets a timeout for the ctx and starts the lz4 decompression from src to dst.
 func UnpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressLZ4Stream, fileExtensionLZ4)
+	return decompress(ctx, src, dst, c, decompressLZ4Stream, FileExtensionLZ4)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm

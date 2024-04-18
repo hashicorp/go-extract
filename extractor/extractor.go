@@ -92,81 +92,75 @@ type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
 // HeaderCheck is a function that checks if the given header matches the expected magic bytes.
 type HeaderCheck func([]byte) bool
 
+type AvailableExtractor struct {
+	Unpacker    UnpackFunc
+	HeaderCheck HeaderCheck
+	MagicBytes  [][]byte
+	Offset      int
+}
+
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
-var AvailableExtractors = []struct {
-	Unpacker      UnpackFunc
-	HeaderCheck   HeaderCheck
-	MagicBytes    [][]byte
-	Offset        int
-	FileExtension string
-}{
-	{
-		Unpacker:      UnpackBrotli,
-		HeaderCheck:   IsBrotli,
-		MagicBytes:    magicBytesBrotli,
-		FileExtension: fileExtensionBrotli,
+var AvailableExtractors = map[string]AvailableExtractor{
+	FileExtension7zip: {
+		Unpacker:    Unpack7Zip,
+		HeaderCheck: Is7zip,
+		MagicBytes:  magicBytes7zip,
 	},
-	{
-		Unpacker:      UnpackBzip2,
-		HeaderCheck:   IsBzip2,
-		MagicBytes:    magicBytesBzip2,
-		FileExtension: fileExtensionBzip2,
+	FileExtensionBrotli: {
+		Unpacker:    UnpackBrotli,
+		HeaderCheck: IsBrotli,
 	},
-	{
-		Unpacker:      UnpackGZip,
-		HeaderCheck:   IsGZip,
-		MagicBytes:    magicBytesGZip,
-		FileExtension: fileExtensionGZip,
+	FileExtensionBzip2: {
+		Unpacker:    UnpackBzip2,
+		HeaderCheck: IsBzip2,
+		MagicBytes:  magicBytesBzip2,
 	},
-	{
-		Unpacker:      UnpackLZ4,
-		HeaderCheck:   IsLZ4,
-		MagicBytes:    magicBytesLZ4,
-		FileExtension: fileExtensionLZ4,
+	FileExtensionGZip: {
+		Unpacker:    UnpackGZip,
+		HeaderCheck: IsGZip,
+		MagicBytes:  magicBytesGZip,
 	},
-	{
-		Unpacker:      UnpackSnappy,
-		HeaderCheck:   IsSnappy,
-		MagicBytes:    magicBytesSnappy,
-		FileExtension: fileExtensionSnappy,
+	FileExtensionLZ4: {
+		Unpacker:    UnpackLZ4,
+		HeaderCheck: IsLZ4,
+		MagicBytes:  magicBytesLZ4,
 	},
-	{
-		Unpacker:      UnpackTar,
-		HeaderCheck:   IsTar,
-		MagicBytes:    magicBytesTar,
-		Offset:        offsetTar,
-		FileExtension: fileExtensionTar,
+	FileExtensionSnappy: {
+		Unpacker:    UnpackSnappy,
+		HeaderCheck: IsSnappy,
+		MagicBytes:  magicBytesSnappy,
 	},
-	{
-		Unpacker:      UnpackXz,
-		HeaderCheck:   IsXz,
-		MagicBytes:    magicBytesXz,
-		FileExtension: fileExtensionXz,
+	FileExtensionTar: {
+		Unpacker:    UnpackTar,
+		HeaderCheck: IsTar,
+		MagicBytes:  magicBytesTar,
+		Offset:      offsetTar,
 	},
-	{
-		Unpacker:      UnpackZip,
-		HeaderCheck:   IsZip,
-		MagicBytes:    magicBytesZIP,
-		FileExtension: fileExtensionZIP,
+	FileExtensionTarGZip: {
+		Unpacker:    UnpackGZip,
+		HeaderCheck: IsGZip,
+		MagicBytes:  magicBytesGZip,
 	},
-	{
-		Unpacker:      UnpackZlib,
-		HeaderCheck:   IsZlib,
-		MagicBytes:    magicBytesZlib,
-		FileExtension: fileExtensionZlib,
+	FileExtensionXz: {
+		Unpacker:    UnpackXz,
+		HeaderCheck: IsXz,
+		MagicBytes:  magicBytesXz,
 	},
-	{
-		Unpacker:      UnpackZstd,
-		HeaderCheck:   IsZstd,
-		MagicBytes:    magicBytesZstd,
-		FileExtension: fileExtensionZstd,
+	FileExtensionZIP: {
+		Unpacker:    UnpackZip,
+		HeaderCheck: IsZip,
+		MagicBytes:  magicBytesZIP,
 	},
-	{
-		Unpacker:      Unpack7Zip,
-		HeaderCheck:   Is7zip,
-		MagicBytes:    magicBytes7zip,
-		FileExtension: fileExtension7zip,
+	FileExtensionZlib: {
+		Unpacker:    UnpackZlib,
+		HeaderCheck: IsZlib,
+		MagicBytes:  magicBytesZlib,
+	},
+	FileExtensionZstd: {
+		Unpacker:    UnpackZstd,
+		HeaderCheck: IsZstd,
+		MagicBytes:  magicBytesZstd,
 	},
 }
 
