@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"testing"
 
@@ -533,4 +534,41 @@ func TestWithTelemetryHook(t *testing.T) {
 		t.Errorf("Expected telemetry data to be delivered, but it was not")
 	}
 
+}
+
+func TestWithCustomMode(t *testing.T) {
+	tests := []struct {
+		name string
+		mode int
+		want int
+	}{
+		{
+			name: "Set custom mode to 0755",
+			mode: 0755,
+			want: 0755,
+		},
+		{
+			name: "Set custom mode to 0644",
+			mode: 0644,
+			want: 0644,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := NewConfig(
+				WithCustomCreateDirMode(fs.FileMode(tt.mode)),
+				WithCustomDecompressFileMode(fs.FileMode(tt.mode)),
+			)
+
+			if int(config.CustomCreateDirMode().Perm()) != tt.want {
+				t.Errorf("WithCustomCreateDirMode() set customCreateDirMode to %v, want %v", config.customCreateDirMode, tt.want)
+			}
+
+			if int(config.CustomDecompressFileMode().Perm()) != tt.want {
+				t.Errorf("WithCustomCreateDirMode() set customDecompressFileMode to %v, want %v", config.customCreateDirMode, tt.want)
+			}
+
+		})
+	}
 }
