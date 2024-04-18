@@ -62,6 +62,8 @@ import (
         config.WithContinueOnError(false),            // fail on error
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
+        config.WithCustomCreateDirMode(0750),         // default: drwxr-x---
+        config.WithCustomDecompressFileMode(0640),    // default: -rw-r-----
         config.WithDenySymlinkExtraction(false),      // allow symlink creation
         config.WithExtractType("<ext>")               // specify explicitly a file extension to determine extractor
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
@@ -126,23 +128,25 @@ Arguments:
   [<destination>]    Output directory/file.
 
 Flags:
-  -h, --help                              Show context-sensitive help.
-  -C, --continue-on-error                 Continue extraction on error.
-  -S, --continue-on-unsupported-files     Skip extraction of unsupported files.
-  -c, --create-destination                Create destination directory if it does not exist.
-  -D, --deny-symlinks                     Deny symlink extraction.
-  -F, --follow-symlinks                   [Dangerous!] Follow symlinks to directories during extraction.
-      --max-files=1000                    Maximum files that are extracted before stop. (disable check: -1)
-      --max-extraction-size=1073741824    Maximum extraction size that allowed is (in bytes). (disable check: -1)
-      --max-extraction-time=60            Maximum time that an extraction should take (in seconds). (disable check: -1)
-      --max-input-size=1073741824         Maximum input size that allowed is (in bytes). (disable check: -1)
-  -N, --no-untar-after-decompression      Disable combined extraction of tar.gz.
-  -O, --overwrite                         Overwrite if exist.
-  -P, --pattern=PATTERN,...               Extracted objects need to match shell file name pattern.
-  -T, --telemetry                         Print telemetry data to log after extraction.
-  -t, --type=""                           Type of archive. (7z, br, bz2, gz, lz4, sz, tar, tgz, xz, zip, zst, zz)
-  -v, --verbose                           Verbose logging.
-  -V, --version                           Print release version information.
+  -h, --help                               Show context-sensitive help.
+  -C, --continue-on-error                  Continue extraction on error.
+  -S, --continue-on-unsupported-files      Skip extraction of unsupported files.
+  -c, --create-destination                 Create destination directory if it does not exist.
+      --custom-create-dir-mode=750         File mode for created directories.
+      --custom-decompress-file-mode=640    File mode for decompressed files.
+  -D, --deny-symlinks                      Deny symlink extraction.
+  -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
+      --max-files=1000                     Maximum files that are extracted before stop. (disable check: -1)
+      --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
+      --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
+      --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
+  -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
+  -O, --overwrite                          Overwrite if exist.
+  -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
+  -T, --telemetry                          Print telemetry data to log after extraction.
+  -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, sz, tar, tgz, xz, zip, zst, zz)
+  -v, --verbose                            Verbose logging.
+  -V, --version                            Print release version information.
 ```
 
 ## Telemetry data
