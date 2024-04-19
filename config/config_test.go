@@ -566,7 +566,7 @@ func TestWithCustomMode(t *testing.T) {
 			}
 
 			if int(config.CustomDecompressFileMode().Perm()) != tt.want {
-				t.Errorf("WithCustomCreateDirMode() set customDecompressFileMode to %v, want %v", config.customCreateDirMode, tt.want)
+				t.Errorf("WithCustomDecompressFileMode() set customDecompressFileMode to %v, want %v", config.customCreateDirMode, tt.want)
 			}
 
 		})
