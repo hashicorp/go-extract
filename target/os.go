@@ -129,8 +129,12 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
 			if config.CreateDestination() {
-				if err := os.MkdirAll(dstBase, config.CustomCreateDirMode()); err != nil {
+				if err := os.MkdirAll(dstBase, config.CustomCreateDirMode().Perm()); err != nil {
 					return fmt.Errorf("failed to create destination directory %s", err)
+				}
+				// ensure file permission is set regardless the umask
+				if err := os.Chmod(dstBase, config.CustomCreateDirMode().Perm()); err != nil {
+					return fmt.Errorf("failed to set folder permission (%s)", err)
 				}
 				config.Logger().Info("created destination directory", "path", dstBase)
 			} else {
@@ -158,6 +162,9 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 	finalDirectoryPath := filepath.Join(dstBase, newDir)
 	if err := os.MkdirAll(finalDirectoryPath, mode.Perm()); err != nil {
 		return fmt.Errorf("failed to create directory (%s)", err)
+	}
+	if err := os.Chmod(finalDirectoryPath, mode.Perm()); err != nil {
+		return fmt.Errorf("failed to set folder permission (%s)", err)
 	}
 
 	return nil
@@ -192,13 +199,17 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	}
 
 	// create dst file
-	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
 	if err != nil {
 		return fmt.Errorf("failed to create file (%s)", err)
 	}
 	defer func() {
 		dstFile.Close()
 	}()
+	// ensure file permission is set regardless the umask
+	if err := dstFile.Chmod(mode.Perm()); err != nil {
+		return fmt.Errorf("failed to set file permission (%s)", err)
+	}
 
 	// check if a max extraction size is set
 	if cfg.MaxExtractionSize() >= 0 {
