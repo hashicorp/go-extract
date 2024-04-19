@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -995,7 +996,7 @@ func packTarWithContent(content []tarContent) []byte {
 		// create header
 		hdr := &tar.Header{
 			Name:     c.Name,
-			Mode:     int64(c.Mode),
+			Mode:     int64(c.Mode.Perm()),
 			Size:     int64(len(c.Content)),
 			Linkname: c.Linktarget,
 			Typeflag: c.Filetype,
@@ -1051,4 +1052,116 @@ func packZipWithContent(content []zipContent) []byte {
 	}
 
 	return writeBuffer.Bytes()
+}
+
+func TestWithCustomMode(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		data        []byte
+		dst         string
+		cfg         *config.Config
+		expected    map[string]fs.FileMode
+		expectError bool
+	}{
+		{
+			name: "dir with 0755 and file with 0644",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0644), // 420
+				},
+			})),
+			cfg: config.NewConfig(
+				config.WithCustomCreateDirMode(fs.FileMode(0755)), // 493
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0755), // 493
+				"sub/file": fs.FileMode(0644), // 420
+			},
+		},
+		{
+			name: "decompress with custom mode",
+			data: compressGzip([]byte("foobar content")),
+			dst:  "out", // specify decompressed file name
+			cfg: config.NewConfig(
+				config.WithCustomDecompressFileMode(fs.FileMode(0666)), // 438
+			),
+			expected: map[string]fs.FileMode{
+				"out": fs.FileMode(0666), // 438
+			},
+		},
+		{
+			name:        "failing /bc of missing dir creation flag",
+			data:        compressGzip([]byte("foobar content")),
+			dst:         "foo/out", // specify decompressed file name in sub directory
+			cfg:         config.NewConfig(),
+			expected:    nil, // should error, bc/ missing dir creation flag
+			expectError: true,
+		},
+		{
+			name: "dir with 0755 and file with 0777",
+			data: compressGzip([]byte("foobar content")),
+			dst:  "foo/out",
+			cfg: config.NewConfig(
+				config.WithCreateDestination(true),                     // create destination^
+				config.WithCustomCreateDirMode(fs.FileMode(0750)),      // 488
+				config.WithCustomDecompressFileMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"foo":     fs.FileMode(0750), // 488
+				"foo/out": fs.FileMode(0777), // 511
+			},
+			expectError: false, // because its just a compressed byte slice without any directories specified and WithCreateDestination is not set
+		},
+		{
+			name: "dir with 0777 and file with 0777",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0777), // 511
+				},
+			})),
+			cfg: config.NewConfig(
+				config.WithCustomCreateDirMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0777), // 511
+				"sub/file": fs.FileMode(0777), // 511
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// prepare test
+			buf := bytes.NewBuffer(tt.data)
+			ctx := context.Background()
+
+			// create temp dir
+			tmpDir := t.TempDir()
+			dst := filepath.Join(tmpDir, tt.dst)
+
+			// run test
+			err := Unpack(ctx, buf, dst, tt.cfg)
+			if !tt.expectError && (err != nil) {
+				t.Fatalf("[%s] Expected no error, but got: %s", tt.name, err)
+			}
+
+			if tt.expectError && (err == nil) {
+				t.Fatalf("[%s] Expected error, but got none", tt.name)
+			}
+
+			// check results
+			for name, mode := range tt.expected {
+				stat, err := os.Stat(filepath.Join(tmpDir, name))
+				if err != nil {
+					t.Fatalf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
+				}
+				if stat.Mode().Perm() != mode.Perm() {
+					t.Fatalf("[%s] Expected directory/file %s to have mode %s, but got: %s", tt.name, name, mode.Perm(), stat.Mode().Perm())
+				}
+			}
+		})
+	}
 }
