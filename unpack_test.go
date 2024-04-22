@@ -1173,14 +1173,24 @@ func TestWithCustomMode(t *testing.T) {
 
 // toWindowsFileMode converts a os.FileMode to a windows file mode
 func toWindowsFileMode(mode os.FileMode) fs.FileMode {
-	writeBit := mode&0200 != 0
-	readBit := mode&0400 != 0
+
+	// get the mode
+	r := mode&0400 != 0
+	w := mode&0200 != 0
+	x := mode&0100 != 0
+
+	// set the mode
 	mode = 0
-	if readBit {
+	if r {
 		mode |= 0444
 	}
-	if writeBit {
+	if w {
 		mode |= 0222
 	}
+	if x {
+		mode |= 0111
+	}
+
+	// return the mode
 	return mode
 }
