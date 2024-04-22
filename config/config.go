@@ -120,12 +120,14 @@ func (c *Config) ContinueOnUnsupportedFiles() bool {
 	return c.continueOnUnsupportedFiles
 }
 
-// CreateDestination returns true if the destination directory should be created if it does not exist
+// CreateDestination returns true if the destination directory should be
+// created if it does not exist
 func (c *Config) CreateDestination() bool {
 	return c.createDestination
 }
 
-// CustomCreateDirMode returns the file mode for created directories
+// CustomCreateDirMode returns the file mode for created directories,
+// that are not defined in the archive
 func (c *Config) CustomCreateDirMode() fs.FileMode {
 	return c.customCreateDirMode
 }
@@ -170,7 +172,7 @@ func (c *Config) MaxInputSize() int64 {
 	return c.maxInputSize
 }
 
-// NoUntarAfterDecompression returns true if tar.gz should NOT be untarred after decompression
+// NoUntarAfterDecompression returns true if tar.gz should NOT be untared after decompression
 func (c *Config) NoUntarAfterDecompression() bool {
 	return c.noUntarAfterDecompression
 }
@@ -273,21 +275,26 @@ func WithContinueOnError(yes bool) ConfigOption {
 	}
 }
 
-// WithContinueOnUnsupportedFiles options pattern function to enable/disable skipping unsupported files
+// WithContinueOnUnsupportedFiles options pattern function to
+// enable/disable skipping unsupported files. An unsupported file is a file
+// that is not supported by the extraction algorithm. If symlinks are not allowed
+// and a symlink is found, it is considered an unsupported file.
 func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 	return func(c *Config) {
 		c.continueOnUnsupportedFiles = ctd
 	}
 }
 
-// WithCreateDestination options pattern function to create destination directory if it does not exist
+// WithCreateDestination options pattern function to create
+// destination directory if it does not exist
 func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
 		c.createDestination = create
 	}
 }
 
-// WithCustomCreateDirMode options pattern function to set the file mode for created directories
+// WithCustomCreateDirMode options pattern function to set the file mode
+// for created directories, that are not defined in the archive
 func WithCustomCreateDirMode(mode fs.FileMode) ConfigOption {
 	return func(c *Config) {
 		c.customCreateDirMode = mode
