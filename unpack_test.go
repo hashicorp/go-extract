@@ -1207,3 +1207,60 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 	// return the mode
 	return mode
 }
+
+// createTestFile is a helper function to generate test files
+func createTestFileWithPerm(path string, content string, mode fs.FileMode) error {
+	createTestFile(path, content)
+	err := os.Chmod(path, mode)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func TestToWindowsFileMode(t *testing.T) {
+
+	if runtime.GOOS != "windows" {
+		t.Skip("skipping test on non-windows systems")
+	}
+
+	otherMasks := []int{00, 01, 02, 03, 04, 05, 06, 07}
+	groupMasks := []int{00, 010, 020, 030, 040, 050, 060, 070}
+	userMasks := []int{00, 0100, 0200, 0300, 0400, 0500, 0600, 0700}
+
+	for _, dir := range []bool{true, false} {
+		for _, o := range otherMasks {
+			for _, g := range groupMasks {
+				for _, u := range userMasks {
+					mode := fs.FileMode(u | g | o)
+
+					tmpDir := t.TempDir()
+					var err error
+					if dir {
+						err = os.MkdirAll(filepath.Join(tmpDir, "test"), mode)
+					} else {
+						err = createTestFileWithPerm(filepath.Join(tmpDir, "test"), "foobar content", mode)
+					}
+					if err != nil {
+						t.Fatalf("error creating test file: %s", err)
+					}
+
+					// get stats
+					stat, err := os.Stat(filepath.Join(tmpDir, "test"))
+					if err != nil {
+						t.Fatalf("error getting file stats: %s", err)
+					}
+
+					// calculate windows mode
+					calculated := toWindowsFileMode(dir, mode)
+
+					// check if the calculated mode is the same as the mode from the stat
+					if stat.Mode().Perm() != calculated.Perm() {
+						t.Fatalf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
+					}
+
+				}
+			}
+		}
+	}
+}
