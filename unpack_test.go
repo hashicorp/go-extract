@@ -1193,7 +1193,6 @@ func TestWithCustomMode(t *testing.T) {
 func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 	// get the mode
-	r := mode&0400 != 0
 	w := mode&0200 != 0
 	x := mode&0100 != 0
 
