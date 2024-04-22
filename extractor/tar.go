@@ -101,7 +101,7 @@ func (t *tarEntry) IsRegular() bool {
 
 // IsDir returns true if the entry is a directory
 func (t *tarEntry) IsDir() bool {
-	return t.hdr.Typeflag == tar.TypeDir
+	return t.hdr.Typeflag&tar.TypeDir != 0
 }
 
 // IsSymlink returns true if the entry is a symlink
