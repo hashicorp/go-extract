@@ -1195,9 +1195,6 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 	// handle special case
 	if isDir {
-		if mode == 0 { // special situation for directories
-			return fs.FileMode(0555)
-		}
 		return fs.FileMode(0777)
 	}
 
