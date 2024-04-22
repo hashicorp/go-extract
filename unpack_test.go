@@ -1194,7 +1194,10 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 	// handle special case
 	if isDir {
-		return 0777
+		if mode&0200 != 0 {
+			return 0777
+		}
+		return 0555
 	}
 
 	// set the mode to at least read only
