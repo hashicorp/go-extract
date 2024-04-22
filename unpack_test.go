@@ -1193,7 +1193,7 @@ func TestWithCustomMode(t *testing.T) {
 func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 	// handle special case
-	if isDir && mode == 0 {
+	if isDir {
 		return 0777
 	}
 
@@ -1203,11 +1203,6 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 	// check for write permission
 	if mode&0200 != 0 {
 		newMode |= 0222
-	}
-
-	// check if is a dir
-	if isDir {
-		newMode |= 0111
 	}
 
 	// return the mode
