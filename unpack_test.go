@@ -1234,21 +1234,27 @@ func TestToWindowsFileMode(t *testing.T) {
 		for _, o := range otherMasks {
 			for _, g := range groupMasks {
 				for _, u := range userMasks {
+
+					// define test directory
+					tmpDir := t.TempDir()
+					fp := filepath.Join(tmpDir, "test")
+
+					// define mode
 					mode := fs.FileMode(u | g | o)
 
-					tmpDir := t.TempDir()
+					// create test file or directory
 					var err error
 					if dir {
-						err = os.MkdirAll(filepath.Join(tmpDir, "test"), mode)
+						err = os.MkdirAll(fp, mode)
 					} else {
-						err = createTestFileWithPerm(filepath.Join(tmpDir, "test"), "foobar content", mode)
+						err = createTestFileWithPerm(fp, "foobar content", mode)
 					}
 					if err != nil {
 						t.Fatalf("error creating test file: %s", err)
 					}
 
 					// get stats
-					stat, err := os.Stat(filepath.Join(tmpDir, "test"))
+					stat, err := os.Stat(fp)
 					if err != nil {
 						t.Fatalf("error getting file stats: %s", err)
 					}
