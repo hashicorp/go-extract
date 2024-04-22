@@ -1182,11 +1182,10 @@ func TestWithCustomMode(t *testing.T) {
 				skip := false
 				// adjust for windows
 				if runtime.GOOS == "windows" {
-					skip = stat.IsDir()
+					skip = stat.IsDir() // ignore directories to be checked on windows, reason is that the mode is not under control of the go code
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				}
 
-				// ignore directories to be checked
 				if !skip && stat.Mode().Perm() != expectedMode.Perm() {
 					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
 				}
