@@ -1175,14 +1175,14 @@ func TestWithCustomMode(t *testing.T) {
 			for name, expectedMode := range tt.expected {
 				stat, err := os.Stat(filepath.Join(tmpDir, name))
 				if err != nil {
-					t.Fatalf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
+					t.Errorf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
 				}
 				// adjust for windows
 				if runtime.GOOS == "windows" {
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				}
 				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Fatalf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
+					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})
