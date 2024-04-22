@@ -997,7 +997,7 @@ func packTarWithContent(content []tarContent) []byte {
 		// create header
 		hdr := &tar.Header{
 			Name:     c.Name,
-			Mode:     int64(c.Mode.Perm()),
+			Mode:     int64(c.Mode),
 			Size:     int64(len(c.Content)),
 			Linkname: c.Linktarget,
 			Typeflag: c.Filetype,
@@ -1138,10 +1138,15 @@ func TestWithCustomMode(t *testing.T) {
 					Name: "file",
 					Mode: fs.FileMode(0000), // 0
 				},
+				{
+					Name: "dir/",
+					Mode: (fs.FileMode(0000) | fs.ModeDir), // 0
+				},
 			})),
 			cfg: config.NewConfig(),
 			expected: map[string]fs.FileMode{
 				"file": fs.FileMode(0000), // 0
+				"dir":  fs.FileMode(0000), // 0
 			},
 		},
 	}
@@ -1192,11 +1197,8 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 	w := mode&0200 != 0
 	x := mode&0100 != 0
 
-	// set the mode
-	mode = 0
-	if r {
-		mode |= 0444
-	}
+	// set the mode to at least read only
+	mode = 0444
 	if w {
 		mode |= 0222
 	}
