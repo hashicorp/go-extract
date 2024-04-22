@@ -1140,7 +1140,7 @@ func TestWithCustomMode(t *testing.T) {
 				},
 				{
 					Name:     "dir/",
-					Mode:     (fs.FileMode(0000)), // 0
+					Mode:     fs.FileMode(0000), // 0
 					Filetype: tar.TypeDir,
 				},
 			})),
@@ -1165,11 +1165,11 @@ func TestWithCustomMode(t *testing.T) {
 			// run test
 			err := Unpack(ctx, buf, dst, tt.cfg)
 			if !tt.expectError && (err != nil) {
-				t.Fatalf("[%s] Expected no error, but got: %s", tt.name, err)
+				t.Errorf("[%s] Expected no error, but got: %s", tt.name, err)
 			}
 
 			if tt.expectError && (err == nil) {
-				t.Fatalf("[%s] Expected error, but got none", tt.name)
+				t.Errorf("[%s] Expected error, but got none", tt.name)
 			}
 
 			// check results
@@ -1183,7 +1183,7 @@ func TestWithCustomMode(t *testing.T) {
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				}
 				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
+					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode())
 				}
 			}
 		})
