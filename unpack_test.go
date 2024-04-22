@@ -1131,6 +1131,19 @@ func TestWithCustomMode(t *testing.T) {
 				"sub/file": fs.FileMode(0777), // 511
 			},
 		},
+		{
+			name: "file with 0000 permissions",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "file",
+					Mode: fs.FileMode(0000), // 0
+				},
+			})),
+			cfg: config.NewConfig(),
+			expected: map[string]fs.FileMode{
+				"file": fs.FileMode(0000), // 0
+			},
+		},
 	}
 
 	for _, tt := range tests {
