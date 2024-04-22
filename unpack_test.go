@@ -1139,8 +1139,9 @@ func TestWithCustomMode(t *testing.T) {
 					Mode: fs.FileMode(0000), // 0
 				},
 				{
-					Name: "dir/",
-					Mode: (fs.FileMode(0000) | fs.ModeDir), // 0
+					Name:     "dir/",
+					Mode:     (fs.FileMode(0000)), // 0
+					Filetype: tar.TypeDir,
 				},
 			})),
 			cfg: config.NewConfig(),
