@@ -1202,16 +1202,13 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 		return fs.FileMode(0777)
 	}
 
-	// set the mode to at least read only
-	newMode := fs.FileMode(0444)
-
 	// check for write permission
 	if mode&0200 != 0 {
-		newMode |= 0222
+		return fs.FileMode(0666)
 	}
 
 	// return the mode
-	return newMode
+	return fs.FileMode(0444)
 }
 
 // createTestFile is a helper function to generate test files
