@@ -1182,7 +1182,7 @@ func TestWithCustomMode(t *testing.T) {
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				}
 				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Fatalf("[%s] Expected directory/file %s to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
+					t.Fatalf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})
@@ -1201,7 +1201,7 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 	if w {
 		mode |= 0222
 	}
-	if isDir && x {
+	if isDir || x {
 		mode |= 0111
 	}
 
