@@ -1161,7 +1161,7 @@ func TestWithCustomMode(t *testing.T) {
 				}
 				// adjust for windows
 				if runtime.GOOS == "windows" {
-					expectedMode = toWindowsFileMode(expectedMode)
+					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				}
 				if stat.Mode().Perm() != expectedMode.Perm() {
 					t.Fatalf("[%s] Expected directory/file %s to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
@@ -1172,7 +1172,7 @@ func TestWithCustomMode(t *testing.T) {
 }
 
 // toWindowsFileMode converts a os.FileMode to a windows file mode
-func toWindowsFileMode(mode os.FileMode) fs.FileMode {
+func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 	// get the mode
 	r := mode&0400 != 0
@@ -1187,7 +1187,7 @@ func toWindowsFileMode(mode os.FileMode) fs.FileMode {
 	if w {
 		mode |= 0222
 	}
-	if x {
+	if isDir && x {
 		mode |= 0111
 	}
 
