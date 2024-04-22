@@ -1192,20 +1192,26 @@ func TestWithCustomMode(t *testing.T) {
 // toWindowsFileMode converts a os.FileMode to a windows file mode
 func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
-	// get the mode
-	w := mode&0200 != 0
+	// handle special case
+	if isDir && mode == 0 {
+		return 0777
+	}
 
 	// set the mode to at least read only
-	mode = 0444
-	if w {
-		mode |= 0222
+	newMode := fs.FileMode(0444)
+
+	// check for write permission
+	if mode&0200 != 0 {
+		newMode |= 0222
 	}
+
+	// check if is a dir
 	if isDir {
-		mode |= 0111
+		newMode |= 0111
 	}
 
 	// return the mode
-	return mode
+	return newMode
 }
 
 // createTestFile is a helper function to generate test files
@@ -1256,7 +1262,7 @@ func TestToWindowsFileMode(t *testing.T) {
 
 					// check if the calculated mode is the same as the mode from the stat
 					if stat.Mode().Perm() != calculated.Perm() {
-						t.Fatalf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
+						t.Errorf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
 					}
 
 				}
