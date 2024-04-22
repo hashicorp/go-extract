@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -1153,15 +1154,33 @@ func TestWithCustomMode(t *testing.T) {
 			}
 
 			// check results
-			for name, mode := range tt.expected {
+			for name, expectedMode := range tt.expected {
 				stat, err := os.Stat(filepath.Join(tmpDir, name))
 				if err != nil {
 					t.Fatalf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
 				}
-				if stat.Mode().Perm() != mode.Perm() {
-					t.Fatalf("[%s] Expected directory/file %s to have mode %s, but got: %s", tt.name, name, mode.Perm(), stat.Mode().Perm())
+				// adjust for windows
+				if runtime.GOOS == "windows" {
+					expectedMode = toWindowsFileMode(expectedMode)
+				}
+				if stat.Mode().Perm() != expectedMode.Perm() {
+					t.Fatalf("[%s] Expected directory/file %s to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})
 	}
+}
+
+// toWindowsFileMode converts a os.FileMode to a windows file mode
+func toWindowsFileMode(mode os.FileMode) fs.FileMode {
+	writeBit := mode&0200 != 0
+	readBit := mode&0400 != 0
+	mode = 0
+	if readBit {
+		mode |= 0444
+	}
+	if writeBit {
+		mode |= 0222
+	}
+	return mode
 }
