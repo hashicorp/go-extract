@@ -62,8 +62,8 @@ import (
         config.WithContinueOnError(false),            // fail on error
         config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
         config.WithCreateDestination(false),          // do not try to create specified destination
-        config.WithCustomCreateDirMode(0750),         // for not in-archive listed folders, default: drwxr-x--- 
-        config.WithCustomDecompressFileMode(0640),    // for decompressed files, default: -rw-r----- 
+        config.WithCustomCreateDirMode(0750),         // for not in-archive listed folders (respecting umask), default: drwxr-x--- 
+        config.WithCustomDecompressFileMode(0640),    // for decompressed files (respecting umask), default: -rw-r----- 
         config.WithDenySymlinkExtraction(false),      // allow symlink creation
         config.WithExtractType("<ext>")               // specify explicitly a file extension to determine extractor
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
@@ -132,8 +132,8 @@ Flags:
   -C, --continue-on-error                  Continue extraction on error.
   -S, --continue-on-unsupported-files      Skip extraction of unsupported files.
   -c, --create-destination                 Create destination directory if it does not exist.
-      --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive.
-      --custom-decompress-file-mode=640    File mode for decompressed files.
+      --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive. (respecting umask)
+      --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
   -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
       --max-files=1000                     Maximum files that are extracted before stop. (disable check: -1)
