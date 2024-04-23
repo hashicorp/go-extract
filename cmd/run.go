@@ -24,8 +24,8 @@ type CLI struct {
 	ContinueOnError            bool             `short:"C" help:"Continue extraction on error."`
 	ContinueOnUnsupportedFiles bool             `short:"S" help:"Skip extraction of unsupported files."`
 	CreateDestination          bool             `short:"c" help:"Create destination directory if it does not exist."`
-	CustomCreateDirMode        int              `optional:"" default:"750" help:"File mode for created directories, which are not listed in the archive."`
-	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files."`
+	CustomCreateDirMode        int              `optional:"" default:"750" help:"File mode for created directories, which are not listed in the archive. (respecting umask)"`
+	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files. (respecting umask)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`

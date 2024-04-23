@@ -28,10 +28,10 @@ type Config struct {
 	// create destination directory if it does not exist
 	createDestination bool
 
-	// customCreateDirMode is the file mode for created directories, that are not defined in the archive
+	// customCreateDirMode is the file mode for created directories, that are not defined in the archive (respecting umask)
 	customCreateDirMode fs.FileMode
 
-	// customDecompressFileMode is the file mode for a decompressed file
+	// customDecompressFileMode is the file mode for a decompressed file (respecting umask)
 	customDecompressFileMode fs.FileMode
 
 	// denySymlinkExtraction offers the option to enable/disable the extraction of symlinks
@@ -127,12 +127,13 @@ func (c *Config) CreateDestination() bool {
 }
 
 // CustomCreateDirMode returns the file mode for created directories,
-// that are not defined in the archive
+// that are not defined in the archive. (respecting umask)
 func (c *Config) CustomCreateDirMode() fs.FileMode {
 	return c.customCreateDirMode
 }
 
 // CustomDecompressFileMode returns the file mode for a decompressed file
+// (respecting umask)
 func (c *Config) CustomDecompressFileMode() fs.FileMode {
 	return c.customDecompressFileMode
 }
@@ -294,14 +295,15 @@ func WithCreateDestination(create bool) ConfigOption {
 }
 
 // WithCustomCreateDirMode options pattern function to set the file mode
-// for created directories, that are not defined in the archive
+// for created directories, that are not defined in the archive. (respecting umask)
 func WithCustomCreateDirMode(mode fs.FileMode) ConfigOption {
 	return func(c *Config) {
 		c.customCreateDirMode = mode
 	}
 }
 
-// WithCustomDecompressFileMode options pattern function to set the file mode for a decompressed file
+// WithCustomDecompressFileMode options pattern function to set the file mode for a
+// decompressed file. (respecting umask)
 func WithCustomDecompressFileMode(mode fs.FileMode) ConfigOption {
 	return func(c *Config) {
 		c.customDecompressFileMode = mode

@@ -220,8 +220,7 @@ func createTestNonArchive(t *testing.T, dstDir string) string {
 
 // createTestFile is a helper function to generate test files
 func createTestFile(path string, content string) {
-	byteArray := []byte(content)
-	err := os.WriteFile(path, byteArray, 0640)
+	err := createTestFileWithPerm(path, content, 0640)
 	if err != nil {
 		panic(err)
 	}
@@ -1057,6 +1056,11 @@ func packZipWithContent(content []zipContent) []byte {
 
 func TestWithCustomMode(t *testing.T) {
 
+	umask, err := sniffUmask()
+	if err != nil {
+		t.Fatalf("Failed to get umask: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		data        []byte
@@ -1184,6 +1188,9 @@ func TestWithCustomMode(t *testing.T) {
 				if runtime.GOOS == "windows" {
 					skip = stat.IsDir() // ignore directories to be checked on windows, reason is that the mode is not under control of the go code
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
+				} else {
+					// adjust for umask
+					expectedMode = expectedMode & ^*umask
 				}
 
 				if !skip && stat.Mode().Perm() != expectedMode.Perm() {
@@ -1192,6 +1199,34 @@ func TestWithCustomMode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestSniffUmask is a test function that sniffs the system umask
+func sniffUmask() (*os.FileMode, error) {
+	// create temp directory
+	tmpDir, err := os.MkdirTemp("", "umask-test")
+	if err != nil {
+		return nil, fmt.Errorf("error creating temp directory: %s", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// create 0777 file in temp
+	err = createTestFileWithPerm(filepath.Join(tmpDir, "file"), "foobar content", 0777)
+	if err != nil {
+		return nil, fmt.Errorf("error creating test file: %s", err)
+	}
+
+	// get stats
+	stat, err := os.Stat(filepath.Join(tmpDir, "file"))
+	if err != nil {
+		return nil, fmt.Errorf("error getting file stats: %s", err)
+	}
+
+	// get umask
+	umask := fs.FileMode(^stat.Mode().Perm() & 0777)
+
+	// return the umask
+	return &umask, nil
 }
 
 // toWindowsFileMode converts a os.FileMode to a windows file mode
@@ -1213,12 +1248,8 @@ func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
 
 // createTestFile is a helper function to generate test files
 func createTestFileWithPerm(path string, content string, mode fs.FileMode) error {
-	createTestFile(path, content)
-	err := os.Chmod(path, mode)
-	if err != nil {
-		return err
-	}
-	return nil
+	byteArray := []byte(content)
+	return os.WriteFile(path, byteArray, mode)
 }
 
 func TestToWindowsFileMode(t *testing.T) {

@@ -173,9 +173,6 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 	if err := os.MkdirAll(finalDirectoryPath, mode.Perm()); err != nil {
 		return fmt.Errorf("failed to create directory (%s)", err)
 	}
-	if err := os.Chmod(finalDirectoryPath, mode.Perm()); err != nil {
-		return fmt.Errorf("failed to set folder permission (%s)", err)
-	}
 
 	return nil
 }
@@ -221,10 +218,6 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	defer func() {
 		dstFile.Close()
 	}()
-	// ensure file permission is set regardless the umask
-	if err := dstFile.Chmod(mode.Perm()); err != nil {
-		return fmt.Errorf("failed to set file permission (%s)", err)
-	}
 
 	// check if a max extraction size is set
 	if cfg.MaxExtractionSize() >= 0 {
