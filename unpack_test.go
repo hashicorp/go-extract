@@ -1201,7 +1201,7 @@ func TestWithCustomMode(t *testing.T) {
 	}
 }
 
-// TestSniffUmask is a test function that sniffs the system umask
+// sniffUmask is a helper function to get the umask
 func sniffUmask() (*os.FileMode, error) {
 	// create temp directory
 	tmpDir, err := os.MkdirTemp("", "umask-test")
