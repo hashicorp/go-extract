@@ -1056,10 +1056,7 @@ func packZipWithContent(content []zipContent) []byte {
 
 func TestWithCustomMode(t *testing.T) {
 
-	umask, err := sniffUmask()
-	if err != nil {
-		t.Fatalf("Failed to get umask: %v", err)
-	}
+	umask := sniffUmask()
 
 	tests := []struct {
 		name        string
