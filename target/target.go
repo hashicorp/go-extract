@@ -32,9 +32,23 @@ type Target interface {
 	// If the function completes successfully, it returns nil.
 	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
 
-	// CreateSafeDir creates dirName in dstDir. If dstDir is empty, the directory is meant to be created in the current working directory.
-	// If dstDir does not exist and config.CreateDestination() returns true, it might be created with the config.CustomCreateDirMode() by the
-	// implementation. The mode parameter is the file mode that should be set on the directory.
+	// CreateSafeDir creates a directory with a specified name within a given directory.
+	// The function takes a configuration object, a destination directory, a name for the directory, and a file mode.
+	//
+	// The dstDir parameter specifies the directory where the new directory should be created. If dstDir is empty,
+	// the directory is created in the current working directory. If dstDir does not exist and config.CreateDestination()
+	// returns true, the function may create the directory with permissions specified by config.CustomCreateDirMode().
+	//
+	// The dirName parameter specifies the name of the new directory. If the dirName contains path traversal (e.g., "../"),
+	// the function returns an error to prevent the creation of directories outside of the intended directory.
+	//
+	// The mode parameter specifies the file mode that should be set on the new directory.
+	//
+	// If the path to the new directory (excluding dstDir) does not exist, the function may create the necessary directories
+	// with permissions specified by config.CustomCreateDirMode().
+	//
+	// The function returns an error if there's a problem creating the directory or the necessary directories.
+	// If the function completes successfully, it returns nil.
 	CreateSafeDir(config *config.Config, dstDir string, dirName string, mode fs.FileMode) error
 
 	// CreateSafeSymlink creates a symbolic link with a specified name and target within a given directory.
