@@ -1056,7 +1056,7 @@ func packZipWithContent(content []zipContent) []byte {
 
 func TestWithCustomMode(t *testing.T) {
 
-	umask := sniffUmask()
+	umask := sniffUmask(t)
 
 	tests := []struct {
 		name        string
@@ -1222,7 +1222,6 @@ func sniffUmask(t *testing.T) fs.FileMode {
 	// return the umask
 	return umask
 }
-
 
 // toWindowsFileMode converts a fs.FileMode to a windows file mode
 func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
