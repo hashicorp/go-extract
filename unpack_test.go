@@ -1202,32 +1202,30 @@ func TestWithCustomMode(t *testing.T) {
 }
 
 // sniffUmask is a helper function to get the umask
-func sniffUmask() (*os.FileMode, error) {
-	// create temp directory
-	tmpDir, err := os.MkdirTemp("", "umask-test")
-	if err != nil {
-		return nil, fmt.Errorf("error creating temp directory: %s", err)
-	}
-	defer os.RemoveAll(tmpDir)
+func sniffUmask(t *testing.T) fs.FileMode {
+	t.Helper()
 
-	// create 0777 file in temp
-	err = createTestFileWithPerm(filepath.Join(tmpDir, "file"), "foobar content", 0777)
+	tmpFile := filepath.Join(t.TempDir(), "file")
+
+	// create 0777 file in temporary directory
+	err := createTestFileWithPerm(tmpFile, "foobar content", 0777)
 	if err != nil {
-		return nil, fmt.Errorf("error creating test file: %s", err)
+		t.Fatalf("error creating test file: %s", err)
 	}
 
 	// get stats
-	stat, err := os.Stat(filepath.Join(tmpDir, "file"))
+	stat, err := os.Stat(tmpFile)
 	if err != nil {
-		return nil, fmt.Errorf("error getting file stats: %s", err)
+		t.Fatalf("error getting file stats: %s", err)
 	}
 
 	// get umask
 	umask := fs.FileMode(^stat.Mode().Perm() & 0777)
 
 	// return the umask
-	return &umask, nil
+	return umask
 }
+
 
 // toWindowsFileMode converts a os.FileMode to a windows file mode
 func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
