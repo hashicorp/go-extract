@@ -1224,8 +1224,8 @@ func sniffUmask(t *testing.T) fs.FileMode {
 }
 
 
-// toWindowsFileMode converts a os.FileMode to a windows file mode
-func toWindowsFileMode(isDir bool, mode os.FileMode) fs.FileMode {
+// toWindowsFileMode converts a fs.FileMode to a windows file mode
+func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
 
 	// handle special case
 	if isDir {
