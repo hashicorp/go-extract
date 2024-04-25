@@ -121,12 +121,12 @@ func Run(version, commit, date string) {
 	}
 }
 
-// asFileMode interprets the given decimal value as os.FileMode
-func toFileMode(v int) os.FileMode {
+// asFileMode interprets the given decimal value as fs.FileMode
+func toFileMode(v int) fs.FileMode {
 
 	// convert to octal
 	oct, _ := strconv.ParseInt(fmt.Sprintf("0%d", v), 8, 32)
 
-	// return as os.FileMode
-	return os.FileMode(oct)
+	// return as fs.FileMode
+	return fs.FileMode(oct)
 }
