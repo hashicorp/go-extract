@@ -22,6 +22,12 @@ func NewOS() *OS {
 	return os
 }
 
+// securityCheckPath checks if the targetDirectory contains path traversal
+// and if the path contains a symlink. The function returns an error if the
+// path contains path traversal or if a symlink is detected. If the path
+// contains a symlink and config.FollowSymlinks() returns true, a warning is
+// logged and the function continues. If the path contains a symlink and
+// config.FollowSymlinks() returns false, an error is returned.
 func securityCheckPath(config *config.Config, dstBase string, targetDirectory string) error {
 
 	// clean the target
@@ -122,15 +128,23 @@ func getSymlinkTarget(path string) (string, error) {
 
 }
 
-// CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name
-func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string) error {
+// CreateSafeDir creates newDir in dstBase and checks for path traversal in directory name.
+// If dstBase is empty, the directory will be created in the current working directory. If dstBase
+// does not exist and config.CreateDestination() returns true, it will be created with the
+// config.CustomCreateDirMode(). The mode parameter is the file mode that should be set on the directory.
+// If the directory already exists, the mode will be set on the directory.
+func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string, mode fs.FileMode) error {
 
 	// check if dst exist
 	if len(dstBase) > 0 {
 		if _, err := os.Stat(dstBase); os.IsNotExist(err) {
 			if config.CreateDestination() {
-				if err := os.MkdirAll(dstBase, os.ModePerm); err != nil {
+				if err := os.MkdirAll(dstBase, config.CustomCreateDirMode().Perm()); err != nil {
 					return fmt.Errorf("failed to create destination directory %s", err)
+				}
+				// ensure file permission is set regardless the umask
+				if err := os.Chmod(dstBase, config.CustomCreateDirMode().Perm()); err != nil {
+					return fmt.Errorf("failed to set folder permission (%s)", err)
 				}
 				config.Logger().Info("created destination directory", "path", dstBase)
 			} else {
@@ -156,7 +170,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 
 	// create dirs
 	finalDirectoryPath := filepath.Join(dstBase, newDir)
-	if err := os.MkdirAll(finalDirectoryPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(finalDirectoryPath, mode.Perm()); err != nil {
 		return fmt.Errorf("failed to create directory (%s)", err)
 	}
 
@@ -164,7 +178,11 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string)
 }
 
 // CreateSafeFile creates newFileName in dstBase with content from reader and file
-// headers as provided in mode
+// headers as provided in mode. If dstBase is empty, the file will be created in the current
+// working directory. If dstBase does not exist and config.CreateDestination() returns true, it will be created with the
+// config.CustomCreateDirMode(). The mode parameter is the file mode that is set on the file.
+// If the path of the file contains path traversal, an error should be returned. If the path *to the file* (not dstBase) does not
+// exist, the directories is created with the config.CustomCreateDirMode() by the implementation.
 func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
 
 	// check if a name is provided
@@ -178,8 +196,9 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
-	// create target dir && check for path traversal // zip-slip
-	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName)); err != nil {
+	// check for traversal in file name, ensure the directory exist and is safe to write to.
+	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
+	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.CustomCreateDirMode()); err != nil {
 		return fmt.Errorf("cannot create directory for file (%s)", err)
 	}
 
@@ -192,7 +211,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	}
 
 	// create dst file
-	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
 	if err != nil {
 		return fmt.Errorf("failed to create file (%s)", err)
 	}
@@ -220,7 +239,13 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	return nil
 }
 
-// CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget
+// CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget.
+// If dstBase is empty, the symlink is created in the current working directory. If dstBase
+// does not exist and config.CreateDestination() returns true, it will be created with the
+// config.CustomCreateDirMode(). If the path of the symlink contains path traversal, an error
+// is returned. If the path *to the symlink* (not dstBase) does not exist, the directories
+// is created with the config.CustomCreateDirMode(). If the symlink already exists and
+// config.Overwrite() returns false, an error is returned.
 func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
 
 	// check if symlink extraction is denied
@@ -252,7 +277,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	newLinkDirectory := filepath.Dir(newLinkName)
 
 	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory); err != nil {
+	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory, config.CustomCreateDirMode()); err != nil {
 		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
 	}
 
@@ -285,6 +310,9 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	return nil
 }
 
+// GetStartOfAbsolutePath returns the start of an absolute path if
+// path starts with a valid absolute path. If path is not an absolute
+// path, an empty string is returned.
 func GetStartOfAbsolutePath(path string) string {
 
 	// check absolute path for link target on unix

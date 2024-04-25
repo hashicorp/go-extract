@@ -9,8 +9,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -218,8 +220,7 @@ func createTestNonArchive(t *testing.T, dstDir string) string {
 
 // createTestFile is a helper function to generate test files
 func createTestFile(path string, content string) {
-	byteArray := []byte(content)
-	err := os.WriteFile(path, byteArray, 0640)
+	err := createTestFileWithPerm(path, content, 0640)
 	if err != nil {
 		panic(err)
 	}
@@ -1051,4 +1052,249 @@ func packZipWithContent(content []zipContent) []byte {
 	}
 
 	return writeBuffer.Bytes()
+}
+
+func TestWithCustomMode(t *testing.T) {
+
+	umask := sniffUmask(t)
+
+	tests := []struct {
+		name        string
+		data        []byte
+		dst         string
+		cfg         *config.Config
+		expected    map[string]fs.FileMode
+		expectError bool
+	}{
+		{
+			name: "dir with 0755 and file with 0644",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0644), // 420
+				},
+			})),
+			cfg: config.NewConfig(
+				config.WithCustomCreateDirMode(fs.FileMode(0755)), // 493
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0755), // 493
+				"sub/file": fs.FileMode(0644), // 420
+			},
+		},
+		{
+			name: "decompress with custom mode",
+			data: compressGzip([]byte("foobar content")),
+			dst:  "out", // specify decompressed file name
+			cfg: config.NewConfig(
+				config.WithCustomDecompressFileMode(fs.FileMode(0666)), // 438
+			),
+			expected: map[string]fs.FileMode{
+				"out": fs.FileMode(0666), // 438
+			},
+		},
+		{
+			name:        "failing /bc of missing dir creation flag",
+			data:        compressGzip([]byte("foobar content")),
+			dst:         "foo/out", // specify decompressed file name in sub directory
+			cfg:         config.NewConfig(),
+			expected:    nil, // should error, bc/ missing dir creation flag
+			expectError: true,
+		},
+		{
+			name: "dir with 0755 and file with 0777",
+			data: compressGzip([]byte("foobar content")),
+			dst:  "foo/out",
+			cfg: config.NewConfig(
+				config.WithCreateDestination(true),                     // create destination^
+				config.WithCustomCreateDirMode(fs.FileMode(0750)),      // 488
+				config.WithCustomDecompressFileMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"foo":     fs.FileMode(0750), // 488
+				"foo/out": fs.FileMode(0777), // 511
+			},
+			expectError: false, // because its just a compressed byte slice without any directories specified and WithCreateDestination is not set
+		},
+		{
+			name: "dir with 0777 and file with 0777",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0777), // 511
+				},
+			})),
+			cfg: config.NewConfig(
+				config.WithCustomCreateDirMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0777), // 511
+				"sub/file": fs.FileMode(0777), // 511
+			},
+		},
+		{
+			name: "file with 0000 permissions",
+			data: compressGzip(packTarWithContent([]tarContent{
+				{
+					Name: "file",
+					Mode: fs.FileMode(0000), // 0
+				},
+				{
+					Name:     "dir/",
+					Mode:     fs.FileMode(0000), // 0
+					Filetype: tar.TypeDir,
+				},
+			})),
+			cfg: config.NewConfig(),
+			expected: map[string]fs.FileMode{
+				"file": fs.FileMode(0000), // 0
+				"dir":  fs.FileMode(0000), // 0
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// prepare test
+			buf := bytes.NewBuffer(tt.data)
+			ctx := context.Background()
+
+			// create temp dir
+			tmpDir := t.TempDir()
+			dst := filepath.Join(tmpDir, tt.dst)
+
+			// run test
+			err := Unpack(ctx, buf, dst, tt.cfg)
+			if !tt.expectError && (err != nil) {
+				t.Errorf("[%s] Expected no error, but got: %s", tt.name, err)
+			}
+
+			if tt.expectError && (err == nil) {
+				t.Errorf("[%s] Expected error, but got none", tt.name)
+			}
+
+			// check results
+			for name, expectedMode := range tt.expected {
+				stat, err := os.Stat(filepath.Join(tmpDir, name))
+				if err != nil {
+					t.Errorf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
+				}
+
+				skip := false
+				// adjust for windows
+				if runtime.GOOS == "windows" {
+					skip = stat.IsDir() // ignore directories to be checked on windows, reason is that the mode is not under control of the go code
+					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
+				} else {
+					// adjust for umask
+					expectedMode = expectedMode & ^umask
+				}
+
+				if !skip && stat.Mode().Perm() != expectedMode.Perm() {
+					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
+				}
+			}
+		})
+	}
+}
+
+// sniffUmask is a helper function to get the umask
+func sniffUmask(t *testing.T) fs.FileMode {
+	t.Helper()
+
+	tmpFile := filepath.Join(t.TempDir(), "file")
+
+	// create 0777 file in temporary directory
+	err := createTestFileWithPerm(tmpFile, "foobar content", 0777)
+	if err != nil {
+		t.Fatalf("error creating test file: %s", err)
+	}
+
+	// get stats
+	stat, err := os.Stat(tmpFile)
+	if err != nil {
+		t.Fatalf("error getting file stats: %s", err)
+	}
+
+	// get umask
+	umask := fs.FileMode(^stat.Mode().Perm() & 0777)
+
+	// return the umask
+	return umask
+}
+
+// toWindowsFileMode converts a fs.FileMode to a windows file mode
+func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
+
+	// handle special case
+	if isDir {
+		return fs.FileMode(0777)
+	}
+
+	// check for write permission
+	if mode&0200 != 0 {
+		return fs.FileMode(0666)
+	}
+
+	// return the mode
+	return fs.FileMode(0444)
+}
+
+// createTestFile is a helper function to generate test files
+func createTestFileWithPerm(path string, content string, mode fs.FileMode) error {
+	byteArray := []byte(content)
+	return os.WriteFile(path, byteArray, mode)
+}
+
+func TestToWindowsFileMode(t *testing.T) {
+
+	if runtime.GOOS != "windows" {
+		t.Skip("skipping test on non-windows systems")
+	}
+
+	otherMasks := []int{00, 01, 02, 03, 04, 05, 06, 07}
+	groupMasks := []int{00, 010, 020, 030, 040, 050, 060, 070}
+	userMasks := []int{00, 0100, 0200, 0300, 0400, 0500, 0600, 0700}
+
+	for _, dir := range []bool{true, false} {
+		for _, o := range otherMasks {
+			for _, g := range groupMasks {
+				for _, u := range userMasks {
+
+					// define test directory
+					tmpDir := t.TempDir()
+					fp := filepath.Join(tmpDir, "test")
+
+					// define mode
+					mode := fs.FileMode(u | g | o)
+
+					// create test file or directory
+					var err error
+					if dir {
+						err = os.MkdirAll(fp, mode)
+					} else {
+						err = createTestFileWithPerm(fp, "foobar content", mode)
+					}
+					if err != nil {
+						t.Fatalf("error creating test file: %s", err)
+					}
+
+					// get stats
+					stat, err := os.Stat(fp)
+					if err != nil {
+						t.Fatalf("error getting file stats: %s", err)
+					}
+
+					// calculate windows mode
+					calculated := toWindowsFileMode(dir, mode)
+
+					// check if the calculated mode is the same as the mode from the stat
+					if stat.Mode().Perm() != calculated.Perm() {
+						t.Errorf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
+					}
+
+				}
+			}
+		}
+	}
 }

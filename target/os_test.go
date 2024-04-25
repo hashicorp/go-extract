@@ -155,7 +155,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			err := target.CreateSafeDir(cfg, filepath.Join(testDir, tc.basePath), tc.newDir)
+			err := target.CreateSafeDir(cfg, filepath.Join(testDir, tc.basePath), tc.newDir, cfg.CustomCreateDirMode())
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
