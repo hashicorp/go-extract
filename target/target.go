@@ -24,11 +24,22 @@ type Target interface {
 	// implementation. The mode parameter is the file mode that should be set on the directory.
 	CreateSafeDir(config *config.Config, dstDir string, dirName string, mode fs.FileMode) error
 
-	// CreateSafeSymlink creates symlink name with destination linkTarget in dstDir.
-	// dstDir is the directory where the link should be created. If dstDir is empty, the link is meant to
-	// be created in the current working directory. If dstDir does not exist and config.CreateDestination() returns
-	// true, it might be created with the config.CustomCreateDirMode() by the implementation.
-	// If the path the link name contains path traversal, an error should be returned. If the path *to the link* (not dstDir) does not
-	// exist, the directories should be created with the config.CustomCreateDirMode() by the implementation.
+	// CreateSafeSymlink creates a symbolic link with a specified name and target within a given directory.
+	// The function takes a configuration object, a destination directory, a name for the symlink, and a target for the symlink.
+	//
+	// The dstDir parameter specifies the directory where the symlink should be created. If dstDir is empty,
+	// the symlink is created in the current working directory. If dstDir does not exist and config.CreateDestination()
+	// returns true, the function may create the directory with permissions specified by config.CustomCreateDirMode().
+	//
+	// The name parameter specifies the name of the symlink. If the name contains path traversal (e.g., "../"),
+	// the function returns an error to prevent the creation of symlinks outside of the intended directory.
+	//
+	// The linkTarget parameter specifies the target of the symlink. This is the file or directory that the symlink will point to.
+	//
+	// If the path to the symlink (excluding dstDir) does not exist, the function may create the necessary directories
+	// with permissions specified by config.CustomCreateDirMode().
+	//
+	// The function returns an error if there's a problem creating the symlink or the necessary directories.
+	// If the function completes successfully, it returns nil.
 	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
 }
