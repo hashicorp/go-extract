@@ -1187,7 +1187,7 @@ func TestWithCustomMode(t *testing.T) {
 					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				} else {
 					// adjust for umask
-					expectedMode = expectedMode & ^*umask
+					expectedMode = expectedMode & ^umask
 				}
 
 				if !skip && stat.Mode().Perm() != expectedMode.Perm() {
