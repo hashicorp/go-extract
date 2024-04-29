@@ -197,7 +197,9 @@ func TestValidFilename(t *testing.T) {
 
 		// create a file with the given name
 		tmpDir := os.TempDir()
-		f, err := os.Create(tmpDir + string(os.PathSeparator) + name)
+		// switch to the temp directory
+		os.Chdir(tmpDir)
+		f, err := os.Create(name)
 		defer func() {
 			if f != nil {
 				f.Close()
