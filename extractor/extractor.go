@@ -118,28 +118,8 @@ func validFilename(name string) bool {
 		return false
 	}
 
-	// check on windows specific rules
-	// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-	if runtime.GOOS == "windows" {
-
-		// check for dot at the end
-		if strings.HasSuffix(name, ".") {
-			return false
-		}
-
-		// check for space at the beginning
-		if strings.HasPrefix(name, " ") {
-			return false
-		}
-
-		// check for space at the end
-		if strings.HasSuffix(name, " ") {
-			return false
-		}
-
-	} else {
-
-		// check for / at the end
+	// check for / at the end on non-windows systems
+	if runtime.GOOS != "windows" {
 		if strings.HasSuffix(name, "/") {
 			return false
 		}

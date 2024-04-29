@@ -198,12 +198,7 @@ func TestValidFilename(t *testing.T) {
 		// create a file with the given name
 		tmpDir := os.TempDir()
 		testFilePath := tmpDir + string(os.PathSeparator) + name
-		f, err := os.Create(testFilePath)
-		defer func() {
-			if f != nil {
-				f.Close()
-			}
-		}()
+		err := os.Mkdir(testFilePath, 0755)
 
 		if (err == nil) != validFilename(name) {
 			t.Errorf("test case %d failed: err=%v and validFilename(%s): %t", i, err, name, validFilename(name))
