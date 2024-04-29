@@ -1120,7 +1120,9 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			// perform actual tests
 			ctx := context.Background()
 			dstDir := filepath.Join(tmpDir, "out")
-			os.MkdirAll(dstDir, 0755)
+			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				t.Fatalf("error creating directory: %s", err)
+			}
 			err = Unpack(ctx, archive, dstDir, cfg)
 			archive.Close()
 
