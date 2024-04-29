@@ -73,6 +73,12 @@ func validFilename(name string) bool {
 
 	// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
 	if runtime.GOOS == "windows" {
+
+		// remove heading \ and / from name in case of windows
+		name = strings.TrimLeft(name, `/`)
+		name = strings.TrimLeft(name, `\`)
+
+		// reserved names
 		reservedNames = []string{
 			"CON", "PRN", "AUX", "NUL", "LPT", "COM",
 			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
