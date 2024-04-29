@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -44,15 +45,102 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 	if f, ok := src.(*os.File); ok {
 
 		name := filepath.Base(f.Name())
+		name = strings.TrimSuffix(name, ".")
 		newName := strings.TrimSuffix(name, filepath.Ext(name))
-		if name != newName && newName != "" {
+
+		// check if the filename is valid
+		if !validFilename(newName) {
+			return dst, "goextract-decompressed-content"
+		}
+
+		if name != newName {
 			return dst, newName
 		}
 
 		// if the filename is not ending with the suffix, use the suffix as output name
 		return dst, fmt.Sprintf("%s.decompressed", newName)
 	}
+
 	return dst, "goextract-decompressed-content"
+}
+
+// validFilename checks if the given filename is a valid filename on
+// the operating system
+func validFilename(name string) bool {
+
+	var reservedNames []string
+	var forbiddenCharacters []string
+
+	// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+	if runtime.GOOS == "windows" {
+		reservedNames = []string{
+			"CON", "PRN", "AUX", "NUL", "LPT", "COM",
+			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+		}
+		forbiddenCharacters = []string{`<`, `>`, `:`, `"`, `|`, `?`, `*`, `/`, `\`}
+		for i := 0; i <= 31; i++ {
+			fmt.Println(string(byte(i)))
+			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
+		}
+		for i := 127; i <= 255; i++ {
+			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
+		}
+	} else {
+		reservedNames = []string{
+			".", "..",
+		}
+		forbiddenCharacters = []string{"\x00"}
+	}
+
+	// check for reserved names
+	for _, reserved := range reservedNames {
+		if name == reserved {
+			return false
+		}
+	}
+
+	// check for forbidden characters
+	for _, forbidden := range forbiddenCharacters {
+		if strings.Contains(name, forbidden) {
+			return false
+		}
+	}
+
+	// check for empty name
+	if name == "" {
+		return false
+	}
+
+	// check on windows specific rules
+	// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+	if runtime.GOOS == "windows" {
+
+		// check for dot at the end
+		if strings.HasSuffix(name, ".") {
+			return false
+		}
+
+		// check for space at the beginning
+		if strings.HasPrefix(name, " ") {
+			return false
+		}
+
+		// check for space at the end
+		if strings.HasSuffix(name, " ") {
+			return false
+		}
+
+	} else {
+
+		// check for / at the end
+		if strings.HasSuffix(name, "/") {
+			return false
+		}
+	}
+
+	// no issues found
+	return true
 }
 
 // checkPatterns checks if the given path matches any of the given patterns.

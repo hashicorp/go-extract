@@ -1054,6 +1054,97 @@ func packZipWithContent(content []zipContent) []byte {
 	return writeBuffer.Bytes()
 }
 
+// TestUnsupportedArchiveNames is a test function
+func TestUnsupportedArchiveNames(t *testing.T) {
+	// test cases
+	cases := []struct {
+		name     string
+		filename string
+		windows  string
+		other    string
+	}{
+		{
+			name:     "valid archive name",
+			filename: "test.gz",
+			windows:  "test",
+			other:    "test",
+		},
+		{
+			name:     "invalid reported 1",
+			filename: "..bz2",
+			windows:  "goextract-decompressed-content",
+			other:    "goextract-decompressed-content",
+		},
+		{
+			name:     "invalid reported 2",
+			filename: "test..bz2",
+			windows:  "goextract-decompressed-content",
+			other:    "test.",
+		},
+		{
+			name:     "invalid reported 3",
+			filename: "test.bz2.",
+			windows:  "test",
+			other:    "test",
+		},
+		{
+			name:     "invalid reported 4",
+			filename: "....bz2",
+			windows:  "goextract-decompressed-content",
+			other:    "...",
+		},
+		{
+			name:     "invalid reported 5",
+			filename: ".. ..bz2",
+			windows:  "goextract-decompressed-content",
+			other:    ".. .",
+		},
+	}
+
+	cfg := config.NewConfig(config.WithCreateDestination(true))
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// prepare file
+			tmpDir := t.TempDir()
+			tmpFile := filepath.Join(tmpDir, tc.filename)
+			createTestFile(tmpFile, string(compressGzip([]byte("foobar content"))))
+
+			// run test
+			archive, err := os.Open(tmpFile)
+			if err != nil {
+				t.Fatalf("error opening file: %s", err)
+			}
+
+			// perform actual tests
+			ctx := context.Background()
+			dstDir := filepath.Join(tmpDir, "out")
+			os.MkdirAll(dstDir, 0755)
+			err = Unpack(ctx, archive, dstDir, cfg)
+			archive.Close()
+
+			// check if error is expected
+			if err != nil {
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, false, err)
+				return
+			}
+
+			// check for created files
+			expectedFile := filepath.Join(tmpDir, "out", tc.other)
+			if runtime.GOOS == "windows" {
+				expectedFile = filepath.Join(tmpDir, "out", tc.windows)
+			}
+			if _, err := os.Stat(expectedFile); err != nil {
+				t.Errorf("test case %d failed: %s\nexpected file: %s\ngot: %s", i, tc.name, expectedFile, err)
+				return
+			}
+
+		})
+	}
+
+}
+
 func TestWithCustomMode(t *testing.T) {
 
 	umask := sniffUmask(t)
