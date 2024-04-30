@@ -225,7 +225,7 @@ func TestValidFilename(t *testing.T) {
 		// evaluate test case
 		validationError := validFilename(name)
 		if invalid != (validationError != nil) {
-			t.Errorf("test case %d failed: err=%v and validFilename(%s): %t", i, err, name, validFilename(name))
+			t.Errorf("test case %d failed: err=%v and validFilename(%s): %v", i, err, name, validFilename(name))
 		}
 	}
 
