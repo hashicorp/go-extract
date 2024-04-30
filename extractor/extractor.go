@@ -105,6 +105,13 @@ func validFilename(name string) error {
 		return err
 	}
 
+	// check for end of file in windows
+	if runtime.GOOS == "windows" {
+		if strings.HasSuffix(name, ".") {
+			return fmt.Errorf("invalid name: %s", name)
+		}
+	}
+
 	// no issues found
 	return nil
 }
