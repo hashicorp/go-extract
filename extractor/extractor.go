@@ -9,8 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -69,50 +67,21 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 // the operating system
 func validFilename(name string) error {
 
-	const (
-		// allowed windows characters in filename regex
-		allowedWindowsCharacters = `[^<>:"/\\|?*\x00-\x1f]`
-		// allowed linux characters in filename regex
-		allowedLinuxCharacters = `[^\x00/]`
-	)
+	// trim leading slash and backslash
+	name = strings.TrimPrefix(name, "/")
+	name = strings.TrimPrefix(name, "\\")
 
-	regex := regexp.MustCompile(allowedLinuxCharacters)
-	if runtime.GOOS == "windows" {
-		regex = regexp.MustCompile(allowedWindowsCharacters)
+	// basic filename check
+	if !filepath.IsLocal(name) {
+		return fmt.Errorf("invalid filename: %s", name)
 	}
 
-	if !regex.MatchString(name) {
-		return fmt.Errorf("invalid character in filename: %s", name)
+	if strings.HasSuffix(name, "/") {
+		return fmt.Errorf("trailing slash (%s)", name)
 	}
 
-	// check for reserved names
-	reservedNames := []string{".", ".."}
-	if runtime.GOOS == "windows" {
-		// extend list for windows (ref: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions)
-		reservedNames = append(reservedNames,
-			"CON", "PRN", "AUX", "NUL", "LPT", "COM",
-			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-		)
-	}
-
-	// check for reserved names
-	for _, reserved := range reservedNames {
-		if name == reserved {
-			return fmt.Errorf("reserved name: %s", name)
-		}
-	}
-
-	// check for empty name
-	if name == "" {
-		return fmt.Errorf("empty name")
-	}
-
-	// check for / at the end on non-windows systems
-	if runtime.GOOS != "windows" {
-		if strings.HasSuffix(name, "/") {
-			return fmt.Errorf("trailing slash (%s)", name)
-		}
+	if name == "." {
+		return fmt.Errorf("reserved name: %s", name)
 	}
 
 	// no issues found
