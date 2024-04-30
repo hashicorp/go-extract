@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"testing"
 
@@ -196,11 +197,33 @@ func TestValidFilename(t *testing.T) {
 	for i, name := range testFileNames {
 
 		// create a file with the given name
-		tmpDir := os.TempDir()
+		invalid := false
+		tmpDir := t.TempDir()
 		testFilePath := tmpDir + string(os.PathSeparator) + name
-		err := os.Mkdir(testFilePath, 0755)
 
-		if (err == nil) != validFilename(name) {
+		// try to create a file with the given name
+		testFile, err := os.Create(testFilePath)
+		if err != nil {
+			invalid = true
+		}
+		if err == nil {
+			// If the directory is a character device (like the printer port), treat it as an error
+			info, statError := os.Stat(testFilePath)
+			if statError == nil && info.Mode()&fs.ModeCharDevice != 0 {
+				err = fmt.Errorf("file is a character device")
+				invalid = true
+			}
+		}
+		defer func() {
+			if testFile != nil {
+				if err := testFile.Close(); err != nil {
+					t.Errorf("error closing file: %v", err)
+				}
+			}
+		}()
+
+		// evaluate test case``
+		if invalid != !validFilename(name) {
 			t.Errorf("test case %d failed: err=%v and validFilename(%s): %t", i, err, name, validFilename(name))
 		}
 	}
