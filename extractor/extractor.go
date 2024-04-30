@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 		newName := strings.TrimSuffix(name, filepath.Ext(name))
 
 		// check if the filename is valid
-		if !validFilename(newName) {
+		if err := validFilename(newName); err != nil {
 			return dst, "goextract-decompressed-content"
 		}
 
@@ -66,64 +67,56 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 
 // validFilename checks if the given filename is a valid filename on
 // the operating system
-func validFilename(name string) bool {
+func validFilename(name string) error {
 
-	reservedNames := []string{".", ".."}
-	var forbiddenCharacters []string
+	const (
+		// allowed windows characters in filename regex
+		allowedWindowsCharacters = `[^<>:"/\\|?*\x00-\x1f]`
+		// allowed linux characters in filename regex
+		allowedLinuxCharacters = `[^\x00/]`
+	)
 
-	// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+	regex := regexp.MustCompile(allowedLinuxCharacters)
 	if runtime.GOOS == "windows" {
+		regex = regexp.MustCompile(allowedWindowsCharacters)
+	}
 
-		// remove heading \ and / from name in case of windows
-		name = strings.TrimLeft(name, `/`)
-		name = strings.TrimLeft(name, `\`)
+	if !regex.MatchString(name) {
+		return fmt.Errorf("invalid character in filename: %s", name)
+	}
 
-		// reserved names
+	// check for reserved names
+	reservedNames := []string{".", ".."}
+	if runtime.GOOS == "windows" {
+		// extend list for windows (ref: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions)
 		reservedNames = append(reservedNames,
 			"CON", "PRN", "AUX", "NUL", "LPT", "COM",
 			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
 			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 		)
-		forbiddenCharacters = []string{`<`, `>`, `:`, `"`, `|`, `?`, `*`, `/`, `\`}
-		for i := 0; i <= 31; i++ {
-			fmt.Println(string(byte(i)))
-			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
-		}
-		for i := 127; i <= 255; i++ {
-			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
-		}
-	} else {
-		forbiddenCharacters = []string{"\x00"}
 	}
 
 	// check for reserved names
 	for _, reserved := range reservedNames {
 		if name == reserved {
-			return false
-		}
-	}
-
-	// check for forbidden characters
-	for _, forbidden := range forbiddenCharacters {
-		if strings.Contains(name, forbidden) {
-			return false
+			return fmt.Errorf("reserved name: %s", name)
 		}
 	}
 
 	// check for empty name
 	if name == "" {
-		return false
+		return fmt.Errorf("empty name")
 	}
 
 	// check for / at the end on non-windows systems
 	if runtime.GOOS != "windows" {
 		if strings.HasSuffix(name, "/") {
-			return false
+			return fmt.Errorf("trailing slash (%s)", name)
 		}
 	}
 
 	// no issues found
-	return true
+	return nil
 }
 
 // checkPatterns checks if the given path matches any of the given patterns.

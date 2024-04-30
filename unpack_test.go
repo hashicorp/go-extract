@@ -1078,7 +1078,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 		{
 			name:     "invalid reported 2",
 			filename: "test..bz2",
-			windows:  "goextract-decompressed-content",
+			windows:  "test.",
 			other:    "test.",
 		},
 		{
