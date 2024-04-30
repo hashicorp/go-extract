@@ -79,8 +79,7 @@ func validFilename(name string) error {
 		return fmt.Errorf("empty name")
 	}
 
-	// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following characters: /
-	// https://
+	// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
 	unixInvalidChars := `[\x00/]`
 	invalidCharsRegex := fmt.Sprintf(`^.*%s.*$`, unixInvalidChars)
 
