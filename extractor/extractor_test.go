@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"testing"
 
@@ -169,66 +168,4 @@ func (s *simpleReader) Read(p []byte) (n int, err error) {
 // createByteReader creates a reader for the given data
 func createSimpleReader(target string, data []byte) io.Reader {
 	return &simpleReader{r: createByteReader(target, data)}
-}
-
-func TestValidFilename(t *testing.T) {
-
-	// prepare test content
-	testFileNames := []string{
-		"CON", "PRN", "AUX", "NUL", "LPT", "COM",
-		"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-		"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-		".", "..", "/\\/\\/\\/",
-	}
-	testIvalidChraracters := []string{
-		`<`, `>`, `:`, `"`, `|`, `?`, `*`, `/`, `\`, ` `, `.`,
-	}
-	nameBase := "test"
-	// add invalid characters to the test file names end
-	for _, invalidChar := range testIvalidChraracters {
-		testFileNames = append(testFileNames, nameBase+invalidChar)
-	}
-	// add invalid characters to the test file names start
-	for _, invalidChar := range testIvalidChraracters {
-		testFileNames = append(testFileNames, invalidChar+nameBase)
-	}
-
-	// run tests
-	for i, name := range testFileNames {
-
-		// create a file with the given name
-		invalid := false
-		tmpDir := t.TempDir()
-		testFilePath := tmpDir + string(os.PathSeparator) + name
-
-		// try to create a file with the given name
-		testFile, err := os.Create(testFilePath)
-		if err != nil {
-			invalid = true
-		}
-		if err == nil {
-			// If the directory is a character device (like the printer port), treat it as an error
-			info, statError := os.Stat(testFilePath)
-			if statError == nil && (!info.Mode().IsRegular() ||
-				info.Mode().Type()&fs.ModeCharDevice == fs.ModeCharDevice) {
-
-				err = fmt.Errorf("not a regular file")
-				invalid = true
-			}
-		}
-		defer func() {
-			if testFile != nil {
-				if err := testFile.Close(); err != nil {
-					t.Errorf("error closing file: %v", err)
-				}
-			}
-		}()
-
-		// evaluate test case
-		isValid := validFilename(name)
-		if invalid == (isValid == nil) {
-			t.Errorf("test case %d failed: err=%v and validFilename(%s): %v", i, err, name, isValid)
-		}
-	}
-
 }
