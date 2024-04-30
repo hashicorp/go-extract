@@ -9,6 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -67,24 +69,63 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 // the operating system
 func validFilename(name string) error {
 
-	// trim leading slash and backslash
-	name = strings.TrimPrefix(name, "/")
-	name = strings.TrimPrefix(name, "\\")
-
-	// basic filename check
-	if !filepath.IsLocal(name) {
-		return fmt.Errorf("invalid filename: %s", name)
+	// replace all leading / and \ with ""
+	for strings.HasPrefix(name, "/") || strings.HasPrefix(name, "\\") {
+		name = name[1:]
 	}
 
-	if strings.HasSuffix(name, "/") {
-		return fmt.Errorf("trailing slash (%s)", name)
+	// check for empty name
+	if name == "" {
+		return fmt.Errorf("empty name")
 	}
 
-	if name == "." {
-		return fmt.Errorf("reserved name: %s", name)
+	// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following characters: /
+	// https://
+	unixInvalidChars := `[\x00/]`
+	invalidCharsRegex := fmt.Sprintf(`^.*%s.*$`, unixInvalidChars)
+
+	// check for invalid characters
+	if runtime.GOOS == "windows" {
+		// regex with invalid windows filesystem characters, allowing unicode (128-255), excluding control characters, and the following characters: <>:"/\\|?*e
+		// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+		windowsInvalidChars := `[\x00-\x1f<>:"/\\|?*]`
+		invalidCharsRegex = fmt.Sprintf(`^.*%s.*$`, windowsInvalidChars)
+	}
+
+	// check for invalid characters
+	if match, err := regexp.MatchString(invalidCharsRegex, name); err != nil {
+		fmt.Printf("cannot match invalid characters: %s", err)
+		return fmt.Errorf("cannot match invalid characters: %s", err)
+	} else if match {
+		return fmt.Errorf("invalid characters: %s", name)
+	}
+
+	// check for reserved names
+	if err := reservedName(name); err != nil {
+		return err
 	}
 
 	// no issues found
+	return nil
+}
+
+// reservedName checks if the given name is a reserved name on the operating system
+func reservedName(name string) error {
+
+	reservedNames := []string{".", ".."}
+	if runtime.GOOS == "windows" {
+		reservedNames = append(reservedNames, "CON", "PRN", "AUX", "NUL", "LPT", "COM")
+		for i := 1; i <= 9; i++ {
+			reservedNames = append(reservedNames, fmt.Sprintf("COM%d", i), fmt.Sprintf("LPT%d", i))
+		}
+	}
+
+	for _, reserved := range reservedNames {
+		if name == reserved {
+			return fmt.Errorf("reserved name: %s", name)
+		}
+	}
+
 	return nil
 }
 
