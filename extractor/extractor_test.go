@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"testing"
 
@@ -209,8 +208,8 @@ func TestValidFilename(t *testing.T) {
 		if err == nil {
 			// If the directory is a character device (like the printer port), treat it as an error
 			info, statError := os.Stat(testFilePath)
-			if statError == nil && info.Mode()&fs.ModeCharDevice != 0 {
-				err = fmt.Errorf("file is a character device")
+			if statError == nil && !info.Mode().IsRegular() {
+				err = fmt.Errorf("not a regular file")
 				invalid = true
 			}
 		}
