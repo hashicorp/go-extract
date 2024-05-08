@@ -164,10 +164,9 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
 		}
 
-		// check if the filename is valid
+		// check if the new filename without the extension is valid and does not violate
+		// any restrictions for the operating system
 		newName := strings.TrimSuffix(name, fileExt)
-
-		// check for invalid characters and reserved names
 		for _, restriction := range namingRestrictions {
 			if restriction.Regex.MatchString(newName) {
 				return dst, DEFAULT_NAME
