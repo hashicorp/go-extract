@@ -72,32 +72,20 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 	return dst, DEFAULT_NAME
 }
 
-// validFilename checks if the given filename is a valid filename on
-// the operating system
-func validFilename(name string) error {
+// init initializes the	extractor package and prepares the filename restriction regex
+func init() {
 
-	// replace all leading / and \ with ""
-	for strings.HasPrefix(name, "/") || strings.HasPrefix(name, "\\") {
-		name = name[1:]
-	}
-
-	type nameRestriction struct {
-		RestrictionName string
-		Regex           string
-	}
-
-	restictions := []nameRestriction{
-		{"empty name", `^$`},
-		{"current directory", `^\.$`},
-		{"parent directory", `^\.\.$`},
+	namingRestrictions = []nameRestriction{
+		{"empty name", regexp.MustCompile(`^$`)},
+		{"current directory", regexp.MustCompile(`^\.$`)},
+		{"parent directory", regexp.MustCompile(`^\.\.$`)},
 	}
 
 	if runtime.GOOS != "windows" {
 
 		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
-		restictions = append(restictions, nameRestriction{
-			"invalid characters (unix)",
-			`[\x00/]`,
+		namingRestrictions = append(namingRestrictions, nameRestriction{
+			"invalid characters (unix)", regexp.MustCompile(`^.*[\x00/].*$`),
 		})
 
 	}
@@ -107,28 +95,45 @@ func validFilename(name string) error {
 
 		// regex with invalid windows filesystem characters, allowing unicode (128-255), excluding control characters, and the following characters: <>:"/\\|?*e
 		// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-		restictions = append(restictions, nameRestriction{
-			"invalid characters (windows)",
-			`^.*[\x00-\x1f<>:"/\\|?*].*$`,
+		namingRestrictions = append(namingRestrictions, nameRestriction{
+			"invalid characters (windows)", regexp.MustCompile(`^.*[\x00-\x1f<>:"/\\|?*].*$`),
 		})
 
 		// known reserved names on windows, "(?i)" is case-insensitive
-		restictions = append(restictions,
-			nameRestriction{"reserved name", `^(?i)CON$`},
-			nameRestriction{"reserved name", `^(?i)PRN$`},
-			nameRestriction{"reserved name", `^(?i)AUX$`},
-			nameRestriction{"reserved name", `^(?i)NUL$`},
-			nameRestriction{"reserved name", `^(?i)COM[0-9]+$`},
-			nameRestriction{"reserved name", `^(?i)LPT[0-9]+$`},
-			nameRestriction{"reserved name", `^(\s|\.)+$`})
+		namingRestrictions = append(namingRestrictions,
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)CON$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)PRN$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)AUX$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)NUL$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)COM[0-9]+$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)LPT[0-9]+$`)},
+			nameRestriction{"reserved name", regexp.MustCompile(`^(\s|\.)+$`)})
 
 	}
 
+}
+
+// nameRestriction is a struct that contains the name of the restriction and the regex to check for it
+type nameRestriction struct {
+	RestrictionName string
+	Regex           *regexp.Regexp
+}
+
+// namingRestrictions is a list of restrictions for filenames, depending on the operating system
+var namingRestrictions []nameRestriction
+
+// validFilename checks if the given filename is a valid filename on
+// the operating system
+func validFilename(name string) error {
+
+	// replace all leading / and \ with ""
+	for strings.HasPrefix(name, "/") || strings.HasPrefix(name, "\\") {
+		name = name[1:]
+	}
+
 	// check for invalid characters
-	for _, restriction := range restictions {
-		if match, err := regexp.MatchString(restriction.Regex, name); err != nil {
-			return fmt.Errorf("cannot match %s: %s", restriction.RestrictionName, err)
-		} else if match {
+	for _, restriction := range namingRestrictions {
+		if restriction.Regex.MatchString(name) {
 			return fmt.Errorf("%s: %s", restriction.RestrictionName, name)
 		}
 	}
