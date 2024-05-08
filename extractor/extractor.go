@@ -130,13 +130,9 @@ func reservedName(name string) error {
 	// check for reserved names
 	for _, reserved := range reservedNames {
 
-		// windows is case insensitive
-		if runtime.GOOS == "windows" && strings.ToLower(name) == strings.ToLower(reserved) {
-			return fmt.Errorf("reserved name: %s", name)
-		}
-
-		// unix is case sensitive
-		if name == reserved {
+		// in case of unix only '.' and '..' are reserved and case-insensitive
+		// windows is case-insensitive, so we can just use EqualFold
+		if strings.EqualFold(name, reserved) {
 			return fmt.Errorf("reserved name: %s", name)
 		}
 	}
