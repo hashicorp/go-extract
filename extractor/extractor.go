@@ -31,8 +31,17 @@ type SeekerReaderAt interface {
 	io.Seeker
 }
 
+const (
+	// DEFAULT_NAME is the default name for the extracted content
+	DEFAULT_NAME = "goextract-decompressed-content"
+
+	// SUFFIX is the suffix for the extracted content if
+	// the filename does not end with a file extension
+	SUFFIX = "decompressed"
+)
+
 // determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader) (string, string) {
+func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
 
 	// check if dst is specified and not a directory
 	if dst != "." && dst != "" {
@@ -46,22 +55,21 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 	if f, ok := src.(*os.File); ok {
 
 		name := filepath.Base(f.Name())
-		newName := strings.TrimSuffix(name, filepath.Ext(name))
-
-		// check if the filename is valid
-		if err := validFilename(newName); err != nil {
-			return dst, "goextract-decompressed-content"
+		if !strings.HasSuffix(name, fileExt) {
+			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
 		}
 
-		if name != newName {
-			return dst, newName
+		// check if the filename is valid
+		newName := strings.TrimSuffix(name, fileExt)
+		if err := validFilename(newName); err != nil {
+			return dst, DEFAULT_NAME
 		}
 
 		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, fmt.Sprintf("%s.decompressed", newName)
+		return dst, newName
 	}
 
-	return dst, "goextract-decompressed-content"
+	return dst, DEFAULT_NAME
 }
 
 // validFilename checks if the given filename is a valid filename on
@@ -110,6 +118,7 @@ func validFilename(name string) error {
 // reservedName checks if the given name is a reserved name on the operating system
 func reservedName(name string) error {
 
+	// prepare list of reserved names
 	reservedNames := []string{".", ".."}
 	if runtime.GOOS == "windows" {
 		reservedNames = append(reservedNames, "CON", "PRN", "AUX", "NUL", "LPT", "COM")
@@ -118,7 +127,15 @@ func reservedName(name string) error {
 		}
 	}
 
+	// check for reserved names
 	for _, reserved := range reservedNames {
+
+		// windows is case insensitive
+		if runtime.GOOS == "windows" && strings.ToLower(name) == strings.ToLower(reserved) {
+			return fmt.Errorf("reserved name: %s", name)
+		}
+
+		// unix is case sensitive
 		if name == reserved {
 			return fmt.Errorf("reserved name: %s", name)
 		}
