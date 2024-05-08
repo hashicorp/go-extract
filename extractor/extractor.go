@@ -46,7 +46,6 @@ func determineOutputName(dst string, src io.Reader) (string, string) {
 	if f, ok := src.(*os.File); ok {
 
 		name := filepath.Base(f.Name())
-		name = strings.TrimSuffix(name, ".")
 		newName := strings.TrimSuffix(name, filepath.Ext(name))
 
 		// check if the filename is valid
@@ -102,13 +101,6 @@ func validFilename(name string) error {
 	// check for reserved names
 	if err := reservedName(name); err != nil {
 		return err
-	}
-
-	// check for end of file in windows
-	if runtime.GOOS == "windows" {
-		if strings.HasSuffix(name, ".") {
-			return fmt.Errorf("invalid name: %s", name)
-		}
 	}
 
 	// no issues found
