@@ -6,12 +6,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
@@ -39,91 +35,6 @@ const (
 	// the filename does not end with a file extension
 	SUFFIX = "decompressed"
 )
-
-// init initializes the	extractor package and prepares the filename restriction regex
-func init() {
-
-	namingRestrictions = []nameRestriction{
-		{"empty name", regexp.MustCompile(`^$`)},
-		{"current directory", regexp.MustCompile(`^\.$`)},
-		{"parent directory", regexp.MustCompile(`^\.\.$`)},
-	}
-
-	if runtime.GOOS != "windows" {
-
-		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
-		namingRestrictions = append(namingRestrictions,
-			nameRestriction{"invalid characters (unix)", regexp.MustCompile(`^.*[\x00/].*$`)},
-		)
-
-	}
-
-	// check for invalid characters
-	if runtime.GOOS == "windows" {
-
-		// regex with invalid windows filesystem characters, allowing unicode (128-255), excluding control characters, and the following characters: <>:"/\\|?*e
-		// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-		namingRestrictions = append(namingRestrictions, nameRestriction{
-			"invalid characters (windows)", regexp.MustCompile(`^.*[\x00-\x1f<>:"/\\|?*].*$`),
-		})
-
-		// known reserved names on windows, "(?i)" is case-insensitive
-		namingRestrictions = append(namingRestrictions,
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)CON$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)PRN$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)AUX$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)NUL$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)COM[0-9]+$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)LPT[0-9]+$`)},
-			nameRestriction{"reserved name", regexp.MustCompile(`^(\s|\.)+$`)})
-	}
-
-}
-
-// nameRestriction is a struct that contains the name of the restriction and the regex to check for it
-type nameRestriction struct {
-	RestrictionName string
-	Regex           *regexp.Regexp
-}
-
-// namingRestrictions is a list of restrictions for filenames, depending on the operating system
-var namingRestrictions []nameRestriction
-
-// determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
-
-	// check if dst is specified and not a directory
-	if dst != "." && dst != "" {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
-			return filepath.Dir(dst), filepath.Base(dst)
-		}
-	}
-
-	// check if src is a file and the filename is ending with the suffix
-	// remove the suffix from the filename and use it as output name
-	if f, ok := src.(*os.File); ok {
-
-		name := filepath.Base(f.Name())
-		if !strings.HasSuffix(name, fileExt) {
-			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
-		}
-
-		// check if the filename is valid
-		newName := strings.TrimSuffix(name, fileExt)
-
-		// check for invalid characters and reserved names
-		for _, restriction := range namingRestrictions {
-			if restriction.Regex.MatchString(newName) {
-				return dst, DEFAULT_NAME
-			}
-		}
-
-		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, newName
-	}
-
-	return dst, DEFAULT_NAME
-}
 
 // checkPatterns checks if the given path matches any of the given patterns.
 // If no patterns are given, the function returns true.
