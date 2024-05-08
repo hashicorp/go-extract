@@ -81,66 +81,59 @@ func validFilename(name string) error {
 		name = name[1:]
 	}
 
-	// check for empty name
-	if name == "" {
-		return fmt.Errorf("empty name")
+	type nameRestriction struct {
+		RestrictionName string
+		Regex           string
 	}
 
-	// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
-	unixInvalidChars := `[\x00/]`
-	invalidCharsRegex := fmt.Sprintf(`^.*%s.*$`, unixInvalidChars)
+	restictions := []nameRestriction{
+		{"empty name", `^$`},
+		{"current directory", `^\.$`},
+		{"parent directory", `^\.\.$`},
+	}
+
+	if runtime.GOOS != "windows" {
+
+		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
+		restictions = append(restictions, nameRestriction{
+			"invalid characters (unix)",
+			`[\x00/]`,
+		})
+
+	}
 
 	// check for invalid characters
 	if runtime.GOOS == "windows" {
+
 		// regex with invalid windows filesystem characters, allowing unicode (128-255), excluding control characters, and the following characters: <>:"/\\|?*e
 		// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
-		windowsInvalidChars := `[\x00-\x1f<>:"/\\|?*]`
-		invalidCharsRegex = fmt.Sprintf(`^.*%s.*$`, windowsInvalidChars)
+		restictions = append(restictions, nameRestriction{
+			"invalid characters (windows)",
+			`^.*[\x00-\x1f<>:"/\\|?*].*$`,
+		})
+
+		// known reserved names on windows, "(?i)" is case-insensitive
+		restictions = append(restictions,
+			nameRestriction{"reserved name", `^(?i)CON$`},
+			nameRestriction{"reserved name", `^(?i)PRN$`},
+			nameRestriction{"reserved name", `^(?i)AUX$`},
+			nameRestriction{"reserved name", `^(?i)NUL$`},
+			nameRestriction{"reserved name", `^(?i)COM[0-9]+$`},
+			nameRestriction{"reserved name", `^(?i)LPT[0-9]+$`},
+			nameRestriction{"reserved name", `^(\s|\.)+$`})
+
 	}
 
 	// check for invalid characters
-	if match, err := regexp.MatchString(invalidCharsRegex, name); err != nil {
-		fmt.Printf("cannot match invalid characters: %s", err)
-		return fmt.Errorf("cannot match invalid characters: %s", err)
-	} else if match {
-		return fmt.Errorf("invalid characters: %s", name)
-	}
-
-	// check for reserved names
-	if err := reservedName(name); err != nil {
-		return err
+	for _, restriction := range restictions {
+		if match, err := regexp.MatchString(restriction.Regex, name); err != nil {
+			return fmt.Errorf("cannot match %s: %s", restriction.RestrictionName, err)
+		} else if match {
+			return fmt.Errorf("%s: %s", restriction.RestrictionName, name)
+		}
 	}
 
 	// no issues found
-	return nil
-}
-
-// reservedName checks if the given name is a reserved name on the operating system
-func reservedName(name string) error {
-
-	// prepare list of reserved names
-	reservedNamesRegEx := []string{`^\.$`, `^\.\.$`}
-	if runtime.GOOS == "windows" {
-		// known reserved names on windows, "(?i)" is case-insensitive
-		reservedNamesRegEx = append(reservedNamesRegEx, "^(?i)CON$", "^(?i)PRN$", "^(?i)AUX$", "(?i)NUL")
-		reservedNamesRegEx = append(reservedNamesRegEx, "^(?i)COM[0-9]+$", "^(?i)LPT[0-9]+$")
-
-		// add regex that matches reserved name that contains out of " " or "." or ".."
-		reservedNamesRegEx = append(reservedNamesRegEx, `^(\s|\.|\.\.)+$`)
-	}
-
-	// check for reserved names
-	for _, reserved := range reservedNamesRegEx {
-
-		// regex match
-		if match, err := regexp.MatchString(reserved, name); err != nil {
-			return fmt.Errorf("cannot match reserved name: %s", err)
-		} else if match {
-			return fmt.Errorf("reserved name: %s", name)
-		}
-
-	}
-
 	return nil
 }
 
