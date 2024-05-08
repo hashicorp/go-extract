@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
+	"github.com/dsnet/compress/bzip2"
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
@@ -942,6 +943,32 @@ func compressBrotli(data []byte) []byte {
 	return brotliBuf.Bytes()
 }
 
+// compressBzip2 compresses data with bzip2 algorithm.
+func compressBzip2(data []byte) []byte {
+	// Create a new Bzip2 writer
+	var buf bytes.Buffer
+	w, err := bzip2.NewWriter(&buf, &bzip2.WriterConfig{
+		Level: bzip2.DefaultCompression,
+	})
+	if err != nil {
+		panic(fmt.Errorf("error creating bzip2 writer: %w", err))
+	}
+
+	// Write the data to the Bzip2 writer
+	_, err = w.Write(data)
+	if err != nil {
+		panic(fmt.Errorf("error writing data to bzip2 writer: %w", err))
+	}
+
+	// Close the Bzip2 writer
+	err = w.Close()
+	if err != nil {
+		panic(fmt.Errorf("error closing bzip2 writer: %w", err))
+	}
+
+	return buf.Bytes()
+}
+
 // TestValidTypes is a test function
 func TestValidTypes(t *testing.T) {
 	// test cases
@@ -1058,46 +1085,70 @@ func packZipWithContent(content []zipContent) []byte {
 func TestUnsupportedArchiveNames(t *testing.T) {
 	// test cases
 	cases := []struct {
-		name     string
-		filename string
-		windows  string
-		other    string
+		name        string
+		createInput func(string) string
+		windows     string
+		other       string
 	}{
 		{
-			name:     "valid archive name",
-			filename: "test.gz",
-			windows:  "test",
-			other:    "test",
+			name: "valid archive name (gzip)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test.gz"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressGzip([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test",
+			other:   "test",
 		},
 		{
-			name:     "invalid reported 1",
-			filename: "..bz2",
-			windows:  "goextract-decompressed-content",
-			other:    "goextract-decompressed-content",
+			name: "invalid reported 1 (..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   "goextract-decompressed-content",
 		},
 		{
-			name:     "invalid reported 2",
-			filename: "test..bz2",
-			windows:  "goextract-decompressed-content",
-			other:    "test.",
+			name: "invalid reported 2 (test..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test.",
+			other:   "test.",
 		},
 		{
-			name:     "invalid reported 3",
-			filename: "test.bz2.",
-			windows:  "test",
-			other:    "test",
+			name: "invalid reported 3 (test.bz2.)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test.bz2."}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test.bz2..decompressed",
+			other:   "test.bz2..decompressed",
 		},
 		{
-			name:     "invalid reported 4",
-			filename: "....bz2",
-			windows:  "goextract-decompressed-content",
-			other:    "...",
+			name: "invalid reported 4 (....bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "....bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   "...",
 		},
 		{
-			name:     "invalid reported 5",
-			filename: ".. ..bz2",
-			windows:  "goextract-decompressed-content",
-			other:    ".. .",
+			name: "invalid reported 5 (.. ..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, ".. ..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   ".. .",
 		},
 	}
 
@@ -1108,8 +1159,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 
 			// prepare file
 			tmpDir := t.TempDir()
-			tmpFile := filepath.Join(tmpDir, tc.filename)
-			createTestFile(tmpFile, string(compressGzip([]byte("foobar content"))))
+			tmpFile := tc.createInput(tmpDir)
 
 			// run test
 			archive, err := os.Open(tmpFile)
