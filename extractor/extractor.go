@@ -40,38 +40,6 @@ const (
 	SUFFIX = "decompressed"
 )
 
-// determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
-
-	// check if dst is specified and not a directory
-	if dst != "." && dst != "" {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
-			return filepath.Dir(dst), filepath.Base(dst)
-		}
-	}
-
-	// check if src is a file and the filename is ending with the suffix
-	// remove the suffix from the filename and use it as output name
-	if f, ok := src.(*os.File); ok {
-
-		name := filepath.Base(f.Name())
-		if !strings.HasSuffix(name, fileExt) {
-			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
-		}
-
-		// check if the filename is valid
-		newName := strings.TrimSuffix(name, fileExt)
-		if err := validFilename(newName); err != nil {
-			return dst, DEFAULT_NAME
-		}
-
-		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, newName
-	}
-
-	return dst, DEFAULT_NAME
-}
-
 // init initializes the	extractor package and prepares the filename restriction regex
 func init() {
 
@@ -84,9 +52,9 @@ func init() {
 	if runtime.GOOS != "windows" {
 
 		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
-		namingRestrictions = append(namingRestrictions, nameRestriction{
-			"invalid characters (unix)", regexp.MustCompile(`^.*[\x00/].*$`),
-		})
+		namingRestrictions = append(namingRestrictions,
+			nameRestriction{"invalid characters (unix)", regexp.MustCompile(`^.*[\x00/].*$`)},
+		)
 
 	}
 
@@ -108,7 +76,6 @@ func init() {
 			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)COM[0-9]+$`)},
 			nameRestriction{"reserved name", regexp.MustCompile(`^(?i)LPT[0-9]+$`)},
 			nameRestriction{"reserved name", regexp.MustCompile(`^(\s|\.)+$`)})
-
 	}
 
 }
@@ -122,24 +89,40 @@ type nameRestriction struct {
 // namingRestrictions is a list of restrictions for filenames, depending on the operating system
 var namingRestrictions []nameRestriction
 
-// validFilename checks if the given filename is a valid filename on
-// the operating system
-func validFilename(name string) error {
+// determineOutputName determines the output name and directory for the extracted content
+func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
 
-	// replace all leading / and \ with ""
-	for strings.HasPrefix(name, "/") || strings.HasPrefix(name, "\\") {
-		name = name[1:]
-	}
-
-	// check for invalid characters
-	for _, restriction := range namingRestrictions {
-		if restriction.Regex.MatchString(name) {
-			return fmt.Errorf("%s: %s", restriction.RestrictionName, name)
+	// check if dst is specified and not a directory
+	if dst != "." && dst != "" {
+		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
+			return filepath.Dir(dst), filepath.Base(dst)
 		}
 	}
 
-	// no issues found
-	return nil
+	// check if src is a file and the filename is ending with the suffix
+	// remove the suffix from the filename and use it as output name
+	if f, ok := src.(*os.File); ok {
+
+		name := filepath.Base(f.Name())
+		if !strings.HasSuffix(name, fileExt) {
+			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
+		}
+
+		// check if the filename is valid
+		newName := strings.TrimSuffix(name, fileExt)
+
+		// check for invalid characters and reserved names
+		for _, restriction := range namingRestrictions {
+			if restriction.Regex.MatchString(newName) {
+				return dst, DEFAULT_NAME
+			}
+		}
+
+		// if the filename is not ending with the suffix, use the suffix as output name
+		return dst, newName
+	}
+
+	return dst, DEFAULT_NAME
 }
 
 // checkPatterns checks if the given path matches any of the given patterns.
