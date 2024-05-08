@@ -119,22 +119,26 @@ func validFilename(name string) error {
 func reservedName(name string) error {
 
 	// prepare list of reserved names
-	reservedNames := []string{".", ".."}
+	reservedNamesRegEx := []string{`^\.$`, `^\.\.$`}
 	if runtime.GOOS == "windows" {
-		reservedNames = append(reservedNames, "CON", "PRN", "AUX", "NUL", "LPT", "COM")
-		for i := 1; i <= 9; i++ {
-			reservedNames = append(reservedNames, fmt.Sprintf("COM%d", i), fmt.Sprintf("LPT%d", i))
-		}
+		// known reserved names on windows, "(?i)" is case-insensitive
+		reservedNamesRegEx = append(reservedNamesRegEx, "^(?i)CON$", "^(?i)PRN$", "^(?i)AUX$", "(?i)NUL")
+		reservedNamesRegEx = append(reservedNamesRegEx, "^(?i)COM[0-9]+$", "^(?i)LPT[0-9]+$")
+
+		// add regex that matches reserved name that contains out of " " or "." or ".."
+		reservedNamesRegEx = append(reservedNamesRegEx, `^(\s|\.|\.\.)+$`)
 	}
 
 	// check for reserved names
-	for _, reserved := range reservedNames {
+	for _, reserved := range reservedNamesRegEx {
 
-		// in case of unix only '.' and '..' are reserved and case-insensitive
-		// windows is case-insensitive, so we can just use EqualFold
-		if strings.EqualFold(name, reserved) {
+		// regex match
+		if match, err := regexp.MatchString(reserved, name); err != nil {
+			return fmt.Errorf("cannot match reserved name: %s", err)
+		} else if match {
 			return fmt.Errorf("reserved name: %s", name)
 		}
+
 	}
 
 	return nil
