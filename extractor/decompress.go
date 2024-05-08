@@ -136,6 +136,15 @@ type nameRestriction struct {
 // namingRestrictions is a list of restrictions for filenames, depending on the operating system
 var namingRestrictions []nameRestriction
 
+const (
+	// DEFAULT_NAME is the default name for the extracted content
+	DEFAULT_NAME = "goextract-decompressed-content"
+
+	// SUFFIX is the suffix for the extracted content if
+	// the filename does not end with a file extension
+	SUFFIX = "decompressed"
+)
+
 // determineOutputName determines the output name and directory for the extracted content
 func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
 

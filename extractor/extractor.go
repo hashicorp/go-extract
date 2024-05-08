@@ -27,15 +27,6 @@ type SeekerReaderAt interface {
 	io.Seeker
 }
 
-const (
-	// DEFAULT_NAME is the default name for the extracted content
-	DEFAULT_NAME = "goextract-decompressed-content"
-
-	// SUFFIX is the suffix for the extracted content if
-	// the filename does not end with a file extension
-	SUFFIX = "decompressed"
-)
-
 // checkPatterns checks if the given path matches any of the given patterns.
 // If no patterns are given, the function returns true.
 func checkPatterns(patterns []string, path string) (bool, error) {
