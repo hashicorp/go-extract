@@ -197,7 +197,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 	// start extraction
 	c.Logger().Info("start extraction", "type", src.Type())
-	var objectCounter int64
+	var fileCounter int64
 	var extractionSize uint64
 
 	for {
@@ -225,11 +225,11 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			continue
 		}
 
-		// check for to many objects in archive
-		objectCounter++
+		// check for to many files (including folder and symlinks) in archive
+		fileCounter++
 
-		// check if maximum of objects is exceeded
-		if err := c.CheckMaxObjects(objectCounter); err != nil {
+		// check if maximum of files (including folder and symlinks) is exceeded
+		if err := c.CheckMaxFiles(fileCounter); err != nil {
 			return handleError(c, td, "max objects check failed", err)
 		}
 

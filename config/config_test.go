@@ -43,7 +43,7 @@ func TestCheckMaxFiles(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			got := tc.config.CheckMaxObjects(tc.input) != nil
+			got := tc.config.CheckMaxFiles(tc.input) != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s", i, tc.name)
 			}
@@ -299,23 +299,23 @@ func TestWithLogger(t *testing.T) {
 func TestCheckMaxObjects(t *testing.T) {
 	config := &Config{maxFiles: 5}
 
-	err := config.CheckMaxObjects(6)
+	err := config.CheckMaxFiles(6)
 	if err == nil {
 		t.Errorf("Expected error when counter exceeds MaxFiles, but got nil")
 	}
 
-	err = config.CheckMaxObjects(5)
+	err = config.CheckMaxFiles(5)
 	if err != nil {
 		t.Errorf("Expected no error when counter equals MaxFiles, but got: %s", err)
 	}
 
-	err = config.CheckMaxObjects(4)
+	err = config.CheckMaxFiles(4)
 	if err != nil {
 		t.Errorf("Expected no error when counter is less than MaxFiles, but got: %s", err)
 	}
 
 	config.maxFiles = -1
-	err = config.CheckMaxObjects(6)
+	err = config.CheckMaxFiles(6)
 	if err != nil {
 		t.Errorf("Expected no error when MaxFiles is -1, but got: %s", err)
 	}
