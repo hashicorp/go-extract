@@ -6,10 +6,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-extract/config"
@@ -27,32 +25,6 @@ var unpackTarget target.Target
 type SeekerReaderAt interface {
 	io.ReaderAt
 	io.Seeker
-}
-
-// determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader) (string, string) {
-
-	// check if dst is specified and not a directory
-	if dst != "." && dst != "" {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
-			return filepath.Dir(dst), filepath.Base(dst)
-		}
-	}
-
-	// check if src is a file and the filename is ending with the suffix
-	// remove the suffix from the filename and use it as output name
-	if f, ok := src.(*os.File); ok {
-
-		name := filepath.Base(f.Name())
-		newName := strings.TrimSuffix(name, filepath.Ext(name))
-		if name != newName && newName != "" {
-			return dst, newName
-		}
-
-		// if the filename is not ending with the suffix, use the suffix as output name
-		return dst, fmt.Sprintf("%s.decompressed", newName)
-	}
-	return dst, "goextract-decompressed-content"
 }
 
 // checkPatterns checks if the given path matches any of the given patterns.

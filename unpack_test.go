@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
+	"github.com/dsnet/compress/bzip2"
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
@@ -942,6 +943,32 @@ func compressBrotli(data []byte) []byte {
 	return brotliBuf.Bytes()
 }
 
+// compressBzip2 compresses data with bzip2 algorithm.
+func compressBzip2(data []byte) []byte {
+	// Create a new Bzip2 writer
+	var buf bytes.Buffer
+	w, err := bzip2.NewWriter(&buf, &bzip2.WriterConfig{
+		Level: bzip2.DefaultCompression,
+	})
+	if err != nil {
+		panic(fmt.Errorf("error creating bzip2 writer: %w", err))
+	}
+
+	// Write the data to the Bzip2 writer
+	_, err = w.Write(data)
+	if err != nil {
+		panic(fmt.Errorf("error writing data to bzip2 writer: %w", err))
+	}
+
+	// Close the Bzip2 writer
+	err = w.Close()
+	if err != nil {
+		panic(fmt.Errorf("error closing bzip2 writer: %w", err))
+	}
+
+	return buf.Bytes()
+}
+
 // TestValidTypes is a test function
 func TestValidTypes(t *testing.T) {
 	// test cases
@@ -1052,6 +1079,122 @@ func packZipWithContent(content []zipContent) []byte {
 	}
 
 	return writeBuffer.Bytes()
+}
+
+// TestUnsupportedArchiveNames is a test function
+func TestUnsupportedArchiveNames(t *testing.T) {
+	// test cases
+	cases := []struct {
+		name        string
+		createInput func(string) string
+		windows     string
+		other       string
+	}{
+		{
+			name: "valid archive name (gzip)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test.gz"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressGzip([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test",
+			other:   "test",
+		},
+		{
+			name: "invalid reported 1 (..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   "goextract-decompressed-content",
+		},
+		{
+			name: "invalid reported 2 (test..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test.",
+			other:   "test.",
+		},
+		{
+			name: "invalid reported 3 (test.bz2.)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "test.bz2."}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "test.bz2..decompressed",
+			other:   "test.bz2..decompressed",
+		},
+		{
+			name: "invalid reported 4 (....bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, "....bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   "...",
+		},
+		{
+			name: "invalid reported 5 (.. ..bz2)",
+			createInput: func(path string) string {
+				fPath := strings.Join([]string{path, ".. ..bz2"}, string(filepath.Separator))
+				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				return fPath
+			},
+			windows: "goextract-decompressed-content",
+			other:   ".. .",
+		},
+	}
+
+	cfg := config.NewConfig(config.WithCreateDestination(true))
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// prepare file
+			tmpDir := t.TempDir()
+			tmpFile := tc.createInput(tmpDir)
+
+			// run test
+			archive, err := os.Open(tmpFile)
+			if err != nil {
+				t.Fatalf("error opening file: %s", err)
+			}
+
+			// perform actual tests
+			ctx := context.Background()
+			dstDir := filepath.Join(tmpDir, "out")
+			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				t.Fatalf("error creating directory: %s", err)
+			}
+			err = Unpack(ctx, archive, dstDir, cfg)
+			archive.Close()
+
+			// check if error is expected
+			if err != nil {
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, false, err)
+				return
+			}
+
+			// check for created files
+			expectedFile := filepath.Join(tmpDir, "out", tc.other)
+			if runtime.GOOS == "windows" {
+				expectedFile = filepath.Join(tmpDir, "out", tc.windows)
+			}
+			if _, err := os.Stat(expectedFile); err != nil {
+				t.Errorf("test case %d failed: %s\nexpected file: %s\ngot: %s", i, tc.name, expectedFile, err)
+				return
+			}
+
+		})
+	}
+
 }
 
 func TestWithCustomMode(t *testing.T) {

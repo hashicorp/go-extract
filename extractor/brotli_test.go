@@ -87,13 +87,13 @@ func TestUnpackBrotli(t *testing.T) {
 				// Check if the file was created
 				_, err = os.Stat(filepath.Join(tmpDir, tt.expectedName))
 				if err != nil {
-					t.Errorf("Error checking if file was created: %v", err)
+					t.Errorf("%s: Error checking if file was created: %v", tt.name, err)
 				}
 
 				// Check extracted file content
 				data, err := os.ReadFile(filepath.Join(tmpDir, tt.expectedName))
 				if err != nil {
-					t.Errorf("Error reading extracted file: %v", err)
+					t.Errorf("%s: Error reading extracted file: %v", tt.name, err)
 				}
 				if string(data) != string(inputData) {
 					t.Errorf("%v: Unpacked data is different from original data\n'%v'\n'%v'", tt.name, string(data), string(inputData))
