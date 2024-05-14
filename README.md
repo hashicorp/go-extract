@@ -69,7 +69,7 @@ import (
         config.WithFollowSymlinks(false),             // do not follow symlinks during creation
         config.WithLogger(logger),                    // adjust logger (default: io.Discard)
         config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
-        config.WithMaxFiles(1000),                    // only 1k files maximum (disable check: -1)
+        config.WithMaxFiles(1000),                    // only 1k files (including folders and symlinks) maximum (disable check: -1)
         config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
         config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
         config.WithOverwrite(false),                  // don't replace existing files

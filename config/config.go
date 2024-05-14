@@ -50,7 +50,7 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxExtractionSize int64
 
-	// maxFiles is the maximum of files in an archive.
+	// maxFiles is the maximum of files (including folder and symlinks) in an archive.
 	// Set value to -1 to disable the check.
 	maxFiles int64
 
@@ -86,7 +86,7 @@ func (c *Config) CacheInMemory() bool {
 }
 
 // checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e
-func (e *Config) CheckMaxObjects(counter int64) error {
+func (e *Config) CheckMaxFiles(counter int64) error {
 
 	// check if disabled
 	if e.MaxFiles() == -1 {
@@ -163,7 +163,7 @@ func (c *Config) MaxExtractionSize() int64 {
 	return c.maxExtractionSize
 }
 
-// MaxFiles returns the maximum of files in an archive
+// MaxFiles returns the maximum of files (including folder and symlinks) in an archive.
 func (c *Config) MaxFiles() int64 {
 	return c.maxFiles
 }
