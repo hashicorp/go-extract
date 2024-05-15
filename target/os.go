@@ -34,13 +34,12 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	targetDirectory = filepath.Clean(targetDirectory)
 
 	// get relative path from base to new directory target
-
 	rel, err := filepath.Rel(dstBase, filepath.Join(dstBase, targetDirectory))
 	if err != nil {
 		return fmt.Errorf("failed to get relative path (%s)", err)
 	}
 	// check if the relative path is local
-	if !filepath.IsLocal(rel) {
+	if strings.HasPrefix(rel, "..") {
 		return fmt.Errorf("path is not local! dstBase: %s, targetDirectory: %s, filepath.Join(dstBase, targetDirectory): %s, rel: %s", dstBase, targetDirectory, filepath.Join(dstBase, targetDirectory), rel)
 	}
 
