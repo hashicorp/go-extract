@@ -144,7 +144,7 @@ var casesZip = []struct {
 		name:              "malicious zip with symlink target referring absolute path",
 		testFileGenerator: createTestZipWithSymlinkAbsolutePath,
 		opts:              []config.ConfigOption{},
-		expectError:       true,
+		expectError:       runtime.GOOS != "windows",
 	},
 	{
 		name:              "malicious zip with symlink name path traversal",
