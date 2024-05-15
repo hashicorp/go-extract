@@ -36,6 +36,29 @@ test_coverage_html:
 	go tool cover -html=coverage.out -o=coverage.html
 
 fuzz:
-	go test ./extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=30s
+	# Fuzzing FuzzDetermineOutputName in ./extractor/decompress_test.go
+	go test ./extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=10s
 
 all: build install
+
+
+
+# Create fuzzing entries with following script:
+# #!/bin/bash
+#
+# set -e
+#
+# fuzzTime=${1:-30}
+#
+# files=$(grep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
+#
+# for file in ${files}
+# do
+#     funcs=$(grep -o 'func Fuzz\w*' $file | sed 's/func //')
+#     for func in ${funcs}
+#     do
+#         echo "Fuzzing $func in $file"
+#         parentDir=$(dirname $file)
+#         echo "go test $parentDir -run=$func -fuzz=$func -fuzztime=${fuzzTime}s"
+#     done
+# done
