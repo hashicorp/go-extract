@@ -170,9 +170,9 @@ func TestTarUnpackNew(t *testing.T) {
 		{
 			name: "absolute path in filename (windows)",
 			content: packTarWithContent([]tarContent{
-				{Content: []byte("foobar content"), Name: "c:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "s:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
 			}),
-			expectError: false,
+			expectError: false, // runtime.GOOS == "windows"
 		},
 		{
 			name: "absolute path in filename",
