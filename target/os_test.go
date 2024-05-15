@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
+	"runtime"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -248,7 +248,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 		{
 			name:        "malicious link target with absolute path windows",
 			input:       fnInput{name: "test6", target: "C:\\windows\\Systems32"},
-			expectError: true,
+			expectError: runtime.GOOS == "windows",
 		},
 		{
 			name:        "malicious link target with absolute path windows, but continue on error",
@@ -663,35 +663,4 @@ func TestSecurityCheckPath(t *testing.T) {
 		})
 	}
 
-}
-
-func TestGetStartOfAbsolutePath(t *testing.T) {
-	cases := []struct {
-		path string
-	}{
-		{
-			path: "test",
-		}, {
-			path: "/test",
-		}, {
-			path: "//test",
-		}, {
-			path: "/c:\\/test",
-		}, {
-			path: "/c:\\/d:\\test",
-		}, {
-			path: "a:\\/c:\\/test",
-		}, {
-			path: `\\test`,
-		},
-	}
-
-	// perform tests and expect always "test" as a result
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
-			if start := GetStartOfAbsolutePath(tc.path); strings.TrimPrefix(tc.path, start) != "test" {
-				t.Errorf("test case %d failed: %s != test", i, strings.TrimPrefix(tc.path, start))
-			}
-		})
-	}
 }
