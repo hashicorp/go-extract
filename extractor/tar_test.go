@@ -168,11 +168,11 @@ func TestTarUnpackNew(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "absolute path in filename (windows)",
+			name: "absolute path in filename (windows), fails bc of ':' in path",
 			content: packTarWithContent([]tarContent{
 				{Content: []byte("foobar content"), Name: "s:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
 			}),
-			expectError: false, // runtime.GOOS == "windows"
+			expectError: runtime.GOOS == "windows",
 		},
 		{
 			name: "absolute path in filename",
