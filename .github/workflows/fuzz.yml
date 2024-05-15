@@ -1,10 +1,12 @@
-name: Fuzzing tests on unix and windows
+name: Fuzzing tests on unix and windows oon dispatch
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  dispatch:
+    types: [fuzz]
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
 
 jobs:
 
@@ -36,5 +38,4 @@ jobs:
       with:
         name: test_inputs
         path: |
-          $(git diff --name-only)
-          $(git diff --name-only --cached)
+          $(git ls-files --others --exclude-standard)
