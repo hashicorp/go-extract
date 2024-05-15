@@ -243,7 +243,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 		{
 			name:        "malicious link target with absolute path linux",
 			input:       fnInput{name: "test5", target: "/etc/passwd"},
-			expectError: true,
+			expectError: runtime.GOOS != "windows",
 		},
 		{
 			name:        "malicious link target with absolute path windows",
@@ -276,7 +276,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 			err := target.CreateSafeSymlink(cfg, testDir, tc.input.name, tc.input.target)
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+				t.Errorf("[TC%d failed] %s (%s): %s", i, tc.name, runtime.GOOS, err)
 			}
 
 		})
