@@ -40,7 +40,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	}
 	// check if the relative path is local
 	if !filepath.IsLocal(rel) {
-		return fmt.Errorf("path traversal detected: %s", targetDirectory)
+		return fmt.Errorf("path traversal detected (rel: %s): %s", rel, targetDirectory)
 	}
 
 	// check each dir in path
