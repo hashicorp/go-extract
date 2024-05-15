@@ -37,7 +37,7 @@ test_coverage_html:
 
 fuzz:
 	# Fuzzing FuzzDetermineOutputName in ./extractor/decompress_test.go
-	go test ./extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=10s
+	go test ./extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=30s
 
 all: build install
 
@@ -57,7 +57,7 @@ all: build install
 #     funcs=$(grep -o 'func Fuzz\w*' $file | sed 's/func //')
 #     for func in ${funcs}
 #     do
-#         echo "Fuzzing $func in $file"
+#         echo "# Fuzzing $func in $file"
 #         parentDir=$(dirname $file)
 #         echo "go test $parentDir -run=$func -fuzz=$func -fuzztime=${fuzzTime}s"
 #     done
