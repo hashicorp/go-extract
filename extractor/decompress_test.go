@@ -100,3 +100,34 @@ func TestDecompress(t *testing.T) {
 		})
 	}
 }
+
+func FuzzDetermineOutputName(f *testing.F) {
+	content := compressGzip([]byte("Hello, World!"))
+	cases := []string{
+		"test.gz",
+		"test",
+	}
+	for _, tc := range cases {
+		f.Add(tc)
+	}
+
+	// perform fuzzing test and ignore errors, looking for panics!
+	cfg := config.NewConfig()
+	f.Fuzz(func(t *testing.T, n string) {
+		dest := t.TempDir()
+		path := filepath.Join(dest, n)
+		// ignore errors, bc/ if input cannot exist, we do not need to test with this input
+		if err := os.WriteFile(path, content, 0640); err != nil {
+			return
+		}
+		fin, err := os.Open(path)
+		if err != nil {
+			return // ignore errors, bc/ file cannot be opened for some reason
+		}
+		defer fin.Close()
+		ctx := context.Background()
+		if err := decompress(ctx, fin, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
+			t.Errorf("decompress() error = %v", err)
+		}
+	})
+}

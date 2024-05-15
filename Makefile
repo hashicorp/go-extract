@@ -35,4 +35,7 @@ test_coverage_html:
 	go test ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o=coverage.html
 
+fuzz:
+	go test ./extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=30s
+
 all: build install
