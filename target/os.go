@@ -33,19 +33,14 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	// clean the target
 	targetDirectory = filepath.Clean(targetDirectory)
 
-	// if the base is empty and the target is absolute, return error
-	if len(dstBase) == 0 && filepath.IsAbs(targetDirectory) {
-		return fmt.Errorf("absolute path detected: %s", targetDirectory)
+	// get relative path from base to target
+	rel, err := filepath.Rel(dstBase, filepath.Join(dstBase, targetDirectory))
+	if err != nil {
+		return fmt.Errorf("failed to get relative path (%s)", err)
 	}
-
-	// check if the target tries to escape the base
-	if !filepath.IsAbs(targetDirectory) && !filepath.IsLocal(targetDirectory) {
-		return fmt.Errorf(`filepath.IsAbs(%s): %t
-		filepath.IsLocal(%s): %t
-		path traversal detected: %s (joined: %s)`,
-			targetDirectory, filepath.IsAbs(targetDirectory),
-			targetDirectory, filepath.IsLocal(targetDirectory),
-			targetDirectory, filepath.Join(dstBase, targetDirectory))
+	// check if the relative path is local
+	if !filepath.IsLocal(rel) {
+		return fmt.Errorf("path traversal detected: %s", targetDirectory)
 	}
 
 	// check each dir in path
