@@ -40,7 +40,7 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	}
 	// check if the relative path is local
 	if strings.HasPrefix(rel, "..") {
-		return fmt.Errorf("path is not local! dstBase: %s, targetDirectory: %s, filepath.Join(dstBase, targetDirectory): %s, rel: %s", dstBase, targetDirectory, filepath.Join(dstBase, targetDirectory), rel)
+		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
 	}
 
 	// check each dir in path
