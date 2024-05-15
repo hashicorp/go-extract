@@ -1,12 +1,10 @@
 name: Fuzzing tests on unix and windows oon dispatch
 
 on:
-  dispatch:
-    types: [fuzz]
-  # push:
-  #   branches: [ main ]
-  # pull_request:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
 
