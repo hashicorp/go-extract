@@ -190,12 +190,6 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 		return fmt.Errorf("cannot create file without name")
 	}
 
-	// Check if newFileName starts with an absolute path, if so -> remove
-	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		cfg.Logger().Debug("remove absolute path prefix", "prefix", start)
-		newFileName = strings.TrimPrefix(newFileName, start)
-	}
-
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.CustomCreateDirMode()); err != nil {
@@ -326,7 +320,7 @@ func GetStartOfAbsolutePath(path string) string {
 	}
 
 	// check absolute path for link target on windows
-	if p := []rune(path); len(p) > 2 && p[1] == rune(':') {
+	if p := []rune(path); len(p) > 3 && p[1] == rune(':') && (p[2] == rune('\\') || p[2] == rune('/')) {
 		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutePath(path[3:]))
 	}
 
