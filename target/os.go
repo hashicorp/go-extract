@@ -40,7 +40,12 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 
 	// check if the target tries to escape the base
 	if !filepath.IsAbs(targetDirectory) && !filepath.IsLocal(targetDirectory) {
-		return fmt.Errorf("path traversal detected [!filepath.IsAbs(%s) && !filepath.IsLocal(%s)]: %s (joined: %s)", targetDirectory, targetDirectory, targetDirectory, filepath.Join(dstBase, targetDirectory))
+		return fmt.Errorf(`filepath.IsAbs(%s): %t
+		filepath.IsLocal(%s): %t
+		path traversal detected: %s (joined: %s)`,
+			targetDirectory, filepath.IsAbs(targetDirectory),
+			targetDirectory, filepath.IsLocal(targetDirectory),
+			targetDirectory, filepath.Join(dstBase, targetDirectory))
 	}
 
 	// check each dir in path
