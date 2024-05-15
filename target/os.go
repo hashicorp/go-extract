@@ -33,8 +33,13 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	// clean the target
 	targetDirectory = filepath.Clean(targetDirectory)
 
-	// check for escape out of dstBase
-	if !filepath.IsLocal(targetDirectory) {
+	// if the base is empty and the target is absolute, return error
+	if len(dstBase) == 0 && filepath.IsAbs(targetDirectory) {
+		return fmt.Errorf("absolute path detected: %s", targetDirectory)
+	}
+
+	// check if the target tries to escape the base
+	if !filepath.IsAbs(targetDirectory) && !filepath.IsLocal(targetDirectory) {
 		return fmt.Errorf("path traversal detected: %s", targetDirectory)
 	}
 
@@ -158,14 +163,8 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 		return nil
 	}
 
-	// Check if newDir starts with an absolute path, if so -> remove
-	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
-		config.Logger().Debug("remove absolute path prefix", "prefix", start)
-		newDir = strings.TrimPrefix(newDir, start)
-	}
-
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return fmt.Errorf("path traversal detected: %w", err)
+		return fmt.Errorf("security check path failed: %w", err)
 	}
 
 	// create dirs
@@ -254,7 +253,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	}
 
 	// Check if link target is absolute path
-	if start := GetStartOfAbsolutePath(linkTarget); len(start) > 0 {
+	if filepath.IsAbs(linkTarget) {
 
 		// continue on error?
 		if config.ContinueOnError() {
@@ -278,7 +277,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	// check link target for traversal
 	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
 	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
-		return fmt.Errorf("symlink target path traversal (%s)", linkTarget)
+		return fmt.Errorf("symlink target security check path failed (%s)", linkTarget)
 	}
 
 	targetFile := filepath.Join(dstBase, newLinkName)
@@ -302,27 +301,4 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	}
 
 	return nil
-}
-
-// GetStartOfAbsolutePath returns the start of an absolute path if
-// path starts with a valid absolute path. If path is not an absolute
-// path, an empty string is returned.
-func GetStartOfAbsolutePath(path string) string {
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, "/") {
-		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, `\`) {
-		return fmt.Sprintf("%s%s", `\`, GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on windows
-	if p := []rune(path); len(p) > 3 && p[1] == rune(':') && (p[2] == rune('\\') || p[2] == rune('/')) {
-		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutePath(path[3:]))
-	}
-
-	return ""
 }
