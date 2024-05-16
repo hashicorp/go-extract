@@ -200,7 +200,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	fDir := filepath.Dir(newFileName)
 	if err := o.CreateSafeDir(cfg, dstBase, fDir, cfg.CustomCreateDirMode()); err != nil {
-		return fmt.Errorf("cannot create directory (%s) for file (%s): %s", fDir, newFileName, err)
+		return fmt.Errorf("cannot create directory (%s) for file (%s) in base (%s): %s", fDir, newFileName, dstBase, err)
 	}
 
 	// Check for path validity and if file existence+overwrite
