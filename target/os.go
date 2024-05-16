@@ -195,9 +195,16 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 		return fmt.Errorf("cannot create directory for file (%s)", err)
 	}
 
-	// Check for file existence//overwrite
+	// Check for path validity and if file existence+overwrite
 	targetFile := filepath.Join(dstBase, newFileName)
 	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
+
+		// something wrong with path
+		if err != nil {
+			return fmt.Errorf("invalid path (%s): %s", newFileName, err)
+		}
+
+		// check for overwrite
 		if !cfg.Overwrite() {
 			return fmt.Errorf("file already exists (%s)", newFileName)
 		}
