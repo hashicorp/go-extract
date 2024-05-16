@@ -1,4 +1,4 @@
-name: Fuzzing tests
+name: Fuzzing test
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  test:
+  fuzz:
 
     strategy:
       matrix:
