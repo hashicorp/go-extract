@@ -33,6 +33,7 @@ jobs:
     - name: Get list of uncommitted files
       if: always()
       id: uncommitted
+      shell: bash
       run: |
         uncommitted_files=$(git ls-files --others --exclude-standard)
         echo "::set-output name=stdout::$uncommitted_files"
@@ -42,7 +43,7 @@ jobs:
       id: upload
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
       with:
-        name: test_inputs
+        name: test_inputs_${{ runner.os }}
         path: |
           ${{ steps.uncommitted.outputs.stdout }}
       
