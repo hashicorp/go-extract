@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -125,7 +126,7 @@ func TestTarUnpackNew(t *testing.T) {
 		{
 			name:        "unpack normal tar with absolute path in symlink",
 			content:     packTarWithContent([]tarContent{{Name: "testLink", Filetype: tar.TypeSymlink, Linktarget: "/absolute-target"}}),
-			expectError: true,
+			expectError: runtime.GOOS != "windows",
 		},
 		{
 			name:        "malicious tar with symlink name path traversal",
@@ -167,11 +168,11 @@ func TestTarUnpackNew(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "absolute path in filename (windows)",
+			name: "absolute path in filename (windows), fails bc of ':' in path",
 			content: packTarWithContent([]tarContent{
-				{Content: []byte("foobar content"), Name: "c:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
+				{Content: []byte("foobar content"), Name: "s:\\absolute-path", Mode: 0640, Filetype: tar.TypeReg},
 			}),
-			expectError: false,
+			expectError: runtime.GOOS == "windows",
 		},
 		{
 			name: "absolute path in filename",

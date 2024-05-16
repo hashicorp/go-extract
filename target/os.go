@@ -33,9 +33,21 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	// clean the target
 	targetDirectory = filepath.Clean(targetDirectory)
 
-	// check for escape out of dstBase
-	if !filepath.IsLocal(targetDirectory) {
-		return fmt.Errorf("path traversal detected: %s", targetDirectory)
+	// check if dstBase is empty, then targetDirectory should not be an absolute path
+	if len(dstBase) == 0 {
+		if filepath.IsAbs(targetDirectory) {
+			return fmt.Errorf("absolute path detected (%s)", targetDirectory)
+		}
+	}
+
+	// get relative path from base to new directory target
+	rel, err := filepath.Rel(dstBase, filepath.Join(dstBase, targetDirectory))
+	if err != nil {
+		return fmt.Errorf("failed to get relative path (%s)", err)
+	}
+	// check if the relative path is local
+	if strings.HasPrefix(rel, "..") {
+		return fmt.Errorf("path traversal detected (%s)", targetDirectory)
 	}
 
 	// check each dir in path
@@ -158,14 +170,8 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 		return nil
 	}
 
-	// Check if newDir starts with an absolute path, if so -> remove
-	if start := GetStartOfAbsolutePath(newDir); len(start) > 0 {
-		config.Logger().Debug("remove absolute path prefix", "prefix", start)
-		newDir = strings.TrimPrefix(newDir, start)
-	}
-
 	if err := securityCheckPath(config, dstBase, newDir); err != nil {
-		return fmt.Errorf("path traversal detected: %w", err)
+		return fmt.Errorf("security check path failed: %w", err)
 	}
 
 	// create dirs
@@ -188,12 +194,6 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	// check if a name is provided
 	if len(newFileName) == 0 {
 		return fmt.Errorf("cannot create file without name")
-	}
-
-	// Check if newFileName starts with an absolute path, if so -> remove
-	if start := GetStartOfAbsolutePath(newFileName); len(start) > 0 {
-		cfg.Logger().Debug("remove absolute path prefix", "prefix", start)
-		newFileName = strings.TrimPrefix(newFileName, start)
 	}
 
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
@@ -260,7 +260,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	}
 
 	// Check if link target is absolute path
-	if start := GetStartOfAbsolutePath(linkTarget); len(start) > 0 {
+	if filepath.IsAbs(linkTarget) {
 
 		// continue on error?
 		if config.ContinueOnError() {
@@ -284,7 +284,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	// check link target for traversal
 	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
 	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
-		return fmt.Errorf("symlink target path traversal (%s)", linkTarget)
+		return fmt.Errorf("symlink target security check path failed (%s)", linkTarget)
 	}
 
 	targetFile := filepath.Join(dstBase, newLinkName)
@@ -308,27 +308,4 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	}
 
 	return nil
-}
-
-// GetStartOfAbsolutePath returns the start of an absolute path if
-// path starts with a valid absolute path. If path is not an absolute
-// path, an empty string is returned.
-func GetStartOfAbsolutePath(path string) string {
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, "/") {
-		return fmt.Sprintf("%s%s", "/", GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on unix
-	if strings.HasPrefix(path, `\`) {
-		return fmt.Sprintf("%s%s", `\`, GetStartOfAbsolutePath(path[1:]))
-	}
-
-	// check absolute path for link target on windows
-	if p := []rune(path); len(p) > 2 && p[1] == rune(':') {
-		return fmt.Sprintf("%s%s", path[0:3], GetStartOfAbsolutePath(path[3:]))
-	}
-
-	return ""
 }
