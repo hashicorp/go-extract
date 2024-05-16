@@ -33,6 +33,13 @@ func securityCheckPath(config *config.Config, dstBase string, targetDirectory st
 	// clean the target
 	targetDirectory = filepath.Clean(targetDirectory)
 
+	// check if dstBase is empty, then targetDirectory should not be an absolute path
+	if len(dstBase) == 0 {
+		if filepath.IsAbs(targetDirectory) {
+			return fmt.Errorf("absolute path detected (%s)", targetDirectory)
+		}
+	}
+
 	// get relative path from base to new directory target
 	rel, err := filepath.Rel(dstBase, filepath.Join(dstBase, targetDirectory))
 	if err != nil {
