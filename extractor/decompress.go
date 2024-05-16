@@ -162,9 +162,19 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 		name := filepath.Base(f.Name())
 		if !strings.HasSuffix(name, fileExt) {
 			newName := fmt.Sprintf("%s.%s", name, SUFFIX)
-			if len(newName) > 255 {
+
+			// check if the new filename is considered to be a valid filename
+			_, err := os.Lstat(newName)
+			if err == nil { // potential overwrite needs to be checked
+				return dst, newName
+			}
+
+			// check if the error is not a "file not found" error, then the name is potentially invalid
+			if !os.IsNotExist(err) {
 				return dst, DEFAULT_NAME
 			}
+
+			// return the new name
 			return dst, newName
 		}
 
