@@ -94,6 +94,7 @@ func init() {
 		{"empty name", regexp.MustCompile(`^$`)},
 		{"current directory", regexp.MustCompile(`^\.$`)},
 		{"parent directory", regexp.MustCompile(`^\.\.$`)},
+		{"maximum 255 characters", regexp.MustCompile(`^.{256,}$`)},
 	}
 
 	if runtime.GOOS != "windows" {
@@ -160,27 +161,20 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 	if f, ok := src.(*os.File); ok {
 
 		name := filepath.Base(f.Name())
-		if !strings.HasSuffix(name, fileExt) {
-			newName := fmt.Sprintf("%s.%s", name, SUFFIX)
+		newName := name
 
-			// check if the new filename is considered to be a valid filename
-			_, err := os.Lstat(newName)
-			if err == nil { // potential overwrite needs to be checked
-				return dst, newName
-			}
+		// check if the filename is ending with the suffix
+		if strings.HasSuffix(name, fileExt) {
+			newName = strings.TrimSuffix(name, fileExt)
+		}
 
-			// check if the error is not a "file not found" error, then the name is potentially invalid
-			if !os.IsNotExist(err) {
-				return dst, DEFAULT_NAME
-			}
-
-			// return the new name
-			return dst, newName
+		// check if no file extension has been found
+		if newName == name {
+			newName = fmt.Sprintf("%s.%s", name, SUFFIX)
 		}
 
 		// check if the new filename without the extension is valid and does not violate
 		// any restrictions for the operating system
-		newName := strings.TrimSuffix(name, fileExt)
 		for _, restriction := range namingRestrictions {
 			if restriction.Regex.MatchString(newName) {
 				return dst, DEFAULT_NAME
