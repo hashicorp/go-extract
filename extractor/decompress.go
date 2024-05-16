@@ -161,7 +161,11 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 
 		name := filepath.Base(f.Name())
 		if !strings.HasSuffix(name, fileExt) {
-			return dst, fmt.Sprintf("%s.%s", name, SUFFIX)
+			newName := fmt.Sprintf("%s.%s", name, SUFFIX)
+			if len(newName) > 255 {
+				return dst, DEFAULT_NAME
+			}
+			return dst, newName
 		}
 
 		// check if the new filename without the extension is valid and does not violate
