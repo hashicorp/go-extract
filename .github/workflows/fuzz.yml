@@ -1,4 +1,4 @@
-name: Fuzzing tests on unix and windows
+name: Fuzzing tests
 
 on:
   push:
