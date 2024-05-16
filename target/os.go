@@ -198,8 +198,9 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
-	if err := o.CreateSafeDir(cfg, dstBase, filepath.Dir(newFileName), cfg.CustomCreateDirMode()); err != nil {
-		return fmt.Errorf("cannot create directory for file (%s)", err)
+	fDir := filepath.Dir(newFileName)
+	if err := o.CreateSafeDir(cfg, dstBase, fDir, cfg.CustomCreateDirMode()); err != nil {
+		return fmt.Errorf("cannot create directory (%s) for file: %s", fDir, err)
 	}
 
 	// Check for path validity and if file existence+overwrite
