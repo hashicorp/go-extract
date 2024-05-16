@@ -161,12 +161,10 @@ func determineOutputName(dst string, src io.Reader, fileExt string) (string, str
 	if f, ok := src.(*os.File); ok {
 
 		name := filepath.Base(f.Name())
-		newName := name
+		newName := strings.TrimSuffix(name, fileExt)
 
-		// check if the filename is ending with the file extension
-		if strings.HasSuffix(name, fileExt) {
-			newName = strings.TrimSuffix(name, fileExt)
-		} else {
+		// check if file extension has been removed
+		if newName == name {
 			newName = fmt.Sprintf("%s.%s", name, SUFFIX)
 		}
 
