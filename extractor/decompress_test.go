@@ -116,6 +116,10 @@ func FuzzDetermineOutputName(f *testing.F) {
 	f.Fuzz(func(t *testing.T, n string) {
 		dest := t.TempDir()
 		path := filepath.Join(dest, n)
+		// check if path exists
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			return // file can only be created if it does not exist and there are no other errors
+		}
 		// ignore errors, bc/ if input cannot exist, we do not need to test with this input
 		if err := os.WriteFile(path, content, 0640); err != nil {
 			panic(fmt.Errorf("os.WriteFile() error = %v", err))
