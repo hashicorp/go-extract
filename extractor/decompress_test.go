@@ -118,7 +118,7 @@ func FuzzDetermineOutputName(f *testing.F) {
 		path := filepath.Join(dest, n)
 		// ignore errors, bc/ if input cannot exist, we do not need to test with this input
 		if err := os.WriteFile(path, content, 0640); err != nil {
-			return
+			panic(fmt.Errorf("os.WriteFile() error = %v", err))
 		}
 		fin, err := os.Open(path)
 		if err != nil {
