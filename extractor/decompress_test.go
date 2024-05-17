@@ -123,28 +123,20 @@ func FuzzDetermineOutputName(f *testing.F) {
 			panic(fmt.Errorf("os.CreateTemp() error = %v", err))
 		}
 		defer tmpFile.Close()
+		// write compressed content to file
 		if _, err = tmpFile.Write(content); err != nil {
 			panic(fmt.Errorf("tmpFile.Write() error = %v", err))
 		}
+		// seek to beginning of file
 		if _, err = tmpFile.Seek(0, 0); err != nil {
 			panic(fmt.Errorf("tmpFile.Seek() error = %v", err))
 		}
-
-		encapsulatedFile := &testFile{File: tmpFile, cName: fName}
+		osfile := os.NewFile(tmpFile.Fd(), fName)
 
 		ctx := context.Background()
-		if err := decompress(ctx, encapsulatedFile, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
+		if err := decompress(ctx, osfile, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
 			t.Errorf("decompress() error = %v", err)
 		}
 
 	})
-}
-
-type testFile struct {
-	*os.File
-	cName string
-}
-
-func (f *testFile) Name() string {
-	return f.cName
 }

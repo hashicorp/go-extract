@@ -95,6 +95,7 @@ func init() {
 		{"current directory", regexp.MustCompile(`^\.$`)},
 		{"parent directory", regexp.MustCompile(`^\.\.$`)},
 		{"maximum 255 characters", regexp.MustCompile(`^.{256,}$`)},
+		{"exclude wide characters", regexp.MustCompile(`^.*[^\x00-\x7F].*$`)},
 	}
 
 	if runtime.GOOS != "windows" {
