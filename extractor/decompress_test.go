@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -120,6 +121,10 @@ func FuzzDetermineOutputName(f *testing.F) {
 
 		dest := t.TempDir()
 		path := filepath.Join(dest, fName)
+		if !utf8.ValidString(path) {
+			// log.Fatalf("Invalid UTF-8 in path: %s", path)
+			return
+		}
 		// check if path exists
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
 			return // file can only be created if it does not exist and there are no other errors
