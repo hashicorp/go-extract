@@ -116,23 +116,27 @@ func FuzzDetermineOutputName(f *testing.F) {
 	cfg := config.NewConfig()
 	f.Fuzz(func(t *testing.T, fName string) {
 
-		// ensure that the filename is not a path
-		fName = filepath.Base(fName)
-
+		// assemble path
 		dest := t.TempDir()
 		path := filepath.Join(dest, fName)
+
 		if !utf8.ValidString(path) {
 			// log.Fatalf("Invalid UTF-8 in path: %s", path)
 			return
 		}
+
+		// prepare folder
+		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+			panic(fmt.Errorf("os.MkdirAll() error = %v", err))
+		}
+
 		// check if path exists
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
 			return // file can only be created if it does not exist and there are no other errors
 		}
 		// ignore errors, bc/ if input cannot exist, we do not need to test with this input
 		if err := os.WriteFile(path, content, 0640); err != nil {
-			// panic(fmt.Errorf("os.WriteFile() error = %v", err))
-			return
+			panic(fmt.Errorf("os.WriteFile() error = %v", err))
 		}
 		fin, err := os.Open(path)
 		if err != nil {
