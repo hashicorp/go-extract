@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"unicode/utf8"
 
 	"github.com/hashicorp/go-extract/config"
 )
@@ -118,34 +117,34 @@ func FuzzDetermineOutputName(f *testing.F) {
 
 		// assemble path
 		dest := t.TempDir()
-		path := filepath.Join(dest, fName)
-
-		if !utf8.ValidString(path) {
-			// log.Fatalf("Invalid UTF-8 in path: %s", path)
-			return
+		var tmpFile *os.File
+		var err error
+		if tmpFile, err = os.CreateTemp(dest, "test"); err != nil {
+			panic(fmt.Errorf("os.CreateTemp() error = %v", err))
+		}
+		defer tmpFile.Close()
+		if _, err = tmpFile.Write(content); err != nil {
+			panic(fmt.Errorf("tmpFile.Write() error = %v", err))
+		}
+		if _, err = tmpFile.Seek(0, 0); err != nil {
+			panic(fmt.Errorf("tmpFile.Seek() error = %v", err))
 		}
 
-		// prepare folder
-		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-			panic(fmt.Errorf("os.MkdirAll() error = %v", err))
-		}
+		encapsulatedFile := &testFile{File: tmpFile, cName: fName}
 
-		// check if path exists
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			return // file can only be created if it does not exist and there are no other errors
-		}
-		// ignore errors, bc/ if input cannot exist, we do not need to test with this input
-		if err := os.WriteFile(path, content, 0640); err != nil {
-			panic(fmt.Errorf("os.WriteFile() error = %v", err))
-		}
-		fin, err := os.Open(path)
-		if err != nil {
-			return // ignore errors, bc/ file cannot be opened for some reason
-		}
-		defer fin.Close()
 		ctx := context.Background()
-		if err := decompress(ctx, fin, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
+		if err := decompress(ctx, encapsulatedFile, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
 			t.Errorf("decompress() error = %v", err)
 		}
+
 	})
+}
+
+type testFile struct {
+	*os.File
+	cName string
+}
+
+func (f *testFile) Name() string {
+	return f.cName
 }
