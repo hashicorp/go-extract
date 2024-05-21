@@ -240,6 +240,41 @@ func TestTarUnpackNew(t *testing.T) {
 	}
 }
 
+func TestIsTar(t *testing.T) {
+
+	tc := []struct {
+		Name    string
+		Content []byte
+	}{
+		{
+			Name:    "Tar header 'magicGNU/versionGNU'",
+			Content: []byte("ustar\x00tar\x00"),
+		},
+		{
+			Name:    "Tar header 'magicUSTAR/versionUSTAR'",
+			Content: []byte("ustar\x00"),
+		},
+		{
+			Name:    "Tar header 'trailerSTAR'",
+			Content: []byte("ustar  \x00"),
+		},
+	}
+
+	for i, c := range tc {
+		t.Run(c.Name, func(t *testing.T) {
+
+			// Create a byte slice with the magic bytes at the correct offset
+			data := make([]byte, offsetTar+len(magicBytesTar[0]))
+			copy(data[offsetTar:], c.Content)
+
+			// Check if IsTar correctly identifies it as a tar file
+			if IsTar(data) != true {
+				t.Errorf("test case %d failed: %s", i, c.Name)
+			}
+		})
+	}
+}
+
 // tarContent is a struct to store the content of a tar file
 type tarContent struct {
 	Content    []byte
