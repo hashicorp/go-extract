@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -102,7 +103,6 @@ func TestDecompress(t *testing.T) {
 }
 
 func FuzzDetermineOutputName(f *testing.F) {
-	content := compressGzip([]byte("Hello, World!"))
 	cases := []string{
 		"test.gz",
 		"test",
@@ -111,31 +111,31 @@ func FuzzDetermineOutputName(f *testing.F) {
 		f.Add(tc)
 	}
 
+	checkedNames := make(map[string]struct{})
+	mu := &sync.Mutex{}
+
 	// perform fuzzing test and ignore errors, looking for panics!
-	cfg := config.NewConfig()
 	f.Fuzz(func(t *testing.T, fName string) {
 
-		// assemble path
+		// prepare tmp
 		dest := t.TempDir()
-		var tmpFile *os.File
-		var err error
-		if tmpFile, err = os.CreateTemp(dest, "test"); err != nil {
-			panic(fmt.Errorf("os.CreateTemp() error = %v", err))
-		}
-		defer tmpFile.Close()
-		// write compressed content to file
-		if _, err = tmpFile.Write(content); err != nil {
-			panic(fmt.Errorf("tmpFile.Write() error = %v", err))
-		}
-		// seek to beginning of file
-		if _, err = tmpFile.Seek(0, 0); err != nil {
-			panic(fmt.Errorf("tmpFile.Seek() error = %v", err))
-		}
-		osfile := os.NewFile(tmpFile.Fd(), fName)
 
-		ctx := context.Background()
-		if err := decompress(ctx, osfile, dest, cfg, decompressGZipStream, FileExtensionGZip); err != nil {
-			t.Errorf("decompress() error = %v", err)
+		// fuzz function with random data
+		dir, outputName := determineOutputName(dest, fName, ".gz")
+
+		// check if outputName is already checked, then skip
+		if _, ok := checkedNames[outputName]; ok {
+			return
+		}
+
+		// lock and add outputName to checkedNames
+		mu.Lock()
+		checkedNames[outputName] = struct{}{}
+		mu.Unlock()
+
+		// write file to check if outputName is correct determined
+		if err := os.WriteFile(filepath.Join(dir, outputName), []byte("Hello World!"), 0644); err != nil {
+			t.Errorf("os.WriteFile() error = %v", err)
 		}
 
 	})

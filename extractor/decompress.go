@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/telemetry"
@@ -68,7 +68,11 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 
 	// determine name and decompress content
-	dst, outputName := determineOutputName(dst, src, fmt.Sprintf(".%s", fileExt))
+	inputName := ""
+	if f, ok := src.(*os.File); ok {
+		inputName = filepath.Base(f.Name())
+	}
+	dst, outputName := determineOutputName(dst, inputName, fmt.Sprintf(".%s", fileExt))
 	c.Logger().Debug("determined output name", "name", outputName)
 	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode()); err != nil {
 		return handleError(c, m, "cannot create file", err)
@@ -95,14 +99,17 @@ func init() {
 		{"current directory", regexp.MustCompile(`^\.$`)},
 		{"parent directory", regexp.MustCompile(`^\.\.$`)},
 		{"maximum 255 characters", regexp.MustCompile(`^.{256,}$`)},
-		{"exclude wide characters", regexp.MustCompile(`^.*[^\x00-\x7F].*$`)},
+		{"limit to first 255 characters", regexp.MustCompile(`[^\x00-\xFF]`)},
+		{"exclude line break, feed and tab", regexp.MustCompile(`[\x0a\x0d\x09]`)},
 	}
 
 	if runtime.GOOS != "windows" {
 
 		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
 		namingRestrictions = append(namingRestrictions,
-			nameRestriction{"invalid characters (unix)", regexp.MustCompile(`^.*[\x00/].*$`)},
+			nameRestriction{"invalid filename (unix): null byte", regexp.MustCompile(`[\x00]`)},
+			nameRestriction{"invalid filename (unix): dangerous ascii characters", regexp.MustCompile(`[:/\<>|!?*'"&^$]`)},
+			nameRestriction{"invalid filename (unix): backticks", regexp.MustCompile("`")},
 		)
 
 	}
@@ -113,7 +120,7 @@ func init() {
 		// regex with invalid windows filesystem characters, allowing unicode (128-255), excluding control characters, and the following characters: <>:"/\\|?*e
 		// https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
 		namingRestrictions = append(namingRestrictions, nameRestriction{
-			"invalid characters (windows)", regexp.MustCompile(`^.*[\x00-\x1f<>:"/\\|?*].*$`),
+			"invalid characters (windows)", regexp.MustCompile(`[\x00-\x1f<>:"/\\|?*]`),
 		})
 
 		// known reserved names on windows, "(?i)" is case-insensitive
@@ -139,47 +146,67 @@ type nameRestriction struct {
 var namingRestrictions []nameRestriction
 
 const (
-	// DEFAULT_NAME is the default name for the extracted content
-	DEFAULT_NAME = "goextract-decompressed-content"
+	// DEFAULT_DECOMPRESSION_NAME is the default name for the extracted content
+	DEFAULT_DECOMPRESSION_NAME = "goextract-decompressed-content"
 
-	// SUFFIX is the suffix for the extracted content if
+	// DECOMPRESSED_SUFFIX is the suffix for the extracted content if
 	// the filename does not end with a file extension
-	SUFFIX = "decompressed"
+	DECOMPRESSED_SUFFIX = "decompressed"
 )
 
 // determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, src io.Reader, fileExt string) (string, string) {
+func determineOutputName(dst string, inputName string, fileExt string) (string, string) {
 
 	// check if dst is specified and not a directory
 	if dst != "." && dst != "" {
-		if stat, err := os.Stat(dst); os.IsNotExist(err) || stat.Mode()&fs.ModeDir == 0 {
+		stat, err := os.Stat(dst)
+
+		// check if dst does not exist, then use it as directory and output name
+		if os.IsNotExist(err) {
+			return filepath.Dir(dst), filepath.Base(dst)
+		}
+
+		// check if dst is NOT a directory, then use it as directory
+		// and output name (override might be necessary)
+		if err == nil && !stat.IsDir() {
 			return filepath.Dir(dst), filepath.Base(dst)
 		}
 	}
 
-	// check if src is a file and the filename is ending with the suffix
-	// remove the suffix from the filename and use it as output name
-	if f, ok := src.(*os.File); ok {
+	// is src for decompression a file?
+	if len(inputName) > 0 {
 
-		name := filepath.Base(f.Name())
-		newName := strings.TrimSuffix(name, fileExt)
+		// start with the input name
+		newName := inputName
 
-		// check if file extension has been removed
-		if newName == name {
-			newName = fmt.Sprintf("%s.%s", name, SUFFIX)
+		// remove file extension
+		if strings.HasSuffix(strings.ToLower(inputName), strings.ToLower(fileExt)) {
+			newName = newName[:len(newName)-len(fileExt)]
+		}
+
+		// check if file extension has been removed, if not, add a suffix
+		if newName == inputName {
+			newName = fmt.Sprintf("%s.%s", inputName, DECOMPRESSED_SUFFIX)
+		}
+
+		// check newName is a valid utf8 string
+		if !utf8.ValidString(newName) {
+			return dst, DEFAULT_DECOMPRESSION_NAME
 		}
 
 		// check if the new filename without the extension is valid and does not violate
 		// any restrictions for the operating system
+		// newNameBytes := []byte(newName)
 		for _, restriction := range namingRestrictions {
-			if restriction.Regex.MatchString(newName) {
-				return dst, DEFAULT_NAME
+			if restriction.Regex.FindStringIndex(newName) != nil {
+				return dst, DEFAULT_DECOMPRESSION_NAME
 			}
 		}
 
-		// if the filename is not ending with the suffix, use the suffix as output name
+		// return the new name
 		return dst, newName
 	}
 
-	return dst, DEFAULT_NAME
+	// return default name and provided directory
+	return dst, DEFAULT_DECOMPRESSION_NAME
 }
