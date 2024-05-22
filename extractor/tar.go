@@ -19,8 +19,9 @@ const FileExtensionTar = "tar"
 
 // magicBytesTar are the magic bytes for tar files
 var magicBytesTar = [][]byte{
-	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x30, 0x30},
-	{0x75, 0x73, 0x74, 0x61, 0x72, 0x00, 0x20, 0x00},
+	[]byte("ustar\x00tar\x00"),
+	[]byte("ustar\x00"),
+	[]byte("ustar  \x00"),
 }
 
 // IsTar checks if the header matches the magic bytes for tar files
