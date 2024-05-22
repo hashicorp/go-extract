@@ -99,7 +99,7 @@ func init() {
 		{"current directory", regexp.MustCompile(`^\.$`)},
 		{"parent directory", regexp.MustCompile(`^\.\.$`)},
 		{"maximum length 255", regexp.MustCompile(`^.{256,}$`)},
-		{"limit to first 255 characters", regexp.MustCompile(`[^\x00-\xFF]`)},
+		{"limit to first 255 ascii characters", regexp.MustCompile(`[^\x00-\xFF]`)},
 		{"exclude line break, feed and tab", regexp.MustCompile(`[\x0a\x0d\x09]`)},
 	}
 
