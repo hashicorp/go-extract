@@ -105,11 +105,9 @@ func init() {
 
 	if runtime.GOOS != "windows" {
 
-		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
+		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: / null byte backslash
 		namingRestrictions = append(namingRestrictions,
-			nameRestriction{"invalid character in filename (unix): null byte", regexp.MustCompile(`[\x00]`)},
-			nameRestriction{"dangerous/confusing ascii characters (unix)", regexp.MustCompile(`[:/\<>|!?*'"&^$]`)},
-			nameRestriction{"dangerous ascii character backtick (unix)", regexp.MustCompile("`")},
+			nameRestriction{"invalid character in filename (unix): null byte, slash, backslash", regexp.MustCompile(`[\x00/\\]`)},
 		)
 
 	}
