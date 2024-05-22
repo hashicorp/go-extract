@@ -98,7 +98,7 @@ func init() {
 		{"empty name", regexp.MustCompile(`^$`)},
 		{"current directory", regexp.MustCompile(`^\.$`)},
 		{"parent directory", regexp.MustCompile(`^\.\.$`)},
-		{"maximum 255 characters", regexp.MustCompile(`^.{256,}$`)},
+		{"maximum length 255", regexp.MustCompile(`^.{256,}$`)},
 		{"limit to first 255 characters", regexp.MustCompile(`[^\x00-\xFF]`)},
 		{"exclude line break, feed and tab", regexp.MustCompile(`[\x0a\x0d\x09]`)},
 	}
@@ -107,9 +107,9 @@ func init() {
 
 		// regex with invalid unix filesystem characters, allowing unicode (128-255), excluding following character: /
 		namingRestrictions = append(namingRestrictions,
-			nameRestriction{"invalid filename (unix): null byte", regexp.MustCompile(`[\x00]`)},
-			nameRestriction{"invalid filename (unix): dangerous ascii characters", regexp.MustCompile(`[:/\<>|!?*'"&^$]`)},
-			nameRestriction{"invalid filename (unix): backticks", regexp.MustCompile("`")},
+			nameRestriction{"invalid character in filename (unix): null byte", regexp.MustCompile(`[\x00]`)},
+			nameRestriction{"dangerous/confusing ascii characters (unix)", regexp.MustCompile(`[:/\<>|!?*'"&^$]`)},
+			nameRestriction{"dangerous ascii character backtick (unix)", regexp.MustCompile("`")},
 		)
 
 	}
