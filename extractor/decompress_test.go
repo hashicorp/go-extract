@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
@@ -99,4 +100,43 @@ func TestDecompress(t *testing.T) {
 			}
 		})
 	}
+}
+
+func FuzzDetermineOutputName(f *testing.F) {
+	cases := []string{
+		"test.gz",
+		"test",
+	}
+	for _, tc := range cases {
+		f.Add(tc)
+	}
+
+	checkedNames := make(map[string]struct{})
+	mu := &sync.Mutex{}
+
+	// perform fuzzing test and ignore errors, looking for panics!
+	f.Fuzz(func(t *testing.T, fName string) {
+
+		// prepare tmp
+		dest := t.TempDir()
+
+		// fuzz function with random data
+		dir, outputName := determineOutputName(dest, fName, ".gz")
+
+		// check if outputName is already checked, then skip
+		if _, ok := checkedNames[outputName]; ok {
+			return
+		}
+
+		// lock and add outputName to checkedNames
+		mu.Lock()
+		checkedNames[outputName] = struct{}{}
+		mu.Unlock()
+
+		// write file to check if outputName is correct determined
+		if err := os.WriteFile(filepath.Join(dir, outputName), []byte("Hello World!"), 0644); err != nil {
+			t.Errorf("os.WriteFile() error = %v", err)
+		}
+
+	})
 }
