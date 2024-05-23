@@ -172,39 +172,37 @@ func determineOutputName(dst string, inputName string, fileExt string) (string, 
 	}
 
 	// is src for decompression a file?
-	if len(inputName) > 0 {
-
-		// start with the input name
-		newName := inputName
-
-		// remove file extension
-		if strings.HasSuffix(strings.ToLower(inputName), strings.ToLower(fileExt)) {
-			newName = newName[:len(newName)-len(fileExt)]
-		}
-
-		// check if file extension has been removed, if not, add a suffix
-		if newName == inputName {
-			newName = fmt.Sprintf("%s.%s", inputName, DECOMPRESSED_SUFFIX)
-		}
-
-		// check newName is a valid utf8 string
-		if !utf8.ValidString(newName) {
-			return dst, DEFAULT_DECOMPRESSION_NAME
-		}
-
-		// check if the new filename without the extension is valid and does not violate
-		// any restrictions for the operating system
-		// newNameBytes := []byte(newName)
-		for _, restriction := range namingRestrictions {
-			if restriction.Regex.FindStringIndex(newName) != nil {
-				return dst, DEFAULT_DECOMPRESSION_NAME
-			}
-		}
-
-		// return the new name
-		return dst, newName
+	if len(inputName) == 0 {
+		return dst, DEFAULT_DECOMPRESSION_NAME
 	}
 
-	// return default name and provided directory
-	return dst, DEFAULT_DECOMPRESSION_NAME
+	// start with the input name
+	newName := inputName
+
+	// remove file extension
+	if strings.HasSuffix(strings.ToLower(inputName), strings.ToLower(fileExt)) {
+		newName = newName[:len(newName)-len(fileExt)]
+	}
+
+	// check if file extension has been removed, if not, add a suffix
+	if newName == inputName {
+		newName = fmt.Sprintf("%s.%s", inputName, DECOMPRESSED_SUFFIX)
+	}
+
+	// check newName is a valid utf8 string
+	if !utf8.ValidString(newName) {
+		return dst, DEFAULT_DECOMPRESSION_NAME
+	}
+
+	// check if the new filename without the extension is valid and does not violate
+	// any restrictions for the operating system
+	// newNameBytes := []byte(newName)
+	for _, restriction := range namingRestrictions {
+		if restriction.Regex.FindStringIndex(newName) != nil {
+			return dst, DEFAULT_DECOMPRESSION_NAME
+		}
+	}
+
+	// return the new name
+	return dst, newName
 }
