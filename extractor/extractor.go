@@ -195,7 +195,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 	// start extraction
 	c.Logger().Info("start extraction", "type", src.Type())
 	var fileCounter int64
-	var extractionSize uint64
+	var extractionSize int64
 
 	for {
 		// check if context is canceled
@@ -265,8 +265,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsRegular():
 
 			// check extraction size
-			extractionSize = extractionSize + uint64(ae.Size())
-			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
+			if err := c.CheckExtractionSize(extractionSize + ae.Size()); err != nil {
 				return handleError(c, td, "max extraction size exceeded", err)
 			}
 
@@ -278,7 +277,10 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			defer fin.Close()
 
 			// create file
-			if err := createFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
+			n, err := createFile(c, dst, ae.Name(), fin, ae.Mode(), c.MaxExtractionSize()-extractionSize)
+			extractionSize = extractionSize + n
+			td.ExtractionSize = extractionSize
+			if err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create safe file", err); err != nil {
@@ -290,8 +292,8 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// store telemetry
-			td.ExtractionSize = int64(extractionSize)
 			td.ExtractedFiles++
+
 			continue
 
 		// its a symlink !!

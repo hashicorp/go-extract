@@ -74,16 +74,11 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 	dst, outputName := determineOutputName(dst, inputName, fmt.Sprintf(".%s", fileExt))
 	c.Logger().Debug("determined output name", "name", outputName)
-	if err := createFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode()); err != nil {
+	n, err := createFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode(), c.MaxExtractionSize())
+	m.ExtractionSize = n
+	if err != nil {
 		return handleError(c, m, "cannot create file", err)
 	}
-
-	// capture telemetry
-	stat, err := os.Stat(filepath.Join(dst, outputName))
-	if err != nil {
-		return handleError(c, m, "cannot stat file", err)
-	}
-	m.ExtractionSize = stat.Size()
 	m.ExtractedFiles++
 
 	// finished
