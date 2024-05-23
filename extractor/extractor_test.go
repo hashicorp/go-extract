@@ -135,8 +135,8 @@ func TestCheckPatterns(t *testing.T) {
 	}
 }
 
-// createFile creates a file with the given data and returns a reader for it.
-func createFile(target string, data []byte) io.Reader {
+// newTestFile creates a file with the given data and returns a reader for it.
+func newTestFile(target string, data []byte) io.Reader {
 
 	// Write the compressed data to the file
 	if err := os.WriteFile(target, data, 0640); err != nil {
