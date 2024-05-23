@@ -11,7 +11,7 @@ import (
 type Target interface {
 
 	// CreateSafeFile creates a file with a specified name and content within a given directory.
-	// The function takes a configuration object, a destination directory, a name for the file, 
+	// The function takes a configuration object, a destination directory, a name for the file,
 	// a reader for the file content, and a file mode.
 	//
 	// The dstDir parameter specifies the directory where the file should be created. If dstDir is empty,

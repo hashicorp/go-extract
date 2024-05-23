@@ -18,9 +18,6 @@ import (
 // now is a function point that returns time.Now to the caller.
 var now = time.Now
 
-// unpackTarget is the target that is used for extraction
-var unpackTarget target.Target
-
 // SeekerReaderAt is a struct that combines the io.ReaderAt and io.Seeker interfaces
 type SeekerReaderAt interface {
 	io.ReaderAt
@@ -251,7 +248,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsDir():
 
 			// handle directory
-			if err := unpackTarget.CreateSafeDir(c, dst, ae.Name(), ae.Mode()); err != nil {
+			if err := createDir(c, dst, ae.Name(), ae.Mode()); err != nil {
 				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
 					return err
 				}
@@ -281,7 +278,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			defer fin.Close()
 
 			// create file
-			if err := unpackTarget.CreateSafeFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
+			if err := createFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create safe file", err); err != nil {
@@ -319,7 +316,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// create link
-			if err := unpackTarget.CreateSafeSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
+			if err := createSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(c, td, "failed to create safe symlink", err); err != nil {
