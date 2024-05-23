@@ -3,14 +3,12 @@ package target
 import (
 	"io"
 	"io/fs"
-
-	"github.com/hashicorp/go-extract/config"
 )
 
 // Target specifies all function that are needed to be implemented to extract contents from an archive
 type Target interface {
 
-	// CreateSafeFile creates a file with a specified name and content within a given directory.
+	// CreateFile creates a file with a specified name and content within a given directory.
 	// The function takes a configuration object, a destination directory, a name for the file,
 	// a reader for the file content, and a file mode.
 	//
@@ -30,9 +28,9 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the file or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
+	CreateFile(dstBase string, newFileName string, reader io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error)
 
-	// CreateSafeDir creates a directory with a specified name within a given directory.
+	// CreateDir creates a directory with a specified name within a given directory.
 	// The function takes a configuration object, a destination directory, a name for the directory, and a file mode.
 	//
 	// The dstDir parameter specifies the directory where the new directory should be created. If dstDir is empty,
@@ -49,9 +47,9 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the directory or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeDir(config *config.Config, dstDir string, dirName string, mode fs.FileMode) error
+	CreateDir(dstBase string, newDir string, mode fs.FileMode) error
 
-	// CreateSafeSymlink creates a symbolic link with a specified name and target within a given directory.
+	// CreateSymlink creates a symbolic link with a specified name and target within a given directory.
 	// The function takes a configuration object, a destination directory, a name for the symlink, and a target for the symlink.
 	//
 	// The dstDir parameter specifies the directory where the symlink should be created. If dstDir is empty,
@@ -68,5 +66,11 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the symlink or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
+	CreateSymlink(dstBase string, name string, target string, overwrite bool) error
+
+	// Lstat returns file information for the specified file or directory.
+	Lstat(path string) (fs.FileInfo, error)
+
+	// Readlink returns the target of a symbolic link.
+	Readlink(path string) (string, error)
 }
