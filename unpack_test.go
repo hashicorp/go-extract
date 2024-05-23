@@ -499,7 +499,7 @@ func TestTelemetryHook(t *testing.T) {
 			name:                  "normal gzip with file and decompression target-name in sub-dir failing",
 			inputGenerator:        gen1024ByteGzip,
 			inputName:             "GzipWithFile.gz",
-			dst:                   "sub/target", // important: the gzip decompression has a filename das dst
+			dst:                   "sub/target", // important: the gzip decompression has a filename as dst
 			WithContinueOnError:   false,
 			WithCreateDestination: false,
 			WithMaxExtractionSize: 1024,
@@ -694,7 +694,7 @@ func TestTelemetryHook(t *testing.T) {
 
 			// compare collected and expected ExtractedFiles
 			if td.ExtractedFiles != tc.expectedTelemetryData.ExtractedFiles {
-				t.Errorf("test case %d failed: %s (ExtractedFiles)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractedFiles, td.ExtractedFiles)
+				t.Errorf("test case %d failed: %s (ExtractedFiles)\nexpected: %v\ngot: %v\n%v", i, tc.name, tc.expectedTelemetryData.ExtractedFiles, td.ExtractedFiles, td)
 			}
 
 			// compare collected and expected ExtractionErrors
