@@ -84,7 +84,7 @@ func TestDecompress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", tt.ext))
-			r := createFile(testFile, tt.comp(testTar))
+			r := newTestFile(testFile, tt.comp(testTar))
 			defer func() {
 				if f, ok := r.(io.Closer); ok {
 					f.Close()

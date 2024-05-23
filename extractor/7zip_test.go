@@ -54,7 +54,7 @@ func TestUnpack7zip(t *testing.T) {
 	}{
 		{
 			name:        "unpack 7zip",
-			generator:   createFile,
+			generator:   newTestFile,
 			expectError: false,
 		},
 		{
