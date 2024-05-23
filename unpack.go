@@ -18,9 +18,9 @@ import (
 func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
 
 	// check if type is set
-	if len(c.ExtractType()) > 0 {
-		if ae, found := extractor.AvailableExtractors[c.ExtractType()]; found {
-			if c.ExtractType() == extractor.FileExtensionTarGZip {
+	if et := c.ExtractType(); len(et) > 0 {
+		if ae, found := extractor.AvailableExtractors[et]; found {
+			if et == extractor.FileExtensionTarGZip {
 				c.SetNoUntarAfterDecompression(false)
 			}
 			return ae.Unpacker(ctx, src, dst, c)
@@ -42,8 +42,8 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 	}
 
 	// find extractor by file extension
-	if fin, ok := src.(*os.File); ok {
-		if unpacker := GetUnpackFunctionByFileName(fin.Name()); unpacker != nil {
+	if f, ok := src.(*os.File); ok {
+		if unpacker := GetUnpackFunctionByFileName(f.Name()); unpacker != nil {
 			return unpacker(ctx, reader, dst, c)
 		}
 	}
