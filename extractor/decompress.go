@@ -74,7 +74,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 	dst, outputName := determineOutputName(dst, inputName, fmt.Sprintf(".%s", fileExt))
 	c.Logger().Debug("determined output name", "name", outputName)
-	if err := unpackTarget.CreateSafeFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode()); err != nil {
+	if err := createFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode()); err != nil {
 		return handleError(c, m, "cannot create file", err)
 	}
 
