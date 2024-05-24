@@ -88,16 +88,16 @@ func TestUnpackBzip2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// create a temporary file
 			tmpDir := t.TempDir()
-			target := filepath.Join(tmpDir, tt.testFileName)
+			tFile := filepath.Join(tmpDir, tt.testFileName)
 
 			// generate the file
-			src := tt.generator(target, tt.testData)
+			src := tt.generator(tFile, tt.testData)
 			if closer, ok := src.(io.Closer); ok {
 				defer closer.Close()
 			}
 
 			// Unpack the file
-			err := UnpackBzip2(context.Background(), src, tmpDir, tt.cfg)
+			err := UnpackBzip2(context.Background(), testingTarget, tmpDir, src, tt.cfg)
 			if err != nil {
 				t.Errorf("%v: UnpackBzip2() error = %v", tt.name, err)
 				return

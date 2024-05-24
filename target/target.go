@@ -30,7 +30,7 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the file or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeFile(config *config.Config, dstDir string, name string, reader io.Reader, mode fs.FileMode) error
+	CreateSafeFile(dstDir string, name string, reader io.Reader, mode fs.FileMode, config *config.Config) error
 
 	// CreateSafeDir creates a directory with a specified name within a given directory.
 	// The function takes a configuration object, a destination directory, a name for the directory, and a file mode.
@@ -49,7 +49,7 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the directory or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeDir(config *config.Config, dstDir string, dirName string, mode fs.FileMode) error
+	CreateSafeDir(dstDir string, dirName string, mode fs.FileMode, config *config.Config) error
 
 	// CreateSafeSymlink creates a symbolic link with a specified name and target within a given directory.
 	// The function takes a configuration object, a destination directory, a name for the symlink, and a target for the symlink.
@@ -68,5 +68,5 @@ type Target interface {
 	//
 	// The function returns an error if there's a problem creating the symlink or the necessary directories.
 	// If the function completes successfully, it returns nil.
-	CreateSafeSymlink(config *config.Config, dstDir string, name string, linkTarget string) error
+	CreateSafeSymlink(dstDir string, name string, linkTarget string, config *config.Config) error
 }

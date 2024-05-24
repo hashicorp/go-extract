@@ -145,7 +145,7 @@ func getSymlinkTarget(path string) (string, error) {
 // does not exist and config.CreateDestination() returns true, it will be created with the
 // config.CustomCreateDirMode(). The mode parameter is the file mode that should be set on the directory.
 // If the directory already exists, the mode will be set on the directory.
-func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string, mode fs.FileMode) error {
+func (o *OS) CreateSafeDir(dstBase string, newDir string, mode fs.FileMode, config *config.Config) error {
 
 	// check if dst exist
 	if len(dstBase) > 0 {
@@ -189,7 +189,7 @@ func (o *OS) CreateSafeDir(config *config.Config, dstBase string, newDir string,
 // config.CustomCreateDirMode(). The mode parameter is the file mode that is set on the file.
 // If the path of the file contains path traversal, an error should be returned. If the path *to the file* (not dstBase) does not
 // exist, the directories is created with the config.CustomCreateDirMode() by the implementation.
-func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName string, reader io.Reader, mode fs.FileMode) error {
+func (o *OS) CreateSafeFile(dstBase string, newFileName string, reader io.Reader, mode fs.FileMode, cfg *config.Config) error {
 
 	// check if a name is provided
 	if len(newFileName) == 0 {
@@ -199,7 +199,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	fDir := filepath.Dir(newFileName)
-	if err := o.CreateSafeDir(cfg, dstBase, fDir, cfg.CustomCreateDirMode()); err != nil {
+	if err := o.CreateSafeDir(dstBase, fDir, cfg.CustomCreateDirMode(), cfg); err != nil {
 		return fmt.Errorf("cannot create directory (%s): %s", fDir, err)
 	}
 
@@ -254,7 +254,7 @@ func (o *OS) CreateSafeFile(cfg *config.Config, dstBase string, newFileName stri
 // is returned. If the path *to the symlink* (not dstBase) does not exist, the directories
 // is created with the config.CustomCreateDirMode(). If the symlink already exists and
 // config.Overwrite() returns false, an error is returned.
-func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkName string, linkTarget string) error {
+func (o *OS) CreateSafeSymlink(dstBase string, newLinkName string, linkTarget string, config *config.Config) error {
 
 	// check if symlink extraction is denied
 	if config.DenySymlinkExtraction() {
@@ -285,7 +285,7 @@ func (o *OS) CreateSafeSymlink(config *config.Config, dstBase string, newLinkNam
 	newLinkDirectory := filepath.Dir(newLinkName)
 
 	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(config, dstBase, newLinkDirectory, config.CustomCreateDirMode()); err != nil {
+	if err := o.CreateSafeDir(dstBase, newLinkDirectory, config.CustomCreateDirMode(), config); err != nil {
 		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
 	}
 

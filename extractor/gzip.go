@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // magicBytesGZip are the magic bytes for gzip compressed files
@@ -26,8 +27,8 @@ func IsGZip(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.
-func UnpackGZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressGZipStream, FileExtensionGZip)
+func UnpackGZip(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
+	return decompress(ctx, t, dst, src, c, decompressGZipStream, FileExtensionGZip)
 }
 
 // decompressGZipStream returns an io.Reader that decompresses src with gzip algorithm

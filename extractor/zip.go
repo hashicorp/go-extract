@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -27,7 +28,7 @@ func IsZip(data []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
-func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
+func UnpackZip(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
 
 	// prepare telemetry data collection and emit
 	td := &telemetry.Data{ExtractedType: FileExtensionZIP}
@@ -36,7 +37,7 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config)
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpackZip(ctx, sra, dst, c, td)
+		return unpackZip(ctx, t, sra, dst, c, td)
 	}
 
 	// convert
@@ -51,12 +52,12 @@ func UnpackZip(ctx context.Context, src io.Reader, dst string, c *config.Config)
 		}
 	}()
 
-	return unpackZip(ctx, sra, dst, c, td)
+	return unpackZip(ctx, t, sra, dst, c, td)
 }
 
 // unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpackZip(ctx context.Context, t target.Target, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	c.Logger().Info("extracting zip")
@@ -80,7 +81,7 @@ func unpackZip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Co
 	if err != nil {
 		return handleError(c, m, "cannot create zip reader", err)
 	}
-	return extract(ctx, &zipWalker{zr: reader}, dst, c, m)
+	return extract(ctx, t, dst, &zipWalker{zr: reader}, c, m)
 }
 
 // zipWalker is a walker for zip files

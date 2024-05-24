@@ -9,6 +9,7 @@ import (
 
 	"github.com/bodgit/sevenzip"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -26,7 +27,7 @@ func Is7zip(data []byte) bool {
 }
 
 // Unpack7Zip sets a timeout for the ctx and starts the 7zip extraction from src to dst.
-func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
+func Unpack7Zip(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
 
 	// prepare telemetry data collection and emit
 	td := &telemetry.Data{ExtractedType: FileExtension7zip}
@@ -35,7 +36,7 @@ func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpack7zip(ctx, sra, dst, c, td)
+		return unpack7zip(ctx, t, sra, dst, c, td)
 	}
 
 	// convert
@@ -50,11 +51,11 @@ func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config
 		}
 	}()
 
-	return unpack7zip(ctx, sra, dst, c, td)
+	return unpack7zip(ctx, t, sra, dst, c, td)
 }
 
 // unpack7zip checks ctx for cancellation, while it reads a 7zip file from src and extracts the contents to dst.
-func unpack7zip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpack7zip(ctx context.Context, t target.Target, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	c.Logger().Info("extracting 7zip")
@@ -79,7 +80,7 @@ func unpack7zip(ctx context.Context, src SeekerReaderAt, dst string, c *config.C
 		return handleError(c, m, "cannot create 7zip reader", err)
 	}
 
-	return extract(ctx, &sevenZipWalker{reader, 0}, dst, c, m)
+	return extract(ctx, t, dst, &sevenZipWalker{reader, 0}, c, m)
 }
 
 // sevenZipWalker is a walker for 7zip files

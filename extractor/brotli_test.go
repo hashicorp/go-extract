@@ -76,7 +76,7 @@ func TestUnpackBrotli(t *testing.T) {
 			}
 
 			// Unpack the compressed file
-			err := UnpackBrotli(context.Background(), reader, tmpDir, tt.cfg)
+			err := UnpackBrotli(context.Background(), testingTarget, tmpDir, reader, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("unpackBrotli() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -91,7 +91,7 @@ func TestUnpackXz(t *testing.T) {
 			}
 
 			// unpack the file
-			err := UnpackXz(ctx, reader, tmpDir, tt.cfg)
+			err := UnpackXz(ctx, testingTarget, tmpDir, reader, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnpackXz() error = %v; wantErr %v", err, tt.wantErr)
 			}

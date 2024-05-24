@@ -98,7 +98,7 @@ func TestUnpackZstd(t *testing.T) {
 			}
 
 			// unpack
-			if err := UnpackZstd(ctx, src, tmpDir, tt.cfg); (err != nil) != tt.wantErr {
+			if err := UnpackZstd(ctx, testingTarget, tmpDir, src, tt.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("UnpackZstandard() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

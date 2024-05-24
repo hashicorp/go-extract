@@ -13,7 +13,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
+
+var testingTarget = target.NewOS()
 
 var casesZip = []struct {
 	name              string
@@ -195,7 +198,7 @@ func TestZipUnpack_file(t *testing.T) {
 			}
 			defer input.Close()
 			want := tc.expectError
-			err = UnpackZip(context.Background(), input, testDir, config.NewConfig(tc.opts...))
+			err = UnpackZip(context.Background(), testingTarget, testDir, input, config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -223,7 +226,7 @@ func TestZipUnpack_mem(t *testing.T) {
 				t.Errorf(err.Error())
 			}
 			want := tc.expectError
-			err := UnpackZip(context.Background(), &buf, testDir, config.NewConfig(tc.opts...))
+			err := UnpackZip(context.Background(), testingTarget, testDir, &buf, config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -254,7 +257,7 @@ func TestZipUnpack_seeker(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
-			err := UnpackZip(context.Background(), br, testDir, config.NewConfig(tc.opts...))
+			err := UnpackZip(context.Background(), testingTarget, testDir, br, config.NewConfig(tc.opts...))
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -430,7 +433,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 			input, _ := os.Open(tFile)
 			defer input.Close()
 			// perform test
-			err := UnpackZip(context.Background(), input, testDir, config.NewConfig())
+			err := UnpackZip(context.Background(), testingTarget, testDir, input, config.NewConfig())
 			if err == nil {
 				t.Errorf("test case %d failed: test %s\n%s", i, name, err)
 			}

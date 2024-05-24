@@ -12,12 +12,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
 type decompressionFunction func(io.Reader, *config.Config) (io.Reader, error)
 
-func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config, decom decompressionFunction, fileExt string) error {
+func decompress(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config, decom decompressionFunction, fileExt string) error {
 
 	// prepare telemetry capturing
 	// remark: do not defer TelemetryHook here, bc/ in case of tar.<compression>, the
@@ -64,7 +65,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	checkUntar := !c.NoUntarAfterDecompression()
 	if checkUntar && IsTar(headerBytes) {
 		m.ExtractedType = fmt.Sprintf("tar.%s", fileExt) // combine types
-		return unpackTar(ctx, headerReader, dst, c, m)
+		return unpackTar(ctx, t, headerReader, dst, c, m)
 	}
 
 	// determine name and decompress content
@@ -74,7 +75,7 @@ func decompress(ctx context.Context, src io.Reader, dst string, c *config.Config
 	}
 	dst, outputName := determineOutputName(dst, inputName, fmt.Sprintf(".%s", fileExt))
 	c.Logger().Debug("determined output name", "name", outputName)
-	if err := createFile(c, dst, outputName, headerReader, c.CustomDecompressFileMode()); err != nil {
+	if err := createFile(t, dst, outputName, headerReader, c.CustomDecompressFileMode(), c); err != nil {
 		return handleError(c, m, "cannot create file", err)
 	}
 

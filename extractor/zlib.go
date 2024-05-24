@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // magicBytesZlib is the magic bytes for Zlib files.
@@ -30,8 +31,8 @@ func IsZlib(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
-func UnpackZlib(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressZlibStream, FileExtensionZlib)
+func UnpackZlib(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
+	return decompress(ctx, t, dst, src, c, decompressZlibStream, FileExtensionZlib)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm

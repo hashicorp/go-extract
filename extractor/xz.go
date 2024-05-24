@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/ulikunitz/xz"
 )
 
@@ -23,8 +24,8 @@ func IsXz(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the xz decompression from src to dst.
-func UnpackXz(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressXzStream, FileExtensionXz)
+func UnpackXz(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
+	return decompress(ctx, t, dst, src, c, decompressXzStream, FileExtensionXz)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with xz algorithm

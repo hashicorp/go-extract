@@ -6,6 +6,7 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // FileExtensionBrotli is the file extension for brotli files
@@ -17,8 +18,8 @@ func IsBrotli(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the brotli decompression from src to dst.
-func UnpackBrotli(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressBrotliStream, "br")
+func UnpackBrotli(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
+	return decompress(ctx, t, dst, src, c, decompressBrotliStream, "br")
 }
 
 // decompressBrotliStream returns an io.Reader that decompresses src with brotli algorithm
