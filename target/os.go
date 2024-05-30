@@ -22,36 +22,36 @@ func NewOS() *OS {
 	return os
 }
 
-// securityCheckPath checks if the targetDirectory contains path traversal
-// and if the path contains a symlink. The function returns an error if the
-// path contains path traversal or if a symlink is detected. If the path
-// contains a symlink and config.FollowSymlinks() returns true, a warning is
+// securityCheckPath checks if path contains path traversal and if the path
+// contains a symlink along the directories. The function returns an error if
+// the path contains path traversal or if a symlink is detected. If the path
+// contains a symlink and cfg.FollowSymlinks() returns true, a warning is
 // logged and the function continues. If the path contains a symlink and
-// config.FollowSymlinks() returns false, an error is returned.
-func securityCheckPath(cfg *config.Config, dst string, target string) error {
+// cfg.FollowSymlinks() returns false, an error is returned.
+func securityCheckPath(cfg *config.Config, dst string, path string) error {
 
 	// clean the target
-	target = filepath.Clean(target)
+	path = filepath.Clean(path)
 
 	// check if dstBase is empty, then targetDirectory should not be an absolute path
 	if len(dst) == 0 {
-		if filepath.IsAbs(target) {
-			return fmt.Errorf("absolute path detected (%s)", target)
+		if filepath.IsAbs(path) {
+			return fmt.Errorf("absolute path detected (%s)", path)
 		}
 	}
 
 	// get relative path from base to new directory target
-	rel, err := filepath.Rel(dst, filepath.Join(dst, target))
+	rel, err := filepath.Rel(dst, filepath.Join(dst, path))
 	if err != nil {
 		return fmt.Errorf("failed to get relative path (%s)", err)
 	}
 	// check if the relative path is local
 	if strings.HasPrefix(rel, "..") {
-		return fmt.Errorf("path traversal detected (%s)", target)
+		return fmt.Errorf("path traversal detected (%s)", path)
 	}
 
 	// check each dir in path
-	targetPathElements := strings.Split(target, string(os.PathSeparator))
+	targetPathElements := strings.Split(path, string(os.PathSeparator))
 	for i := 0; i < len(targetPathElements); i++ {
 
 		// assemble path
