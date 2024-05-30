@@ -64,7 +64,7 @@ func TestUnpackBzip2(t *testing.T) {
 			testFileName: "test.bz2",
 			expectedName: "test",
 			cfg:          config.NewConfig(),
-			generator:    createFile,
+			generator:    newTestFile,
 			testData:     compressBzip2(testData),
 		},
 		{
@@ -72,7 +72,7 @@ func TestUnpackBzip2(t *testing.T) {
 			testFileName: "test",
 			expectedName: "test.decompressed",
 			cfg:          config.NewConfig(),
-			generator:    createFile,
+			generator:    newTestFile,
 			testData:     compressBzip2(testData),
 		},
 		{
