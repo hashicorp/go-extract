@@ -31,19 +31,19 @@ func IsTar(data []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func UnpackTar(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
+func UnpackTar(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
 
 	// prepare telemetry capturing
 	td := &telemetry.Data{ExtractedType: FileExtensionTar}
-	defer c.TelemetryHook()(ctx, td)
+	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// prepare reader
-	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
+	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(td, limitedReader)
 
 	// start extraction
-	return unpackTar(ctx, t, limitedReader, dst, c, td)
+	return unpackTar(ctx, t, limitedReader, dst, cfg, td)
 }
 
 // unpackTar extracts the tar archive from src to dst

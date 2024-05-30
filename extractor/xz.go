@@ -24,11 +24,11 @@ func IsXz(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the xz decompression from src to dst.
-func UnpackXz(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
-	return decompress(ctx, t, dst, src, c, decompressXzStream, FileExtensionXz)
+func UnpackXz(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressXzStream, FileExtensionXz)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with xz algorithm
-func decompressXzStream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressXzStream(src io.Reader) (io.Reader, error) {
 	return xz.NewReader(src)
 }

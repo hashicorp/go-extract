@@ -57,10 +57,10 @@ func UnpackZip(ctx context.Context, t target.Target, dst string, src io.Reader, 
 
 // unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZip(ctx context.Context, t target.Target, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpackZip(ctx context.Context, t target.Target, src SeekerReaderAt, dst string, cfg *config.Config, m *telemetry.Data) error {
 
 	// log extraction
-	c.Logger().Info("extracting zip")
+	cfg.Logger().Info("extracting zip")
 
 	// check if src is a seeker and readerAt
 	s, _ := src.(io.Seeker)
@@ -69,19 +69,19 @@ func unpackZip(ctx context.Context, t target.Target, src SeekerReaderAt, dst str
 	// get size of input and check if it exceeds maximum input size
 	size, err := s.Seek(0, io.SeekEnd)
 	if err != nil {
-		return handleError(c, m, "cannot seek to end of reader", err)
+		return handleError(cfg, m, "cannot seek to end of reader", err)
 	}
 	m.InputSize = size
-	if c.MaxInputSize() != -1 && size > c.MaxInputSize() {
-		return handleError(c, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
+	if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
+		return handleError(cfg, m, "cannot unpack zip", fmt.Errorf("input size exceeds maximum input size"))
 	}
 
 	// create zip reader and extract
 	reader, err := zip.NewReader(ra, size)
 	if err != nil {
-		return handleError(c, m, "cannot create zip reader", err)
+		return handleError(cfg, m, "cannot create zip reader", err)
 	}
-	return extract(ctx, t, dst, &zipWalker{zr: reader}, c, m)
+	return extract(ctx, t, dst, &zipWalker{zr: reader}, cfg, m)
 }
 
 // zipWalker is a walker for zip files

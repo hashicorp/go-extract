@@ -31,11 +31,11 @@ func IsZlib(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
-func UnpackZlib(ctx context.Context, t target.Target, dst string, src io.Reader, c *config.Config) error {
-	return decompress(ctx, t, dst, src, c, decompressZlibStream, FileExtensionZlib)
+func UnpackZlib(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressZlibStream, FileExtensionZlib)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
-func decompressZlibStream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressZlibStream(src io.Reader) (io.Reader, error) {
 	return zlib.NewReader(src)
 }
