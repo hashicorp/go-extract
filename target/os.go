@@ -5,10 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/hashicorp/go-extract/config"
 )
 
 // OS is the struct type that holds all information for interacting with the filesystem
@@ -22,298 +18,91 @@ func NewOS() *OS {
 	return os
 }
 
-// securityCheckPath checks if path contains path traversal and if the path
-// contains a symlink along the directories. The function returns an error if
-// the path contains path traversal or if a symlink is detected. If the path
-// contains a symlink and cfg.FollowSymlinks() returns true, a warning is
-// logged and the function continues. If the path contains a symlink and
-// cfg.FollowSymlinks() returns false, an error is returned.
-func securityCheckPath(cfg *config.Config, dst string, path string) error {
-
-	// clean the target
-	path = filepath.Clean(path)
-
-	// check if dstBase is empty, then targetDirectory should not be an absolute path
-	if len(dst) == 0 {
-		if filepath.IsAbs(path) {
-			return fmt.Errorf("absolute path detected (%s)", path)
-		}
-	}
-
-	// get relative path from base to new directory target
-	rel, err := filepath.Rel(dst, filepath.Join(dst, path))
-	if err != nil {
-		return fmt.Errorf("failed to get relative path (%s)", err)
-	}
-	// check if the relative path is local
-	if strings.HasPrefix(rel, "..") {
-		return fmt.Errorf("path traversal detected (%s)", path)
-	}
-
-	// check each dir in path
-	targetPathElements := strings.Split(path, string(os.PathSeparator))
-	for i := 0; i < len(targetPathElements); i++ {
-
-		// assemble path
-		subDirs := filepath.Join(targetPathElements[0 : i+1]...)
-		checkDir := filepath.Join(dst, subDirs)
-
-		// check if its a proper path
-		if len(checkDir) == 0 {
-			continue
-		}
-
-		if checkDir == "." {
-			continue
-		}
-
-		// perform check if its a proper dir
-		if _, err := os.Lstat(checkDir); err != nil {
-			if !os.IsNotExist(err) {
-				return fmt.Errorf("invalid path")
-			}
-
-			// get out of the loop, bc/ don't check paths
-			// for symlinks that does not exist
-			if os.IsNotExist(err) {
-				break
-			}
-		}
-
-		// check for symlink
-		if isSymlink(checkDir) {
-			if cfg.FollowSymlinks() {
-				cfg.Logger().Warn("following symlink", "sub-dir", subDirs)
-			} else {
-				target, err := getSymlinkTarget(checkDir)
-				if err != nil {
-					return fmt.Errorf("symlink in path: %s -> (error: %w)", checkDir, err)
-				} else {
-					return fmt.Errorf(fmt.Sprintf("symlink in path: %s -> %s", checkDir, target))
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// checkForSymlinkInPath checks if path contains a symlink
-func isSymlink(path string) bool {
-
-	// ignore empty checks
-	if len(path) == 0 {
-		return false
-	}
-
-	// don't check cwd
-	if path == "." {
-		return false
-	}
-
-	// perform check
-	if stat, err := os.Lstat(path); !os.IsNotExist(err) {
-		if stat.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return true
-		}
-	}
-
-	// no symlink found within path
-	return false
-}
-
-// getSymlinkTarget returns the target of a symlink
-func getSymlinkTarget(path string) (string, error) {
-
-	// check if path is a symlink
-	if !isSymlink(path) {
-		return "", fmt.Errorf("not a symlink")
-	}
-
-	// get target
-	target, err := os.Readlink(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to read symlink target (%s)", err)
-	}
-
-	return target, nil
-
-}
-
-// CreateSafeDir creates name in dst and checks for path traversal in directory name.
-// If dst is empty, the directory will be created in the current working directory. If dst
-// does not exist and cfg.CreateDestination() returns true, it will be created with the
-// cfg.CustomCreateDirMode(). The mode parameter is the file mode that should be set on the directory.
-// If the directory already exists, the mode will be set on the directory.
-func (o *OS) CreateSafeDir(dst string, name string, mode fs.FileMode, cfg *config.Config) error {
-
-	// check if dst exist
-	if len(dst) > 0 {
-		if _, err := os.Stat(dst); os.IsNotExist(err) {
-			if cfg.CreateDestination() {
-				if err := os.MkdirAll(dst, cfg.CustomCreateDirMode().Perm()); err != nil {
-					return fmt.Errorf("failed to create destination directory %s", err)
-				}
-				// ensure file permission is set regardless the umask
-				if err := os.Chmod(dst, cfg.CustomCreateDirMode().Perm()); err != nil {
-					return fmt.Errorf("failed to set folder permission (%s)", err)
-				}
-				cfg.Logger().Info("created destination directory", "path", dst)
-			} else {
-				return fmt.Errorf("destination does not exist (%s)", dst)
-			}
-		}
-	}
-
-	// no action needed
-	if name == "." {
-		return nil
-	}
-
-	if err := securityCheckPath(cfg, dst, name); err != nil {
-		return fmt.Errorf("security check path failed: %w", err)
-	}
+// CreateDir creates a directory at the specified path with the specified mode. If the directory already
+// exists, nothing is done.
+func (o *OS) CreateDir(path string, mode fs.FileMode) error {
 
 	// create dirs
-	finalDirectoryPath := filepath.Join(dst, name)
-	if err := os.MkdirAll(finalDirectoryPath, mode.Perm()); err != nil {
+	if err := os.MkdirAll(path, mode.Perm()); err != nil {
 		return fmt.Errorf("failed to create directory (%s)", err)
 	}
 
 	return nil
 }
 
-// CreateSafeFile creates name in dst with content from reader src and file
-// headers as provided in mode. If dst is empty, the file will be created in the current
-// working directory. If dst does not exist and cfg.CreateDestination() returns true, it will be created with the
-// cfg.CustomCreateDirMode(). The mode parameter is the file mode that is set on the file.
-// If the path of the file contains path traversal, an error should be returned. If the path *to the file* (not dst) does not
-// exist, the directories is created with the cfg.CustomCreateDirMode() by the implementation.
-func (o *OS) CreateSafeFile(dst string, name string, src io.Reader, mode fs.FileMode, cfg *config.Config) error {
-
-	// check if a name is provided
-	if len(name) == 0 {
-		return fmt.Errorf("cannot create file without name")
-	}
-
-	// check for traversal in file name, ensure the directory exist and is safe to write to.
-	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
-	fDir := filepath.Dir(name)
-	if err := o.CreateSafeDir(dst, fDir, cfg.CustomCreateDirMode(), cfg); err != nil {
-		return fmt.Errorf("cannot create directory (%s): %s", fDir, err)
-	}
-
+// CreateFile creates a file at the specified path with src as content.
+// The mode parameter is the file mode that should be set on the file. If the file already exists and
+// overwrite is false, an error should be returned. If the file does not exist, it should be created.
+// The size of the file should not exceed maxSize. If the file is created successfully, the number of bytes written
+// should be returned. If an error occurs, the number of bytes written should be returned along with the error.
+// If maxSize < 0, the file size is not limited.
+func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	// Check for path validity and if file existence+overwrite
-	targetFile := filepath.Join(dst, name)
-	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
 
 		// something wrong with path
 		if err != nil {
-			return fmt.Errorf("invalid path (%s): %s", name, err)
+			return 0, fmt.Errorf("invalid path: %s", err)
 		}
 
 		// check for overwrite
-		if !cfg.Overwrite() {
-			return fmt.Errorf("file already exists (%s)", name)
+		if !overwrite {
+			return 0, fmt.Errorf("file already exists")
 		}
 	}
 
 	// create dst file
-	dstFile, err := os.OpenFile(targetFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
+	dstFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
 	if err != nil {
-		return fmt.Errorf("failed to create file (%s)", err)
+		return 0, fmt.Errorf("failed to create file: %s", err)
 	}
 	defer func() {
 		dstFile.Close()
 	}()
 
-	// check if a max extraction size is set
-	if cfg.MaxExtractionSize() >= 0 {
-
-		// encapsulate reader with limit reader
-		limitedWriter := NewLimitErrorWriter(dstFile, cfg.MaxExtractionSize())
-		if _, err = io.Copy(limitedWriter, src); err != nil {
-			return fmt.Errorf("failed to write file (%s)", err)
-		}
-
-	} else {
-
-		// write data straight to file
-		if _, err = io.Copy(dstFile, src); err != nil {
-			return fmt.Errorf("failed to write file (%s)", err)
-		}
+	// write data to file
+	writer := limitWriter(dstFile, maxSize)
+	n, err := io.Copy(writer, src)
+	if err != nil {
+		return n, fmt.Errorf("failed to write file: %s", err)
 	}
 
-	return nil
+	return n, err
 }
 
-// CreateSymlink creates in dstBase a symlink newLinkName with destination linkTarget.
-// If dstBase is empty, the symlink is created in the current working directory. If dstBase
-// does not exist and config.CreateDestination() returns true, it will be created with the
-// config.CustomCreateDirMode(). If the path of the symlink contains path traversal, an error
-// is returned. If the path *to the symlink* (not dstBase) does not exist, the directories
-// is created with the config.CustomCreateDirMode(). If the symlink already exists and
-// config.Overwrite() returns false, an error is returned.
-func (o *OS) CreateSafeSymlink(dstBase string, newLinkName string, linkTarget string, config *config.Config) error {
-
-	// check if symlink extraction is denied
-	if config.DenySymlinkExtraction() {
-		config.Logger().Info("skipped symlink extraction", newLinkName, linkTarget)
-		return nil
-	}
-
-	// check if a name is provided
-	if len(newLinkName) == 0 {
-		return fmt.Errorf("cannot create symlink without name")
-	}
-
-	// Check if link target is absolute path
-	if filepath.IsAbs(linkTarget) {
-
-		// continue on error?
-		if config.ContinueOnError() {
-			config.Logger().Info("skip link target with absolute path", "link target", linkTarget)
-			return nil
-		}
-
-		// return error
-		return fmt.Errorf("symlink with absolute path as target (%s)", linkTarget)
-	}
-
-	// clean filename
-	newLinkName = filepath.Clean(newLinkName)
-	newLinkDirectory := filepath.Dir(newLinkName)
-
-	// create target dir && check for traversal in file name
-	if err := o.CreateSafeDir(dstBase, newLinkDirectory, config.CustomCreateDirMode(), config); err != nil {
-		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", newLinkDirectory, string(os.PathSeparator)), err)
-	}
-
-	// check link target for traversal
-	linkTargetCleaned := filepath.Join(newLinkDirectory, linkTarget)
-	if err := securityCheckPath(config, dstBase, linkTargetCleaned); err != nil {
-		return fmt.Errorf("symlink target security check path failed (%s)", linkTarget)
-	}
-
-	targetFile := filepath.Join(dstBase, newLinkName)
+// CreateSymlink creates a symbolic link from newname to oldname. If
+// newname already exists and overwrite is false, an error should be returned.
+func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error {
 
 	// Check for file existence and if it should be overwritten
-	if _, err := os.Lstat(targetFile); !os.IsNotExist(err) {
-		if !config.Overwrite() {
-			return fmt.Errorf("symlink already exist (%s)", newLinkName)
+	if _, err := os.Lstat(newname); !os.IsNotExist(err) {
+		if !overwrite {
+			return fmt.Errorf("file already exist")
 		}
 
 		// delete existing link
-		config.Logger().Warn("overwrite symlink", "name", newLinkName)
-		if err := os.Remove(targetFile); err != nil {
-			return fmt.Errorf("failed to remove existing symlink (%s)", err)
+		if err := os.Remove(newname); err != nil {
+			return fmt.Errorf("failed to overwrite file: %s", err)
 		}
 	}
 
 	// create link
-	if err := os.Symlink(linkTarget, targetFile); err != nil {
-		return fmt.Errorf("failed to create symlink (%s)", err)
+	if err := os.Symlink(oldname, newname); err != nil {
+		return fmt.Errorf("failed to create symlink: %s", err)
 	}
 
 	return nil
+
+}
+
+// Lstat returns the FileInfo structure describing the named file.
+// If there is an error, it will be of type *PathError.
+func (o *OS) Lstat(name string) (fs.FileInfo, error) {
+	return os.Lstat(name)
+}
+
+// Readlink returns the destination of the named symbolic link.
+// If there is an error, it will be of type *PathError.
+func (o *OS) Readlink(name string) (string, error) {
+	return os.Readlink(name)
 }
