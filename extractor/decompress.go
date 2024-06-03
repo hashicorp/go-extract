@@ -73,18 +73,13 @@ func decompress(ctx context.Context, t target.Target, dst string, src io.Reader,
 	if f, ok := src.(*os.File); ok {
 		inputName = filepath.Base(f.Name())
 	}
-	dst, outputName := determineOutputName(dst, inputName, fmt.Sprintf(".%s", fileExt))
+	dst, outputName := determineOutputName(t, dst, inputName, fmt.Sprintf(".%s", fileExt))
 	cfg.Logger().Debug("determined output name", "name", outputName)
-	if err := createFile(t, dst, outputName, headerReader, cfg.CustomDecompressFileMode(), cfg); err != nil {
+	n, err := createFile(t, dst, outputName, headerReader, cfg.CustomDecompressFileMode(), cfg.MaxExtractionSize(), cfg)
+	m.ExtractionSize = n
+	if err != nil {
 		return handleError(cfg, m, "cannot create file", err)
 	}
-
-	// capture telemetry
-	stat, err := os.Stat(filepath.Join(dst, outputName))
-	if err != nil {
-		return handleError(cfg, m, "cannot stat file", err)
-	}
-	m.ExtractionSize = stat.Size()
 	m.ExtractedFiles++
 
 	// finished
@@ -154,11 +149,11 @@ const (
 )
 
 // determineOutputName determines the output name and directory for the extracted content
-func determineOutputName(dst string, inputName string, fileExt string) (string, string) {
+func determineOutputName(t target.Target, dst string, inputName string, fileExt string) (string, string) {
 
 	// check if dst is specified and not a directory
 	if dst != "." && dst != "" {
-		stat, err := os.Stat(dst)
+		stat, err := t.Lstat(dst)
 
 		// check if dst does not exist, then use it as directory and output name
 		if os.IsNotExist(err) {
