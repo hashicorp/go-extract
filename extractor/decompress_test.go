@@ -121,7 +121,7 @@ func FuzzDetermineOutputName(f *testing.F) {
 		dest := t.TempDir()
 
 		// fuzz function with random data
-		dir, outputName := determineOutputName(dest, fName, ".gz")
+		dir, outputName := determineOutputName(testingTarget, dest, fName, ".gz")
 
 		// check if outputName is already checked, then skip
 		if _, ok := checkedNames[outputName]; ok {
