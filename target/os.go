@@ -100,9 +100,3 @@ func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error
 func (o *OS) Lstat(name string) (fs.FileInfo, error) {
 	return os.Lstat(name)
 }
-
-// Readlink returns the destination of the named symbolic link.
-// If there is an error, it will be of type *PathError.
-func (o *OS) Readlink(name string) (string, error) {
-	return os.Readlink(name)
-}
