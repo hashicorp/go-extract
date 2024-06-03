@@ -118,7 +118,7 @@ func TestUnpack7zip(t *testing.T) {
 			}
 
 			// unpack archive
-			err := Unpack7Zip(context.Background(), r, tmpDir, tt.c)
+			err := Unpack7Zip(context.Background(), testingTarget, tmpDir, r, tt.c)
 			if tt.expectError != (err != nil) {
 				t.Errorf("%v: expected error: %v, got: %v", tt.name, tt.expectError, err)
 			}

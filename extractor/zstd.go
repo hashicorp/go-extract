@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -23,11 +24,11 @@ func IsZstd(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the zstandard decompression from src to dst.
-func UnpackZstd(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressZstdStream, FileExtensionZstd)
+func UnpackZstd(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressZstdStream, FileExtensionZstd)
 }
 
 // decompressZstdStream returns an io.Reader that decompresses src with zstandard algorithm
-func decompressZstdStream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressZstdStream(src io.Reader) (io.Reader, error) {
 	return zstd.NewReader(src)
 }

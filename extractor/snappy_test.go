@@ -99,7 +99,7 @@ func TestUnpackSnappy(t *testing.T) {
 			}
 
 			// Unpack the source file
-			if err := UnpackSnappy(ctx, src, tmpDir, tt.cfg); (err != nil) != tt.wantErr {
+			if err := UnpackSnappy(ctx, testingTarget, tmpDir, src, tt.cfg); (err != nil) != tt.wantErr {
 				t.Errorf("UnpackSnappy() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -23,11 +24,11 @@ func IsLZ4(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the lz4 decompression from src to dst.
-func UnpackLZ4(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressLZ4Stream, FileExtensionLZ4)
+func UnpackLZ4(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressLZ4Stream, FileExtensionLZ4)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm
-func decompressLZ4Stream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressLZ4Stream(src io.Reader) (io.Reader, error) {
 	return lz4.NewReader(src), nil
 }

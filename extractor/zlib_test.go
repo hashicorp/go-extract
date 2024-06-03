@@ -97,7 +97,7 @@ func TestUnpackZlib(t *testing.T) {
 			}
 
 			// run the test
-			err := UnpackZlib(ctx, src, tmpDir, tt.cfg)
+			err := UnpackZlib(ctx, testingTarget, tmpDir, src, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				data, _ := os.ReadFile("test")
 				t.Errorf("UnpackZlib() error = %v, wantErr %v\n'%v'", err, tt.wantErr, string(data))

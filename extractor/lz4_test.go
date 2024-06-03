@@ -101,7 +101,7 @@ func TestUnpackLZ4(t *testing.T) {
 			}
 
 			// run the test
-			err := UnpackLZ4(ctx, src, tmpDir, tt.cfg)
+			err := UnpackLZ4(ctx, testingTarget, tmpDir, src, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				data, _ := os.ReadFile("test")
 				t.Errorf("%v UnpackLZ4() error = %v, wantErr %v\n'%v'", tt.name, err, tt.wantErr, string(data))

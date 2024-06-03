@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // magicBytesBzip2 are the magic bytes for bzip2 compressed files
@@ -31,10 +32,10 @@ func IsBzip2(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the bzip2 decompression from src to dst.
-func UnpackBzip2(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressBz2Stream, "bz2")
+func UnpackBzip2(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressBz2Stream, "bz2")
 }
 
-func decompressBz2Stream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressBz2Stream(src io.Reader) (io.Reader, error) {
 	return bzip2.NewReader(src), nil
 }

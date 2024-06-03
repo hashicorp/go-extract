@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // magicBytesSnappy is the magic bytes for snappy files.
@@ -22,11 +23,11 @@ func IsSnappy(header []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.
-func UnpackSnappy(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
-	return decompress(ctx, src, dst, c, decompressSnappyStream, FileExtensionSnappy)
+func UnpackSnappy(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressSnappyStream, FileExtensionSnappy)
 }
 
 // decompressSnappyStream returns an io.Reader that decompresses src with snappy algorithm
-func decompressSnappyStream(src io.Reader, c *config.Config) (io.Reader, error) {
+func decompressSnappyStream(src io.Reader) (io.Reader, error) {
 	return snappy.NewReader(src), nil
 }

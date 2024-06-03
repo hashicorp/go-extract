@@ -11,23 +11,33 @@ import (
 
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
 // in dst. opts can be given to adjust the config.
-func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
+func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
+
+	// use default target
+	return UnpackTo(ctx, target.NewOS(), dst, src, cfg)
+
+}
+
+// Unpack reads data from src, identifies if its a known archive type. If so, dst is unpacked
+// in dst. opts can be given to adjust the config.
+func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
 
 	// check if type is set
-	if et := c.ExtractType(); len(et) > 0 {
+	if et := cfg.ExtractType(); len(et) > 0 {
 		if ae, found := extractor.AvailableExtractors[et]; found {
 			if et == extractor.FileExtensionTarGZip {
-				c.SetNoUntarAfterDecompression(false)
+				cfg.SetNoUntarAfterDecompression(false)
 			}
-			return ae.Unpacker(ctx, src, dst, c)
+			return ae.Unpacker(ctx, t, dst, src, cfg)
 		}
 
 		//
-		return fmt.Errorf("not supported file type %s (valid: %s)", c.ExtractType(), ValidTypes())
+		return fmt.Errorf("not supported file type %s (valid: %s)", cfg.ExtractType(), ValidTypes())
 	}
 
 	// read headerReader to identify archive type
@@ -38,13 +48,13 @@ func Unpack(ctx context.Context, src io.Reader, dst string, c *config.Config) er
 
 	// find extractor by header
 	if unpacker := GetUnpackFunction(header); unpacker != nil {
-		return unpacker(ctx, reader, dst, c)
+		return unpacker(ctx, t, dst, reader, cfg)
 	}
 
 	// find extractor by file extension
 	if f, ok := src.(*os.File); ok {
 		if unpacker := GetUnpackFunctionByFileName(f.Name()); unpacker != nil {
-			return unpacker(ctx, reader, dst, c)
+			return unpacker(ctx, t, dst, reader, cfg)
 		}
 	}
 

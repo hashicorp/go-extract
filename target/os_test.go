@@ -155,7 +155,7 @@ func TestCreateSafeDir(t *testing.T) {
 
 			// perform actual test
 			want := tc.expectError
-			err := target.CreateSafeDir(cfg, filepath.Join(testDir, tc.basePath), tc.newDir, cfg.CustomCreateDirMode())
+			err := target.CreateSafeDir(filepath.Join(testDir, tc.basePath), tc.newDir, cfg.CustomCreateDirMode(), cfg)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -273,7 +273,7 @@ func TestCreateSafeSymlink(t *testing.T) {
 
 			// perform actual tests
 			want := tc.expectError
-			err := target.CreateSafeSymlink(cfg, testDir, tc.input.name, tc.input.target)
+			err := target.CreateSafeSymlink(testDir, tc.input.name, tc.input.target, cfg)
 			got := err != nil
 			if got != want {
 				t.Errorf("[TC%d failed] %s (%s): %s", i, tc.name, runtime.GOOS, err)
@@ -289,7 +289,7 @@ func TestCreateSafeSymlink_overwriteTest(t *testing.T) {
 	// create testing directory
 	testDir := t.TempDir()
 	target := &OS{}
-	if err := target.CreateSafeSymlink(config.NewConfig(), testDir, "foo", "bar"); err != nil {
+	if err := target.CreateSafeSymlink(testDir, "foo", "bar", config.NewConfig()); err != nil {
 		t.Errorf(err.Error())
 	}
 
@@ -322,7 +322,7 @@ func TestCreateSafeSymlink_overwriteTest(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("tc %d", i), func(t *testing.T) {
 			want := tc.expectError
-			err := target.CreateSafeSymlink(tc.cfg, testDir, tc.input.name, tc.input.target)
+			err := target.CreateSafeSymlink(testDir, tc.input.name, tc.input.target, tc.cfg)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -456,7 +456,7 @@ func TestCreateSafeFile(t *testing.T) {
 			// perform actual tests
 			target := &OS{}
 			want := tc.expectError
-			err := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err := target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode, tc.config)
 			got := err != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
@@ -518,8 +518,8 @@ func TestOverwriteFile(t *testing.T) {
 			target := &OS{}
 			want := tc.expectError
 			// double extract
-			err1 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
-			err2 := target.CreateSafeFile(tc.config, testDir, tc.input.name, tc.input.reader, tc.input.mode)
+			err1 := target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode, tc.config)
+			err2 := target.CreateSafeFile(testDir, tc.input.name, tc.input.reader, tc.input.mode, tc.config)
 			got := err1 != nil || err2 != nil
 			if got != want {
 				t.Errorf("test case %d failed: %s\n%s\n%s", i, tc.name, err1, err2)

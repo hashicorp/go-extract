@@ -56,7 +56,7 @@ func captureInputSize(td *telemetry.Data, ler *LimitErrorReader) {
 }
 
 // UnpackFunc is a function that extracts the contents from src and extracts them to dst.
-type UnpackFunc func(context.Context, io.Reader, string, *config.Config) error
+type UnpackFunc func(context.Context, target.Target, string, io.Reader, *config.Config) error
 
 // HeaderCheck is a function that checks if the given header matches the expected magic bytes.
 type HeaderCheck func([]byte) bool
@@ -148,9 +148,6 @@ func init() {
 			MaxHeaderLength = needs
 		}
 	}
-
-	// set default target
-	unpackTarget = target.NewOS()
 }
 
 func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
@@ -190,10 +187,10 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 }
 
 // extract checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func extract(ctx context.Context, src archiveWalker, dst string, c *config.Config, td *telemetry.Data) error {
+func extract(ctx context.Context, t target.Target, dst string, src archiveWalker, cfg *config.Config, td *telemetry.Data) error {
 
 	// start extraction
-	c.Logger().Info("start extraction", "type", src.Type())
+	cfg.Logger().Info("start extraction", "type", src.Type())
 	var fileCounter int64
 	var extractionSize uint64
 
@@ -215,7 +212,7 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 		// return any other error
 		case err != nil:
-			return handleError(c, td, "error reading", err)
+			return handleError(cfg, td, "error reading", err)
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case ae == nil:
@@ -226,30 +223,30 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		fileCounter++
 
 		// check if maximum of files (including folder and symlinks) is exceeded
-		if err := c.CheckMaxFiles(fileCounter); err != nil {
-			return handleError(c, td, "max objects check failed", err)
+		if err := cfg.CheckMaxFiles(fileCounter); err != nil {
+			return handleError(cfg, td, "max objects check failed", err)
 		}
 
 		// check if file needs to match patterns
-		match, err := checkPatterns(c.Patterns(), ae.Name())
+		match, err := checkPatterns(cfg.Patterns(), ae.Name())
 		if err != nil {
-			return handleError(c, td, "cannot check pattern", err)
+			return handleError(cfg, td, "cannot check pattern", err)
 		}
 		if !match {
-			c.Logger().Info("skipping file (pattern mismatch)", "name", ae.Name())
+			cfg.Logger().Info("skipping file (pattern mismatch)", "name", ae.Name())
 			td.PatternMismatches++
 			continue
 		}
 
-		c.Logger().Debug("extract", "name", ae.Name())
+		cfg.Logger().Debug("extract", "name", ae.Name())
 		switch {
 
 		// if its a dir and it doesn't exist create it
 		case ae.IsDir():
 
 			// handle directory
-			if err := createDir(c, dst, ae.Name(), ae.Mode()); err != nil {
-				if err := handleError(c, td, "failed to create safe directory", err); err != nil {
+			if err := createDir(t, dst, ae.Name(), ae.Mode(), cfg); err != nil {
+				if err := handleError(cfg, td, "failed to create safe directory", err); err != nil {
 					return err
 				}
 
@@ -266,22 +263,22 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 
 			// check extraction size
 			extractionSize = extractionSize + uint64(ae.Size())
-			if err := c.CheckExtractionSize(int64(extractionSize)); err != nil {
-				return handleError(c, td, "max extraction size exceeded", err)
+			if err := cfg.CheckExtractionSize(int64(extractionSize)); err != nil {
+				return handleError(cfg, td, "max extraction size exceeded", err)
 			}
 
 			// open file inm archive
 			fin, err := ae.Open()
 			if err != nil {
-				return handleError(c, td, "failed to open file", err)
+				return handleError(cfg, td, "failed to open file", err)
 			}
 			defer fin.Close()
 
 			// create file
-			if err := createFile(c, dst, ae.Name(), fin, ae.Mode()); err != nil {
+			if err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, td, "failed to create safe file", err); err != nil {
+				if err := handleError(cfg, td, "failed to create safe file", err); err != nil {
 					return err
 				}
 
@@ -298,16 +295,16 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 		case ae.IsSymlink():
 
 			// check if symlinks are allowed
-			if c.DenySymlinkExtraction() {
+			if cfg.DenySymlinkExtraction() {
 
 				// check for continue for unsupported files
-				if c.ContinueOnUnsupportedFiles() {
+				if cfg.ContinueOnUnsupportedFiles() {
 					td.UnsupportedFiles++
 					td.LastUnsupportedFile = ae.Name()
 					continue
 				}
 
-				if err := handleError(c, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
+				if err := handleError(cfg, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
 					return err
 				}
 
@@ -316,10 +313,10 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// create link
-			if err := createSymlink(c, dst, ae.Name(), ae.Linkname()); err != nil {
+			if err := createSymlink(t, dst, ae.Name(), ae.Linkname(), cfg); err != nil {
 
 				// increase error counter, set error and end if necessary
-				if err := handleError(c, td, "failed to create safe symlink", err); err != nil {
+				if err := handleError(cfg, td, "failed to create safe symlink", err); err != nil {
 					return err
 				}
 
@@ -339,14 +336,14 @@ func extract(ctx context.Context, src archiveWalker, dst string, c *config.Confi
 			}
 
 			// check if unsupported files should be skipped
-			if c.ContinueOnUnsupportedFiles() {
+			if cfg.ContinueOnUnsupportedFiles() {
 				td.UnsupportedFiles++
 				td.LastUnsupportedFile = ae.Name()
 				continue
 			}
 
 			// increase error counter, set error and end if necessary
-			if err := handleError(c, td, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", ae.Mode())); err != nil {
+			if err := handleError(cfg, td, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", ae.Mode())); err != nil {
 				return err
 			}
 

@@ -90,7 +90,7 @@ func TestDecompress(t *testing.T) {
 					f.Close()
 				}
 			}()
-			if err := decompress(ctx, r, tmpDir, cfg, tt.decomp, tt.ext); err != nil {
+			if err := decompress(ctx, testingTarget, tmpDir, r, cfg, tt.decomp, tt.ext); err != nil {
 				t.Errorf("%v: Unpack() error = %v", tt.name, err)
 			}
 

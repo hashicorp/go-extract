@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -30,24 +31,24 @@ func IsTar(data []byte) bool {
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func UnpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
+func UnpackTar(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
 
 	// prepare telemetry capturing
 	td := &telemetry.Data{ExtractedType: FileExtensionTar}
-	defer c.TelemetryHook()(ctx, td)
+	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// prepare reader
-	limitedReader := NewLimitErrorReader(src, c.MaxInputSize())
+	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(td, limitedReader)
 
 	// start extraction
-	return unpackTar(ctx, limitedReader, dst, c, td)
+	return unpackTar(ctx, t, limitedReader, dst, cfg, td)
 }
 
 // unpackTar extracts the tar archive from src to dst
-func unpackTar(ctx context.Context, src io.Reader, dst string, c *config.Config, td *telemetry.Data) error {
-	return extract(ctx, &tarWalker{tr: tar.NewReader(src)}, dst, c, td)
+func unpackTar(ctx context.Context, t target.Target, src io.Reader, dst string, c *config.Config, td *telemetry.Data) error {
+	return extract(ctx, t, dst, &tarWalker{tr: tar.NewReader(src)}, c, td)
 }
 
 // tarWalker is a walker for tar files

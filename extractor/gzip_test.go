@@ -141,7 +141,7 @@ func TestGzipUnpack(t *testing.T) {
 			}
 
 			// Unpack the file
-			err := UnpackGZip(ctx, reader, tmpDir, tt.cfg)
+			err := UnpackGZip(ctx, testingTarget, tmpDir, reader, tt.cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnpackGZip() error = %v, wantErr %v", err, tt.wantErr)
 			}

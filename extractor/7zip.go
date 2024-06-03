@@ -9,6 +9,7 @@ import (
 
 	"github.com/bodgit/sevenzip"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -26,22 +27,22 @@ func Is7zip(data []byte) bool {
 }
 
 // Unpack7Zip sets a timeout for the ctx and starts the 7zip extraction from src to dst.
-func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config) error {
+func Unpack7Zip(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config) error {
 
 	// prepare telemetry data collection and emit
 	td := &telemetry.Data{ExtractedType: FileExtension7zip}
-	defer c.TelemetryHook()(ctx, td)
+	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(SeekerReaderAt); ok {
-		return unpack7zip(ctx, sra, dst, c, td)
+		return unpack7zip(ctx, t, dst, sra, cfg, td)
 	}
 
 	// convert
-	sra, err := ReaderToReaderAtSeeker(c, src)
+	sra, err := ReaderToReaderAtSeeker(cfg, src)
 	if err != nil {
-		return handleError(c, td, "cannot convert reader to readerAt and seeker", err)
+		return handleError(cfg, td, "cannot convert reader to readerAt and seeker", err)
 	}
 	defer func() {
 		if f, ok := sra.(*os.File); ok {
@@ -50,36 +51,36 @@ func Unpack7Zip(ctx context.Context, src io.Reader, dst string, c *config.Config
 		}
 	}()
 
-	return unpack7zip(ctx, sra, dst, c, td)
+	return unpack7zip(ctx, t, dst, sra, cfg, td)
 }
 
 // unpack7zip checks ctx for cancellation, while it reads a 7zip file from src and extracts the contents to dst.
-func unpack7zip(ctx context.Context, src SeekerReaderAt, dst string, c *config.Config, m *telemetry.Data) error {
+func unpack7zip(ctx context.Context, t target.Target, dst string, sra SeekerReaderAt, cfg *config.Config, td *telemetry.Data) error {
 
 	// log extraction
-	c.Logger().Info("extracting 7zip")
+	cfg.Logger().Info("extracting 7zip")
 
 	// check if src is a seeker and readerAt
-	s, _ := src.(io.Seeker)
-	ra, _ := src.(io.ReaderAt)
+	s, _ := sra.(io.Seeker)
+	ra, _ := sra.(io.ReaderAt)
 
 	// get size of input and check if it exceeds maximum input size
 	size, err := s.Seek(0, io.SeekEnd)
 	if err != nil {
-		return handleError(c, m, "cannot seek to end of reader", err)
+		return handleError(cfg, td, "cannot seek to end of reader", err)
 	}
-	m.InputSize = size
-	if c.MaxInputSize() != -1 && size > c.MaxInputSize() {
-		return handleError(c, m, "cannot unarchive 7zip", fmt.Errorf("input size exceeds maximum input size"))
+	td.InputSize = size
+	if cfg.MaxInputSize() != -1 && size > cfg.MaxInputSize() {
+		return handleError(cfg, td, "cannot unarchive 7zip", fmt.Errorf("input size exceeds maximum input size"))
 	}
 
 	// create zip reader and extract
 	reader, err := sevenzip.NewReader(ra, size)
 	if err != nil {
-		return handleError(c, m, "cannot create 7zip reader", err)
+		return handleError(cfg, td, "cannot create 7zip reader", err)
 	}
 
-	return extract(ctx, &sevenZipWalker{reader, 0}, dst, c, m)
+	return extract(ctx, t, dst, &sevenZipWalker{reader, 0}, cfg, td)
 }
 
 // sevenZipWalker is a walker for 7zip files
