@@ -134,7 +134,7 @@ func TestCreateDir(t *testing.T) {
 					panic(fmt.Errorf("failed to create dir: %s", err))
 				}
 			},
-			expectError: true,
+			expectError: (runtime.GOOS != "windows"), // only relevant test for unix based systems
 		},
 		{
 			dst:         "",
