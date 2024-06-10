@@ -16,20 +16,20 @@ type Entry struct {
 	Content []byte
 }
 
-// Noop is a target that does nothing.
-type Noop struct {
+// Mem is a target that does nothing.
+type Mem struct {
 	Entries map[string]Entry
 }
 
-// NewMemTarget returns a new Noop target.
-func NewMemTarget() *Noop {
-	return &Noop{
+// NewMemTarget returns a new Mem target.
+func NewMemTarget() *Mem {
+	return &Mem{
 		Entries: map[string]Entry{},
 	}
 }
 
 // CreateDir does nothing.
-func (n *Noop) CreateDir(path string, mode fs.FileMode) error {
+func (n *Mem) CreateDir(path string, mode fs.FileMode) error {
 
 	// check empty path
 	if path == "" {
@@ -81,7 +81,7 @@ func (n *Noop) CreateDir(path string, mode fs.FileMode) error {
 }
 
 // CreateSafeFi	le does nothing.
-func (n *Noop) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
+func (n *Mem) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	if _, ok := n.Entries[path]; ok && !overwrite {
 		return 0, os.ErrExist
 	}
@@ -120,7 +120,7 @@ func (n *Noop) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrit
 }
 
 // CreateSafeSymlink does nothing.
-func (n *Noop) CreateSymlink(oldname string, newname string, overwrite bool) error {
+func (n *Mem) CreateSymlink(oldname string, newname string, overwrite bool) error {
 	if _, ok := n.Entries[newname]; ok && !overwrite {
 		return os.ErrExist
 	}
@@ -134,7 +134,7 @@ func (n *Noop) CreateSymlink(oldname string, newname string, overwrite bool) err
 }
 
 // Lstat does nothing.
-func (n *Noop) Lstat(path string) (fs.FileInfo, error) {
+func (n *Mem) Lstat(path string) (fs.FileInfo, error) {
 
 	if path == "." {
 		return &fileInfo{
