@@ -50,7 +50,9 @@ func TestCreateFile(t *testing.T) {
 
 		// prepare tmp and ensure that tmp dir exist even on mem target
 		tmp := t.TempDir()
-		tt.CreateDir(tmp, 0755)
+		if err := tt.CreateDir(tmp, 0755); err != nil {
+			t.Fatalf("CreateDir() failed: %s", err)
+		}
 
 		// prepare file details
 		testFile := "test"
@@ -98,7 +100,9 @@ func TestCreateSymlink(t *testing.T) {
 
 		// prepare tmp and ensure that tmp dir exist even on mem target
 		tmp := t.TempDir()
-		tt.CreateDir(tmp, 0755)
+		if err := tt.CreateDir(tmp, 0755); err != nil {
+			t.Fatalf("CreateDir() failed: %s", err)
+		}
 
 		// prepare link details
 		testFile := "test"

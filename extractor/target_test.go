@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -52,7 +53,9 @@ func TestCreateFile(t *testing.T) {
 			maxSize: -1,
 			cfg:     config.NewConfig(config.WithCreateDestination(true)),
 			prep: func(t target.Target, dst string) {
-				t.CreateDir(filepath.Join(dst, "foo"), 0000)
+				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
+					panic(fmt.Errorf("failed to create dir: %s", err))
+				}
 			},
 			expectError: true,
 		},
@@ -126,15 +129,30 @@ func TestCreateDir(t *testing.T) {
 			mode: 0750,
 			cfg:  config.NewConfig(config.WithCreateDestination(true)),
 			prep: func(t target.Target, dst string) {
-				t.CreateDir(filepath.Join(dst, "foo"), 0000)
+				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
+					panic(fmt.Errorf("failed to create dir: %s", err))
+				}
 			},
 			expectError: true,
+		},
+		{
+			dst:         "",
+			name:        "/failingt-extract",
+			mode:        0750,
+			expectError: false, // bc, name is concatenated with tmpDir
 		},
 		{
 			dst:           "",
 			name:          "/failingt-extract",
 			mode:          0750,
-			expectError:   true, // bc, name is concatenated with tmpDir
+			expectError:   true, // bc, name is *not* concatenated with tmpDir
+			dontConcatDst: true,
+		},
+		{
+			dst:           "",
+			name:          "./failingt-extract",
+			mode:          0750,
+			expectError:   false,
 			dontConcatDst: true,
 		},
 	}
@@ -284,9 +302,14 @@ func TestSecurityCheck(t *testing.T) {
 		{
 			name: "foo/above/bar",
 			prep: func(t target.Target, dst string) {
-				t.CreateDir(filepath.Join(dst, "foo"), 0750)
+				if err := t.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
+					panic(fmt.Errorf("failed to create dir: %s", err))
+				}
+
 				above := filepath.Join(dst, "foo", "above")
-				t.CreateSymlink("../", above, false)
+				if err := t.CreateSymlink("../", above, false); err != nil {
+					panic(fmt.Errorf("failed to create symlink: %s", err))
+				}
 			},
 			expectError: true,
 		},
@@ -316,6 +339,6 @@ func FuzzSecurityCheckOs(f *testing.F) {
 	o := target.NewOS()
 	f.Fuzz(func(t *testing.T, dst, name string) {
 		tmp := t.TempDir()
-		SecurityCheck(o, tmp, name, config.NewConfig())
+		_ = SecurityCheck(o, tmp, name, config.NewConfig())
 	})
 }
