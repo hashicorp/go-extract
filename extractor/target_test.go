@@ -143,10 +143,11 @@ func TestCreateDir(t *testing.T) {
 			expectError: false, // bc, name is concatenated with tmpDir
 		},
 		{
-			dst:           "",
-			name:          "/failingt-extract",
-			mode:          0750,
-			expectError:   true, // bc, name is *not* concatenated with tmpDir
+			dst:         "",
+			name:        "/failingt-extract",
+			mode:        0750,
+			expectError: runtime.GOOS != "windows", // bc, name is *not* concatenated with tmpDir.
+			// The leading slash is not removed, but unimportant for windows
 			dontConcatDst: true,
 		},
 		{
