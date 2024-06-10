@@ -36,7 +36,6 @@ test_coverage_html:
 	go tool cover -html=coverage.out -o=coverage.html
 
 fuzz:
-	go test ./extractor -run=FuzzSecurityCheckMem -fuzz=FuzzSecurityCheckMem -fuzztime=30s
 	# Fuzzing FuzzSecurityCheckOs in ./extractor/target_test.go
 	go test ./extractor -run=FuzzSecurityCheckOs -fuzz=FuzzSecurityCheckOs -fuzztime=30s
 	# Fuzzing FuzzDetermineOutputName in ./extractor/decompress_test.go

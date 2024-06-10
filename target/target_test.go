@@ -8,7 +8,6 @@ import (
 
 var testTargets = []Target{
 	NewOS(),
-	NewMemTarget(),
 }
 
 // TestCreateDir tests the CreateDir function from Os

@@ -69,15 +69,17 @@ func TestCreateFile(t *testing.T) {
 
 	for i, tt := range tc {
 
-		var testTarget = target.NewMemTarget()
+		var testTarget = target.NewOS()
+		tmpDir := t.TempDir()
 
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tt.dst)
+			tt.prep(testTarget, tmpDir)
 		}
-		_, err := createFile(testTarget, tt.dst, tt.name, strings.NewReader(tt.src), tt.mode, tt.maxSize, tt.cfg)
+		dst := filepath.Join(tmpDir, tt.dst)
+		_, err := createFile(testTarget, dst, tt.name, strings.NewReader(tt.src), tt.mode, tt.maxSize, tt.cfg)
 		if tt.expectError != (err != nil) {
 			t.Errorf("[%v] createFile(%s, %s, %s, %d, %d) = %v; want nil", i, tt.dst, tt.name, tt.src, tt.mode, tt.maxSize, err)
 		}
@@ -88,12 +90,13 @@ func TestCreateFile(t *testing.T) {
 func TestCreateDir(t *testing.T) {
 
 	tc := []struct {
-		dst         string
-		name        string
-		mode        fs.FileMode
-		cfg         *config.Config
-		expectError bool
-		prep        func(target.Target, string)
+		dst           string
+		name          string
+		mode          fs.FileMode
+		cfg           *config.Config
+		expectError   bool
+		prep          func(target.Target, string)
+		dontConcatDst bool
 	}{
 		{
 			name: "test",
@@ -102,7 +105,7 @@ func TestCreateDir(t *testing.T) {
 		{
 			name:        "",
 			mode:        0750,
-			expectError: true,
+			expectError: false,
 		},
 		{
 			dst:  "foo",
@@ -128,23 +131,30 @@ func TestCreateDir(t *testing.T) {
 			expectError: true,
 		},
 		{
-			dst:         "",
-			name:        "/failingt-extract",
-			mode:        0750,
-			expectError: true,
+			dst:           "",
+			name:          "/failingt-extract",
+			mode:          0750,
+			expectError:   true, // bc, name is concatenated with tmpDir
+			dontConcatDst: true,
 		},
 	}
 
 	for i, tt := range tc {
 
-		testTarget := target.NewMemTarget()
+		testTarget := target.NewOS()
+		tmpDir := t.TempDir()
+
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tt.dst)
+			tt.prep(testTarget, tmpDir)
 		}
-		err := createDir(testTarget, tt.dst, tt.name, tt.mode, tt.cfg)
+		dst := tt.dst
+		if !tt.dontConcatDst {
+			dst = filepath.Join(tmpDir, tt.dst)
+		}
+		err := createDir(testTarget, dst, tt.name, tt.mode, tt.cfg)
 		gotError := (err != nil)
 		if tt.expectError != gotError {
 			t.Errorf("[%v] createDir(dst=%s, name=%s, mode=%o, createDest=%v, defaultDirPerm=%o) = ERROR(%v); want %v", i, tt.dst, tt.name, tt.mode.Perm(), tt.cfg.CreateDestination(), tt.cfg.CustomCreateDirMode(), err, tt.expectError)
@@ -225,14 +235,16 @@ func TestCreateSymlink(t *testing.T) {
 
 	for i, tt := range tc {
 
-		testTarget := target.NewMemTarget()
+		testTarget := target.NewOS()
+		tmpDir := t.TempDir()
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tt.dst)
+			tt.prep(testTarget, tmpDir)
 		}
-		err := createSymlink(testTarget, tt.dst, tt.name, tt.linkTarget, tt.cfg)
+		dst := filepath.Join(tmpDir, tt.dst)
+		err := createSymlink(testTarget, dst, tt.name, tt.linkTarget, tt.cfg)
 		gotError := (err != nil)
 		if tt.expectError != gotError {
 			t.Errorf("[%v] createSymlink(dst=%s, name=%s, linkTarget=%s, denySymlinkExtraction=%v) = ERROR(%v); want %v", i, tt.dst, tt.name, tt.linkTarget, tt.cfg.DenySymlinkExtraction(), err, tt.expectError)
@@ -281,28 +293,21 @@ func TestSecurityCheck(t *testing.T) {
 	}
 
 	for i, tt := range tc {
-		testTarget := target.NewMemTarget()
+		testTarget := target.NewOS()
+		tmp := t.TempDir()
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, "")
+			tt.prep(testTarget, tmp)
 		}
-		err := SecurityCheck(testTarget, tt.dst, tt.name, tt.cfg)
+		dst := filepath.Join(tmp, tt.dst)
+		err := SecurityCheck(testTarget, dst, tt.name, tt.cfg)
 		gotError := (err != nil)
 		if tt.expectError != gotError {
 			t.Errorf("[%v] securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", i, tt.dst, tt.name, err, tt.expectError)
 		}
 	}
-}
-
-// FuttSecurityCheckMem is a fuzzer for the SecurityCheck function
-func FuzzSecurityCheckMem(f *testing.F) {
-	f.Add("dst", "name")
-	f.Fuzz(func(t *testing.T, dst, name string) {
-		m := target.NewMemTarget()
-		SecurityCheck(m, dst, name, config.NewConfig())
-	})
 }
 
 // FuzzSecurityCheckOs is a fuzzer for the SecurityCheck function
