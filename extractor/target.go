@@ -156,6 +156,12 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 
 	// create target dir && check for traversal in file name
 	if err := createDir(t, dst, linkDirectory, cfg.CustomCreateDirMode(), cfg); err != nil {
+
+		if cfg.ContinueOnError() {
+			cfg.Logger().Info("skip dir creation with error", "err", err)
+			return nil
+		}
+
 		return fmt.Errorf("cannot create directory (%s) for symlink: %w", fmt.Sprintf("%s%s", linkDirectory, string(os.PathSeparator)), err)
 	}
 
