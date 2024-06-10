@@ -2,6 +2,7 @@ package target
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -126,8 +127,12 @@ func TestCreateSymlink(t *testing.T) {
 		}
 
 		// check if symlink exists
-		if _, err := tt.Lstat(testSymlinkPath); err != nil {
+		lstat, err := tt.Lstat(testSymlinkPath)
+		if err != nil {
 			t.Fatalf("CreateSymlink() failed: %s", err)
+		}
+		if lstat.Mode()&os.ModeSymlink == 0 {
+			t.Fatalf("CreateSymlink() failed: %s", "not a symlink")
 		}
 
 		// create a symlink with overwrite
