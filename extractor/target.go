@@ -13,6 +13,19 @@ import (
 )
 
 // createFile is a wrapper around the target.CreateFile function
+//
+// If the name is empty, the function returns an error.
+//
+// If the directory for the file does not exist, it will be created with the config.CustomCreateDirMode().
+//
+// If the path contains path traversal or a symlink, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// function continues.
+//
+// If the file is created successfully, the function returns the number of bytes written and nil.
 func createFile(t target.Target, dst string, name string, src io.Reader, mode fs.FileMode, maxSize int64, cfg *config.Config) (int64, error) {
 
 	// check if a name is provided
@@ -36,6 +49,20 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 }
 
 // createDir is a wrapper around the target.CreateDir function
+//
+// If the name is empty, the function returns an error.
+//
+// If the directory for the symlink does not exist, it will be created with
+// the config.CustomCreateDirMode().
+//
+// If the path contains path traversal or a symlink, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// function continues.
+//
+// If the directory is created successfully, the function returns nil.
 func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *config.Config) error {
 
 	// check if dst exist
@@ -65,6 +92,23 @@ func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *
 }
 
 // createSymlink is a wrapper around the target.CreateSymlink function
+//
+// It checks if the symlink extraction is allowed and if the link target is an absolute path.
+// If the symlink extraction is denied, the function returns an error. If the link target is an
+// absolute path, the function returns an error.
+//
+// If the name is empty, the function returns an error .
+//
+// If the directory for the symlink does not exist, it will be created with the config.CustomCreateDirMode().
+//
+// If the path contains path traversal or a symlink, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// function continues.
+//
+// If the symlink is created successfully, the function returns nil.
 func createSymlink(t target.Target, dst string, name string, linkTarget string, cfg *config.Config) error {
 
 	// check if symlink extraction is denied
@@ -115,11 +159,16 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 }
 
 // SecurityCheck checks if the targetDirectory contains path traversal
-// and if the path contains a symlink. The function returns an error if the
-// path contains path traversal or if a symlink is detected. If the path
-// contains a symlink and config.FollowSymlinks() returns true, a warning is
-// logged and the function continues. If the path contains a symlink and
-// config.FollowSymlinks() returns false, an error is returned.
+// and if the path contains a symlink.
+//
+// The function returns an error if the path contains path traversal or
+// if a symlink is detected.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns true,
+// a warning is logged and the function continues.
+//
+// If the path contains a symlink and config.FollowSymlinks() returns false,
+// an error is returned.
 func SecurityCheck(t target.Target, dst string, path string, config *config.Config) error {
 
 	// clean the target
@@ -190,6 +239,8 @@ func SecurityCheck(t target.Target, dst string, path string, config *config.Conf
 }
 
 // checkForSymlinkInPath checks if path contains a symlink
+//
+// The function returns true if the path contains a symlink, otherwise false.
 func isSymlink(t target.Target, path string) (bool, error) {
 
 	// ignore empty checks
