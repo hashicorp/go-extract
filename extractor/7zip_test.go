@@ -97,7 +97,7 @@ func TestUnpack7zip(t *testing.T) {
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
 
-			// create a noop target
+			// create a target
 			testingTarget := target.NewOS()
 
 			// check content

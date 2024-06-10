@@ -16,8 +16,6 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// var testingTarget = target.NewNoopTarget()
-
 var casesZip = []struct {
 	name              string
 	testFileGenerator func(*testing.T, string) string

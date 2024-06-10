@@ -5,11 +5,11 @@ import (
 	"testing"
 )
 
-// TestCreateDir tests the CreateDir function from Noop
-func TestNoopCreateDir(t *testing.T) {
+// TestCreateDir tests the CreateDir function from Mem
+func TestMemCreateDir(t *testing.T) {
 
-	// create a new noop target
-	n := NewNoopTarget()
+	// create a new ^target
+	n := NewMemTarget()
 
 	// check empty path
 	if err := n.CreateDir("", 0755); err == nil {
@@ -30,15 +30,11 @@ func TestNoopCreateDir(t *testing.T) {
 
 }
 
-// TestCreateFile tests the CreateFile function from Noop
+// TestLstat tests the Lstat function from Mem
+func TestMemLstat(t *testing.T) {
 
-// TestCreateSymlink tests the CreateSymlink function from Noop
-
-// TestLstat tests the Lstat function from Noop
-func TestNoopLstat(t *testing.T) {
-
-	// create a new noop target
-	n := NewNoopTarget()
+	// create a new target
+	n := NewMemTarget()
 
 	// check empty path
 	if _, err := n.Lstat(""); err == nil {

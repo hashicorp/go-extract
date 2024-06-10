@@ -8,7 +8,7 @@ import (
 
 var testTargets = []Target{
 	NewOS(),
-	NewNoopTarget(),
+	NewMemTarget(),
 }
 
 // TestCreateDir tests the CreateDir function from Os
@@ -49,7 +49,7 @@ func TestCreateFile(t *testing.T) {
 
 	for _, tt := range testTargets {
 
-		// prepare tmp and ensure that tmp dir exist even on noop target
+		// prepare tmp and ensure that tmp dir exist even on mem target
 		tmp := t.TempDir()
 		tt.CreateDir(tmp, 0755)
 
@@ -97,7 +97,7 @@ func TestCreateSymlink(t *testing.T) {
 
 	for _, tt := range testTargets {
 
-		// prepare tmp and ensure that tmp dir exist even on noop target
+		// prepare tmp and ensure that tmp dir exist even on mem target
 		tmp := t.TempDir()
 		tt.CreateDir(tmp, 0755)
 

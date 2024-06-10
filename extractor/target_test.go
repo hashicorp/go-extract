@@ -69,7 +69,7 @@ func TestCreateFile(t *testing.T) {
 
 	for i, tt := range tc {
 
-		var testTarget = target.NewNoopTarget()
+		var testTarget = target.NewMemTarget()
 
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
@@ -137,7 +137,7 @@ func TestCreateDir(t *testing.T) {
 
 	for i, tt := range tc {
 
-		testTarget := target.NewNoopTarget()
+		testTarget := target.NewMemTarget()
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
@@ -225,7 +225,7 @@ func TestCreateSymlink(t *testing.T) {
 
 	for i, tt := range tc {
 
-		testTarget := target.NewNoopTarget()
+		testTarget := target.NewMemTarget()
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
@@ -281,7 +281,7 @@ func TestSecurityCheck(t *testing.T) {
 	}
 
 	for i, tt := range tc {
-		testTarget := target.NewNoopTarget()
+		testTarget := target.NewMemTarget()
 		if tt.cfg == nil {
 			tt.cfg = config.NewConfig()
 		}
@@ -296,14 +296,15 @@ func TestSecurityCheck(t *testing.T) {
 	}
 }
 
-// FuzzSecurityCheck is a fuzzer for the SecurityCheck function
-func FuzzSecurityCheckNoop(f *testing.F) {
+// FuttSecurityCheckMem is a fuzzer for the SecurityCheck function
+func FuzzSecurityCheckMem(f *testing.F) {
 	f.Add("dst", "name")
 	f.Fuzz(func(t *testing.T, dst, name string) {
-		SecurityCheck(target.NewNoopTarget(), dst, name, config.NewConfig())
+		SecurityCheck(target.NewMemTarget(), dst, name, config.NewConfig())
 	})
 }
 
+// FuzzSecurityCheckOs is a fuzzer for the SecurityCheck function
 func FuzzSecurityCheckOs(f *testing.F) {
 	f.Add("dst", "name")
 	o := target.NewOS()

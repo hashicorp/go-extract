@@ -21,8 +21,8 @@ type Noop struct {
 	Entries map[string]Entry
 }
 
-// NewNoopTarget returns a new Noop target.
-func NewNoopTarget() *Noop {
+// NewMemTarget returns a new Noop target.
+func NewMemTarget() *Noop {
 	return &Noop{
 		Entries: map[string]Entry{},
 	}
