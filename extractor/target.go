@@ -33,6 +33,10 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 		return 0, fmt.Errorf("cannot create file without name")
 	}
 
+	// adjust path to by os specific
+	parts := strings.Split(name, "/")
+	name = filepath.Join(parts...)
+
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	fDir := filepath.Dir(name)
@@ -88,7 +92,12 @@ func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *
 		return fmt.Errorf("security check path failed: %s", err)
 	}
 
-	return t.CreateDir(filepath.Join(dst, name), mode)
+	// combine the path
+	parts := strings.Split(name, "/")
+	name = filepath.Join(parts...)
+	path := filepath.Join(dst, name)
+
+	return t.CreateDir(path, mode)
 }
 
 // createSymlink is a wrapper around the target.CreateSymlink function
@@ -138,8 +147,11 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 		return fmt.Errorf("symlink with absolute path as target: %s", linkTarget)
 	}
 
-	// clean filename
-	name = filepath.Clean(name)
+	// convert name to platform specific path
+	parts := strings.Split(name, "/")
+	name = filepath.Join(parts...)
+
+	// get link directory
 	linkDirectory := filepath.Dir(name)
 
 	// create target dir && check for traversal in file name
@@ -171,15 +183,16 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 // an error is returned.
 func SecurityCheck(t target.Target, dst string, path string, config *config.Config) error {
 
-	// clean the target
-	path = filepath.Clean(path)
-
 	// check if dstBase is empty, then targetDirectory should not be an absolute path
 	if len(dst) == 0 {
 		if filepath.IsAbs(path) {
 			return fmt.Errorf("absolute path detected")
 		}
 	}
+
+	// clean the target
+	parts := strings.Split(path, "/")
+	path = filepath.Join(parts...)
 
 	// get relative path from base to new directory target
 	rel, err := filepath.Rel(dst, filepath.Join(dst, path))
