@@ -309,7 +309,7 @@ func TestSecurityCheck(t *testing.T) {
 				}
 
 				above := filepath.Join(dst, "foo", "above")
-				if err := t.CreateSymlink("../", above, false); err != nil {
+				if err := t.CreateSymlink("..", above, false); err != nil {
 					panic(fmt.Errorf("failed to create symlink: %s", err))
 				}
 			},
