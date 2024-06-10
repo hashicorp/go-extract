@@ -300,7 +300,8 @@ func TestSecurityCheck(t *testing.T) {
 func FuzzSecurityCheckMem(f *testing.F) {
 	f.Add("dst", "name")
 	f.Fuzz(func(t *testing.T, dst, name string) {
-		SecurityCheck(target.NewMemTarget(), dst, name, config.NewConfig())
+		m := target.NewMemTarget()
+		SecurityCheck(m, dst, name, config.NewConfig())
 	})
 }
 
