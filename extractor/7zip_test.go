@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestIs7zip tests the Is7zip function
@@ -95,6 +96,9 @@ func TestUnpack7zip(t *testing.T) {
 
 	for _, tt := range tc {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// create a noop target
+			testingTarget := target.NewOS()
 
 			// check content
 			if len(tt.content) == 0 {

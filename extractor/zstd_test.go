@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -79,6 +80,9 @@ func TestUnpackZstd(t *testing.T) {
 
 			// Create a context
 			ctx := context.Background()
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// Create a temporary directory
 			tmpDir := t.TempDir()

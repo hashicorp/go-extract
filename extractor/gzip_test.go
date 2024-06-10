@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestIsGzip test with various test cases the implementation of IsGzip
@@ -120,6 +121,9 @@ func TestGzipUnpack(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			ctx := context.Background()
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create testing directory
 			tmpDir := t.TempDir()

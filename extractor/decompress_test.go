@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // compressFunc is a function that compresses a byte slice
@@ -82,6 +83,10 @@ func TestDecompress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
+
 			tmpDir := t.TempDir()
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", tt.ext))
 			r := newTestFile(testFile, tt.comp(testTar))
@@ -116,6 +121,9 @@ func FuzzDetermineOutputName(f *testing.F) {
 
 	// perform fuzzing test and ignore errors, looking for panics!
 	f.Fuzz(func(t *testing.T, fName string) {
+
+		// Create a new target
+		testingTarget := target.NewOS()
 
 		// prepare tmp
 		dest := t.TempDir()

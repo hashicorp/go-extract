@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-var testingTarget = target.NewOS()
+// var testingTarget = target.NewNoopTarget()
 
 var casesZip = []struct {
 	name              string
@@ -188,6 +188,9 @@ func TestZipUnpack_file(t *testing.T) {
 	for i, tc := range casesZip {
 		t.Run(tc.name, func(t *testing.T) {
 
+			// Create a new target
+			testingTarget := target.NewOS()
+
 			// create testing directory
 			testDir := t.TempDir()
 
@@ -214,6 +217,9 @@ func TestZipUnpack_mem(t *testing.T) {
 	// run cases with read from memory
 	for i, tc := range casesZip {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create testing directory
 			testDir := t.TempDir()
@@ -243,6 +249,9 @@ func TestZipUnpack_seeker(t *testing.T) {
 	// run cases with read from memory
 	for i, tc := range casesZip {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create testing directory
 			testDir := t.TempDir()
@@ -424,6 +433,9 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 	// test reserved names and forbidden chars
 	for i, name := range append(reservedNames, forbiddenCharacters...) {
 		t.Run(fmt.Sprintf("test %d %x", i, name), func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create testing directory
 			testDir := t.TempDir()
