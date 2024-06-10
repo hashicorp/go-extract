@@ -3,6 +3,7 @@ package target
 import (
 	"bytes"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -36,7 +37,8 @@ func TestCreateDir(t *testing.T) {
 		}
 
 		// create a directory with 0000 mode and expect fail
-		if err := tt.CreateDir(filepath.Join(testPath, "foo", "bar", "baz"), 0000); err == nil {
+		isWindows := runtime.GOOS == "windows"
+		if err := tt.CreateDir(filepath.Join(testPath, "foo", "bar", "baz"), 0000); (err == nil) && !isWindows {
 			t.Fatalf("CreateDir() did not fail, but error was expected!")
 		}
 	}
