@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -57,7 +58,7 @@ func TestCreateFile(t *testing.T) {
 					panic(fmt.Errorf("failed to create dir: %s", err))
 				}
 			},
-			expectError: true,
+			expectError: runtime.GOOS != "windows", // only relevant test for unix based systems
 		},
 		{
 			dst:         "foo",
@@ -84,7 +85,7 @@ func TestCreateFile(t *testing.T) {
 		dst := filepath.Join(tmpDir, tt.dst)
 		_, err := createFile(testTarget, dst, tt.name, strings.NewReader(tt.src), tt.mode, tt.maxSize, tt.cfg)
 		if tt.expectError != (err != nil) {
-			t.Errorf("[%v] createFile(%s, %s, %s, %d, %d) = %v; want nil", i, tt.dst, tt.name, tt.src, tt.mode, tt.maxSize, err)
+			t.Errorf("[%v] createFile(%s, %s, %s, %d, %d) = %v; want %v", i, tt.dst, tt.name, tt.src, tt.mode, tt.maxSize, err, tt.expectError)
 		}
 	}
 }
