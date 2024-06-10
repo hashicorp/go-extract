@@ -28,7 +28,7 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 	}
 
 	// check the filename
-	if err := securityCheckPath(t, dst, name, cfg); err != nil {
+	if err := SecurityCheck(t, dst, name, cfg); err != nil {
 		return 0, fmt.Errorf("security check path failed: %s", err)
 	}
 
@@ -57,7 +57,7 @@ func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *
 		return nil
 	}
 
-	if err := securityCheckPath(t, dst, name, cfg); err != nil {
+	if err := SecurityCheck(t, dst, name, cfg); err != nil {
 		return fmt.Errorf("security check path failed: %s", err)
 	}
 
@@ -105,7 +105,7 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 
 	// check link target for traversal
 	targetCleaned := filepath.Join(linkDirectory, linkTarget)
-	if err := securityCheckPath(t, dst, targetCleaned, cfg); err != nil {
+	if err := SecurityCheck(t, dst, targetCleaned, cfg); err != nil {
 		return fmt.Errorf("symlink target security check path failed: %s", err)
 	}
 
@@ -114,13 +114,13 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 
 }
 
-// securityCheckPath checks if the targetDirectory contains path traversal
+// SecurityCheck checks if the targetDirectory contains path traversal
 // and if the path contains a symlink. The function returns an error if the
 // path contains path traversal or if a symlink is detected. If the path
 // contains a symlink and config.FollowSymlinks() returns true, a warning is
 // logged and the function continues. If the path contains a symlink and
 // config.FollowSymlinks() returns false, an error is returned.
-func securityCheckPath(t target.Target, dst string, path string, config *config.Config) error {
+func SecurityCheck(t target.Target, dst string, path string, config *config.Config) error {
 
 	// clean the target
 	path = filepath.Clean(path)
@@ -143,7 +143,7 @@ func securityCheckPath(t target.Target, dst string, path string, config *config.
 	}
 
 	// check each dir in path
-	targetPathElements := strings.Split(path, string(os.PathSeparator))
+	targetPathElements := strings.Split(path, "/")
 	for i := 0; i < len(targetPathElements); i++ {
 
 		// assemble path

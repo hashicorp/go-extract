@@ -239,3 +239,76 @@ func TestCreateSymlink(t *testing.T) {
 		}
 	}
 }
+
+func TestSecurityCheck(t *testing.T) {
+	tc := []struct {
+		dst         string
+		name        string
+		cfg         *config.Config
+		expectError bool
+		prep        func(target.Target, string)
+	}{
+		{
+			name: "test.txt",
+			dst:  "",
+		},
+		{
+			name: "",
+			dst:  "",
+		},
+		{
+			dst:  "foo",
+			name: "bar",
+		},
+		{
+			dst:  "foo",
+			name: "bar/../baz",
+		},
+		{
+			dst:         "foo",
+			name:        "../baz",
+			expectError: true,
+		},
+		{
+			name: "foo/above/bar",
+			prep: func(t target.Target, dst string) {
+				t.CreateDir(filepath.Join(dst, "foo"), 0750)
+				above := filepath.Join(dst, "foo", "above")
+				t.CreateSymlink("../", above, false)
+			},
+			expectError: true,
+		},
+	}
+
+	for i, tt := range tc {
+		testTarget := target.NewNoopTarget()
+		if tt.cfg == nil {
+			tt.cfg = config.NewConfig()
+		}
+		if tt.prep != nil {
+			tt.prep(testTarget, "")
+		}
+		err := SecurityCheck(testTarget, tt.dst, tt.name, tt.cfg)
+		gotError := (err != nil)
+		if tt.expectError != gotError {
+			t.Errorf("[%v] securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", i, tt.dst, tt.name, err, tt.expectError)
+		}
+	}
+}
+
+// FuzzSecurityCheck is a fuzzer for the SecurityCheck function
+func FuzzSecurityCheckNoop(f *testing.F) {
+	f.Add("dst", "name")
+	f.Fuzz(func(t *testing.T, dst, name string) {
+		SecurityCheck(target.NewNoopTarget(), dst, name, config.NewConfig())
+	})
+}
+
+func FuzzSecurityCheckOs(f *testing.F) {
+	f.Add("dst", "name")
+	o := target.NewOS()
+	f.Fuzz(func(t *testing.T, dst, name string) {
+		tmp := t.TempDir()
+		SecurityCheck(o, tmp, name, config.NewConfig())
+	})
+}
