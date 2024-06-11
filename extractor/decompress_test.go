@@ -17,7 +17,7 @@ import (
 // compressFunc is a function that compresses a byte slice
 type compressFunc func([]byte) []byte
 
-func TestDecompress(t *testing.T) {
+func TestDecompressTarCompress(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := config.NewConfig()
@@ -101,6 +101,103 @@ func TestDecompress(t *testing.T) {
 
 			// check if file was extracted
 			if _, err := os.Stat(filepath.Join(tmpDir, filename)); err != nil {
+				t.Errorf("%v: File not found: %v", tt.name, err)
+			}
+		})
+	}
+}
+
+func TestDecompressCompressedFile(t *testing.T) {
+
+	ctx := context.Background()
+	cfg := config.NewConfig()
+	fileContent := []byte("Hello, World!")
+	filename := "test"
+
+	tests := []struct {
+		name    string
+		dst     string
+		cfg     *config.Config
+		comp    compressFunc
+		decomp  decompressionFunction
+		ext     string
+		prep    func(string)
+		outname string
+	}{
+		{
+			name:    "zlib",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			dst:     "foo",
+			outname: "foo",
+		},
+		{
+			name:    "zlib",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			cfg:     config.NewConfig(config.WithCreateDestination(true)),
+			dst:     "foo/bar",
+			outname: "foo/bar",
+		},
+		{
+			name:    "zlib",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			cfg:     config.NewConfig(config.WithCreateDestination(true)),
+			dst:     "existing_dir",
+			outname: "existing_dir/test",
+			prep: func(tmpDir string) {
+				os.Mkdir(filepath.Join(tmpDir, "existing_dir"), 0755)
+			},
+		},
+		{
+			name:    "zlib",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			cfg:     config.NewConfig(config.WithOverwrite(true)),
+			dst:     "existing_file",
+			outname: "existing_file",
+			prep: func(tmpDir string) {
+				os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
+
+			tmpDir := t.TempDir()
+			if tt.prep != nil {
+				tt.prep(tmpDir)
+			}
+			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.%s", tt.ext))
+			r := newTestFile(testFile, tt.comp(fileContent))
+			defer func() {
+				if f, ok := r.(io.Closer); ok {
+					f.Close()
+				}
+			}()
+			if tt.cfg == nil {
+				tt.cfg = cfg
+			}
+			dst := filepath.Join(tmpDir, tt.dst)
+			if err := decompress(ctx, testingTarget, dst, r, tt.cfg, tt.decomp, tt.ext); err != nil {
+				t.Errorf("%v: Unpack() error = %v", tt.name, err)
+			}
+
+			// check if file was extracted
+			checkFile := filepath.Join(tmpDir, filename)
+			if tt.outname != "" {
+				checkFile = filepath.Join(tmpDir, tt.outname)
+			}
+			if _, err := os.Stat(checkFile); err != nil {
 				t.Errorf("%v: File not found: %v", tt.name, err)
 			}
 		})

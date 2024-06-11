@@ -40,8 +40,9 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 	// check for traversal in file name, ensure the directory exist and is safe to write to.
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	fDir := filepath.Dir(name)
+
 	if err := createDir(t, dst, fDir, cfg.CustomCreateDirMode(), cfg); err != nil {
-		return 0, fmt.Errorf("cannot create directory (%s): %s", fDir, err)
+		return 0, fmt.Errorf("cannot create directory: %s", err)
 	}
 
 	// check the filename
