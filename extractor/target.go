@@ -258,7 +258,7 @@ func SecurityCheck(t target.Target, dst string, path string, config *config.Conf
 	return nil
 }
 
-// checkForSymlinkInPath checks if path contains a symlink
+// isSymlink checks if path contains a symlink
 //
 // The function returns true if the path contains a symlink, otherwise false.
 func isSymlink(t target.Target, path string) (bool, error) {
