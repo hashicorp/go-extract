@@ -150,7 +150,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			dst:     "existing_dir",
 			outname: "existing_dir/test",
 			prep: func(tmpDir string) {
-				os.Mkdir(filepath.Join(tmpDir, "existing_dir"), 0755)
+				if err := os.Mkdir(filepath.Join(tmpDir, "existing_dir"), 0755); err != nil {
+					t.Errorf("os.Mkdir() error = %v", err)
+				}
 			},
 		},
 		{
@@ -162,7 +164,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			dst:     "existing_file",
 			outname: "existing_file",
 			prep: func(tmpDir string) {
-				os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644)
+				if err := os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644); err != nil {
+					t.Errorf("os.WriteFile() error = %v", err)
+				}
 			},
 		},
 	}
