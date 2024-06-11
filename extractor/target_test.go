@@ -55,7 +55,7 @@ func TestCreateFile(t *testing.T) {
 			cfg:     config.NewConfig(config.WithCreateDestination(true)),
 			prep: func(t target.Target, dst string) {
 				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
-					panic(fmt.Errorf("failed to create dir: %s", err))
+					panic(fmt.Errorf("failed to create dir: %w", err))
 				}
 			},
 			expectError: runtime.GOOS != "windows", // only relevant test for unix based systems
@@ -131,7 +131,7 @@ func TestCreateDir(t *testing.T) {
 			cfg:  config.NewConfig(config.WithCreateDestination(true)),
 			prep: func(t target.Target, dst string) {
 				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
-					panic(fmt.Errorf("failed to create dir: %s", err))
+					panic(fmt.Errorf("failed to create dir: %w", err))
 				}
 			},
 			expectError: (runtime.GOOS != "windows"), // only relevant test for unix based systems
@@ -305,12 +305,12 @@ func TestSecurityCheck(t *testing.T) {
 			name: "foo/above/bar",
 			prep: func(t target.Target, dst string) {
 				if err := t.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
-					panic(fmt.Errorf("failed to create dir: %s", err))
+					panic(fmt.Errorf("failed to create dir: %w", err))
 				}
 
 				above := filepath.Join(dst, "foo", "above")
 				if err := t.CreateSymlink("..", above, false); err != nil {
-					panic(fmt.Errorf("failed to create symlink: %s", err))
+					panic(fmt.Errorf("failed to create symlink: %w", err))
 				}
 			},
 			expectError: true,

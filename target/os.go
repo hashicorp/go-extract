@@ -24,7 +24,7 @@ func (o *OS) CreateDir(path string, mode fs.FileMode) error {
 
 	// create dirs
 	if err := os.MkdirAll(path, mode.Perm()); err != nil {
-		return fmt.Errorf("failed to create directory (%s)", err)
+		return fmt.Errorf("failed to create directory (%w)", err)
 	}
 
 	return nil
@@ -42,7 +42,7 @@ func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite 
 
 		// something wrong with path
 		if err != nil {
-			return 0, fmt.Errorf("invalid path: %s", err)
+			return 0, fmt.Errorf("invalid path: %w", err)
 		}
 
 		// check for overwrite
@@ -54,7 +54,7 @@ func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite 
 	// create dst file
 	dstFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode.Perm())
 	if err != nil {
-		return 0, fmt.Errorf("failed to create file: %s", err)
+		return 0, fmt.Errorf("failed to create file: %w", err)
 	}
 	defer func() {
 		dstFile.Close()
@@ -64,7 +64,7 @@ func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite 
 	writer := limitWriter(dstFile, maxSize)
 	n, err := io.Copy(writer, src)
 	if err != nil {
-		return n, fmt.Errorf("failed to write file: %s", err)
+		return n, fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return n, err
@@ -82,13 +82,13 @@ func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error
 
 		// delete existing link
 		if err := os.Remove(newname); err != nil {
-			return fmt.Errorf("failed to overwrite file: %s", err)
+			return fmt.Errorf("failed to overwrite file: %w", err)
 		}
 	}
 
 	// create link
 	if err := os.Symlink(oldname, newname); err != nil {
-		return fmt.Errorf("failed to create symlink: %s", err)
+		return fmt.Errorf("failed to create symlink: %w", err)
 	}
 
 	return nil

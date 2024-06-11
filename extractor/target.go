@@ -42,12 +42,12 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 	fDir := filepath.Dir(name)
 
 	if err := createDir(t, dst, fDir, cfg.CustomCreateDirMode(), cfg); err != nil {
-		return 0, fmt.Errorf("cannot create directory: %s", err)
+		return 0, fmt.Errorf("cannot create directory: %w", err)
 	}
 
 	// check the filename
 	if err := SecurityCheck(t, dst, name, cfg); err != nil {
-		return 0, fmt.Errorf("security check path failed: %s", err)
+		return 0, fmt.Errorf("security check path failed: %w", err)
 	}
 
 	return t.CreateFile(filepath.Join(dst, name), src, mode, cfg.Overwrite(), maxSize)
@@ -75,7 +75,7 @@ func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *
 		if _, err := t.Lstat(dst); os.IsNotExist(err) {
 			if cfg.CreateDestination() {
 				if err := t.CreateDir(dst, cfg.CustomCreateDirMode()); err != nil {
-					return fmt.Errorf("failed to create destination directory %s", err)
+					return fmt.Errorf("failed to create destination directory %w", err)
 				}
 				cfg.Logger().Info("created destination directory", "path", dst)
 			} else {
@@ -90,7 +90,7 @@ func createDir(t target.Target, dst string, name string, mode fs.FileMode, cfg *
 	}
 
 	if err := SecurityCheck(t, dst, name, cfg); err != nil {
-		return fmt.Errorf("security check path failed: %s", err)
+		return fmt.Errorf("security check path failed: %w", err)
 	}
 
 	// combine the path
@@ -169,7 +169,7 @@ func createSymlink(t target.Target, dst string, name string, linkTarget string, 
 	// check link target for traversal
 	targetCleaned := filepath.Join(linkDirectory, linkTarget)
 	if err := SecurityCheck(t, dst, targetCleaned, cfg); err != nil {
-		return fmt.Errorf("symlink target security check path failed: %s", err)
+		return fmt.Errorf("symlink target security check path failed: %w", err)
 	}
 
 	// create symlink
@@ -204,7 +204,7 @@ func SecurityCheck(t target.Target, dst string, path string, config *config.Conf
 	// get relative path from base to new directory target
 	rel, err := filepath.Rel(dst, filepath.Join(dst, path))
 	if err != nil {
-		return fmt.Errorf("failed to get relative path: %s", err)
+		return fmt.Errorf("failed to get relative path: %w", err)
 	}
 	// check if the relative path is local
 	if !filepath.IsLocal(rel) {
@@ -244,7 +244,7 @@ func SecurityCheck(t target.Target, dst string, path string, config *config.Conf
 		// check for symlink
 		isSymlink, err := isSymlink(t, checkDir)
 		if err != nil {
-			return fmt.Errorf("failed to check symlink: %s", err)
+			return fmt.Errorf("failed to check symlink: %w", err)
 		}
 		if isSymlink {
 			if config.FollowSymlinks() {
@@ -278,7 +278,7 @@ func isSymlink(t target.Target, path string) (bool, error) {
 
 		// check if error occurred --> not a symlink
 		if err != nil {
-			return false, fmt.Errorf("failed to check path: %s", err)
+			return false, fmt.Errorf("failed to check path: %w", err)
 		}
 
 		// check if we got stats

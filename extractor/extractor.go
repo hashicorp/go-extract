@@ -36,7 +36,7 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 	// check if path matches any pattern
 	for _, pattern := range patterns {
 		if match, err := filepath.Match(pattern, path); err != nil {
-			return false, fmt.Errorf("failed to match pattern: %s", err)
+			return false, fmt.Errorf("failed to match pattern: %w", err)
 		} else if match {
 			return true, nil
 		}
@@ -174,7 +174,7 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 
 	// increase error counter and set error
 	td.ExtractionErrors++
-	td.LastExtractionError = fmt.Errorf("%s: %s", msg, err)
+	td.LastExtractionError = fmt.Errorf("%s: %w", msg, err)
 
 	// do not end on error
 	if c.ContinueOnError() {
