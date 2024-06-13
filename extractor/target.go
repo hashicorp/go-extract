@@ -41,13 +41,9 @@ func createFile(t target.Target, dst string, name string, src io.Reader, mode fs
 	// If the directory does not exist, it will be created with the config.CustomCreateDirMode().
 	fDir := filepath.Dir(name)
 
+	// ensures that the directory exists and is safe to write to (e.g. no symlinks if disabled)
 	if err := createDir(t, dst, fDir, cfg.CustomCreateDirMode(), cfg); err != nil {
 		return 0, fmt.Errorf("cannot create directory: %w", err)
-	}
-
-	// check the filename
-	if err := SecurityCheck(t, dst, name, cfg); err != nil {
-		return 0, fmt.Errorf("security check path failed: %w", err)
 	}
 
 	return t.CreateFile(filepath.Join(dst, name), src, mode, cfg.Overwrite(), maxSize)
@@ -231,7 +227,7 @@ func SecurityCheck(t target.Target, dst string, path string, config *config.Conf
 		// perform check if its a proper dir
 		if _, err := t.Lstat(checkDir); err != nil {
 			if !os.IsNotExist(err) {
-				return fmt.Errorf("invalid path")
+				return fmt.Errorf("invalid path: %w", err)
 			}
 
 			// get out of the loop, bc/ don't check paths
