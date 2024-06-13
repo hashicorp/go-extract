@@ -189,7 +189,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 			decomp:  decompressZlibStream,
 			ext:     FileExtensionZlib,
 			cfg:     config.NewConfig(config.WithOverwrite(true)),
-			dst:     "link_to_other_file", // if dst is a symlink to a file, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
+			dst:     "link_to_other_file", // if dst is a symlink to a file, the file should be overwritten (bc/ dst is not sanitized)
 			outname: "link_to_other_file",
 			prep: func(tmpDir string) {
 				if err := os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644); err != nil {
@@ -205,7 +205,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 			comp:    compressZlib,
 			decomp:  decompressZlibStream,
 			ext:     FileExtensionZlib,
-			dst:     "link_to_non_existing_file", // if dst is a symlink to a file, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
+			dst:     "link_to_non_existing_file", // if dst is a symlink to a non-existing file, the file should be overwritten (bc/ dst is not sanitized)
 			outname: "link_to_non_existing_file",
 			prep: func(tmpDir string) {
 				if err := os.Symlink("non_existing_file", filepath.Join(tmpDir, "link_to_non_existing_file")); err != nil {
