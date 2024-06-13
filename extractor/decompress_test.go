@@ -184,7 +184,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 			},
 		},
 		{
-			name:    "dst is link to existing file", // expect error
+			name:    "dst is link to existing file (WithOverwrite)",
 			comp:    compressZlib,
 			decomp:  decompressZlibStream,
 			ext:     FileExtensionZlib,
