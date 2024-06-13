@@ -160,9 +160,19 @@ func determineOutputName(t target.Target, dst string, inputName string, fileExt 
 			return filepath.Dir(dst), filepath.Base(dst)
 		}
 
+		// check if stat is a symlink
+		if stat != nil && stat.Mode()&os.ModeSymlink != 0 {
+			stat, err = t.Stat(dst)
+		}
+
+		// check again if dst does not exist, then use it as directory and output name
+		if os.IsNotExist(err) {
+			return filepath.Dir(dst), filepath.Base(dst)
+		}
+
 		// check if dst is NOT a directory, then use it as directory
 		// and output name (override might be necessary)
-		if err == nil && !stat.IsDir() {
+		if err == nil && stat != nil && !stat.IsDir() {
 			return filepath.Dir(dst), filepath.Base(dst)
 		}
 	}

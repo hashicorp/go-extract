@@ -169,6 +169,48 @@ func TestDecompressCompressedFile(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:    "dst is link to existing folder",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			dst:     "link_to_other_dir", // if dst is a symlink to a folder, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
+			outname: "link_to_other_dir/test",
+			prep: func(tmpDir string) {
+				externalDir := t.TempDir()
+				os.Symlink(externalDir, filepath.Join(tmpDir, "link_to_other_dir"))
+			},
+		},
+		{
+			name:    "dst is link to existing file", // expect error
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			cfg:     config.NewConfig(config.WithOverwrite(true)),
+			dst:     "link_to_other_file", // if dst is a symlink to a file, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
+			outname: "link_to_other_file",
+			prep: func(tmpDir string) {
+				if err := os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644); err != nil {
+					t.Errorf("os.WriteFile() error = %v", err)
+				}
+				if err := os.Symlink("existing_file", filepath.Join(tmpDir, "link_to_other_file")); err != nil {
+					t.Errorf("os.Symlink() error = %v", err)
+				}
+			},
+		},
+		{
+			name:    "dst is link to non-existing file",
+			comp:    compressZlib,
+			decomp:  decompressZlibStream,
+			ext:     FileExtensionZlib,
+			dst:     "link_to_non_existing_file", // if dst is a symlink to a file, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
+			outname: "link_to_non_existing_file",
+			prep: func(tmpDir string) {
+				if err := os.Symlink("non_existing_file", filepath.Join(tmpDir, "link_to_non_existing_file")); err != nil {
+					t.Errorf("os.Symlink() error = %v", err)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
