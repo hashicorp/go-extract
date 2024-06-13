@@ -29,4 +29,9 @@ type Target interface {
 	// If the path exists, the function should return the FileInfo for the path. The function should return an error if
 	// there's a problem getting the FileInfo.
 	Lstat(path string) (fs.FileInfo, error)
+
+	// Stat returns the FileInfo for the specified path. If the path does not exist, the function should return an error.
+	// If the path exists, the function should return the FileInfo for the path. The function should return an error if
+	// there's a problem getting the FileInfo.
+	Stat(path string) (fs.FileInfo, error)
 }

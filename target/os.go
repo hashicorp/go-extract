@@ -100,3 +100,9 @@ func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error
 func (o *OS) Lstat(name string) (fs.FileInfo, error) {
 	return os.Lstat(name)
 }
+
+// Stat returns the FileInfo structure describing the named file.
+// If there is an error, it will be of type *PathError.
+func (o *OS) Stat(name string) (os.FileInfo, error) {
+	return os.Stat(name)
+}
