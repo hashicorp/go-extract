@@ -29,6 +29,6 @@ type Target interface {
 	// and for zip-slip attacks.
 	Lstat(path string) (fs.FileInfo, error)
 
-	// Lstat see docs for os.Stat. Main purpose is to check if a symlink is pointing to a file or directory.
+	// Stat see docs for os.Stat. Main purpose is to check if a symlink is pointing to a file or directory.
 	Stat(path string) (fs.FileInfo, error)
 }
