@@ -178,7 +178,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			outname: "link_to_other_dir/test",
 			prep: func(tmpDir string) {
 				externalDir := t.TempDir()
-				os.Symlink(externalDir, filepath.Join(tmpDir, "link_to_other_dir"))
+				if err := os.Symlink(externalDir, filepath.Join(tmpDir, "link_to_other_dir")); err != nil {
+					t.Errorf("os.Symlink() error = %v", err)
+				}
 			},
 		},
 		{
