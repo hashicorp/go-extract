@@ -121,7 +121,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 		comp    compressFunc
 		decomp  decompressionFunction
 		ext     string
-		prep    func(string)
+		prep    func(*testing.T, string)
 		outname string
 	}{
 		{
@@ -149,9 +149,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			cfg:     config.NewConfig(config.WithCreateDestination(true)),
 			dst:     "existing_dir",
 			outname: "existing_dir/test",
-			prep: func(tmpDir string) {
+			prep: func(t *testing.T, tmpDir string) {
 				if err := os.Mkdir(filepath.Join(tmpDir, "existing_dir"), 0755); err != nil {
-					t.Errorf("os.Mkdir() error = %v", err)
+					t.Fatalf("os.Mkdir() error = %v", err)
 				}
 			},
 		},
@@ -163,9 +163,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			cfg:     config.NewConfig(config.WithOverwrite(true)),
 			dst:     "existing_file",
 			outname: "existing_file",
-			prep: func(tmpDir string) {
+			prep: func(t *testing.T, tmpDir string) {
 				if err := os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644); err != nil {
-					t.Errorf("os.WriteFile() error = %v", err)
+					t.Fatalf("os.WriteFile() error = %v", err)
 				}
 			},
 		},
@@ -176,10 +176,10 @@ func TestDecompressCompressedFile(t *testing.T) {
 			ext:     FileExtensionZlib,
 			dst:     "link_to_other_dir", // if dst is a symlink to a folder, the file should be extracted to the target of the symlink (bc/ dst is not sanitized)
 			outname: "link_to_other_dir/test",
-			prep: func(tmpDir string) {
+			prep: func(t *testing.T, tmpDir string) {
 				externalDir := t.TempDir()
 				if err := os.Symlink(externalDir, filepath.Join(tmpDir, "link_to_other_dir")); err != nil {
-					t.Errorf("os.Symlink() error = %v", err)
+					t.Fatalf("os.Symlink() error = %v", err)
 				}
 			},
 		},
@@ -191,12 +191,12 @@ func TestDecompressCompressedFile(t *testing.T) {
 			cfg:     config.NewConfig(config.WithOverwrite(true)),
 			dst:     "link_to_other_file", // if dst is a symlink to a file, the file should be overwritten (bc/ dst is not sanitized)
 			outname: "link_to_other_file",
-			prep: func(tmpDir string) {
+			prep: func(t *testing.T, tmpDir string) {
 				if err := os.WriteFile(filepath.Join(tmpDir, "existing_file"), fileContent, 0644); err != nil {
-					t.Errorf("os.WriteFile() error = %v", err)
+					t.Fatalf("os.WriteFile() error = %v", err)
 				}
 				if err := os.Symlink("existing_file", filepath.Join(tmpDir, "link_to_other_file")); err != nil {
-					t.Errorf("os.Symlink() error = %v", err)
+					t.Fatalf("os.Symlink() error = %v", err)
 				}
 			},
 		},
@@ -207,9 +207,9 @@ func TestDecompressCompressedFile(t *testing.T) {
 			ext:     FileExtensionZlib,
 			dst:     "link_to_non_existing_file", // if dst is a symlink to a non-existing file, the file should be overwritten (bc/ dst is not sanitized)
 			outname: "link_to_non_existing_file",
-			prep: func(tmpDir string) {
+			prep: func(t *testing.T, tmpDir string) {
 				if err := os.Symlink("non_existing_file", filepath.Join(tmpDir, "link_to_non_existing_file")); err != nil {
-					t.Errorf("os.Symlink() error = %v", err)
+					t.Fatalf("os.Symlink() error = %v", err)
 				}
 			},
 		},
@@ -223,7 +223,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 
 			tmpDir := t.TempDir()
 			if tt.prep != nil {
-				tt.prep(tmpDir)
+				tt.prep(t, tmpDir)
 			}
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.%s", tt.ext))
 			r := newTestFile(testFile, tt.comp(fileContent))

@@ -1,7 +1,6 @@
 package extractor
 
 import (
-	"fmt"
 	"io/fs"
 	"path/filepath"
 	"runtime"
@@ -23,7 +22,7 @@ func TestCreateFile(t *testing.T) {
 		maxSize     int64
 		cfg         *config.Config
 		expectError bool
-		prep        func(target.Target, string)
+		prep        func(*testing.T, target.Target, string)
 	}{
 		{
 			name:    "test.txt",
@@ -53,9 +52,9 @@ func TestCreateFile(t *testing.T) {
 			mode:    0640,
 			maxSize: -1,
 			cfg:     config.NewConfig(config.WithCreateDestination(true)),
-			prep: func(t target.Target, dst string) {
-				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
-					panic(fmt.Errorf("failed to create dir: %w", err))
+			prep: func(t *testing.T, target target.Target, dst string) {
+				if err := target.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
+					t.Fatalf("failed to create dir: %s", err)
 				}
 			},
 			expectError: runtime.GOOS != "windows", // only relevant test for unix based systems
@@ -80,7 +79,7 @@ func TestCreateFile(t *testing.T) {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tmpDir)
+			tt.prep(t, testTarget, tmpDir)
 		}
 		dst := filepath.Join(tmpDir, tt.dst)
 		_, err := createFile(testTarget, dst, tt.name, strings.NewReader(tt.src), tt.mode, tt.maxSize, tt.cfg)
@@ -99,7 +98,7 @@ func TestCreateDir(t *testing.T) {
 		mode          fs.FileMode
 		cfg           *config.Config
 		expectError   bool
-		prep          func(target.Target, string)
+		prep          func(*testing.T, target.Target, string)
 		dontConcatDst bool
 	}{
 		{
@@ -129,9 +128,9 @@ func TestCreateDir(t *testing.T) {
 			name: "bar",
 			mode: 0750,
 			cfg:  config.NewConfig(config.WithCreateDestination(true)),
-			prep: func(t target.Target, dst string) {
-				if err := t.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
-					panic(fmt.Errorf("failed to create dir: %w", err))
+			prep: func(t *testing.T, target target.Target, dst string) {
+				if err := target.CreateDir(filepath.Join(dst, "foo"), 0000); err != nil {
+					t.Fatalf("failed to create dir: %s", err)
 				}
 			},
 			expectError: (runtime.GOOS != "windows"), // only relevant test for unix based systems
@@ -168,7 +167,7 @@ func TestCreateDir(t *testing.T) {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tmpDir)
+			tt.prep(t, testTarget, tmpDir)
 		}
 		dst := tt.dst
 		if !tt.dontConcatDst {
@@ -278,7 +277,7 @@ func TestSecurityCheck(t *testing.T) {
 		name        string
 		cfg         *config.Config
 		expectError bool
-		prep        func(target.Target, string)
+		prep        func(*testing.T, target.Target, string)
 	}{
 		{
 			name: "test.txt",
@@ -303,14 +302,14 @@ func TestSecurityCheck(t *testing.T) {
 		},
 		{
 			name: "foo/above/bar",
-			prep: func(t target.Target, dst string) {
-				if err := t.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
-					panic(fmt.Errorf("failed to create dir: %w", err))
+			prep: func(t *testing.T, target target.Target, dst string) {
+				if err := target.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
+					t.Fatalf("failed to create dir: %s", err)
 				}
 
 				above := filepath.Join(dst, "foo", "above")
-				if err := t.CreateSymlink("..", above, false); err != nil {
-					panic(fmt.Errorf("failed to create symlink: %w", err))
+				if err := target.CreateSymlink("..", above, false); err != nil {
+					t.Fatalf("failed to create symlink: %s", err)
 				}
 			},
 			expectError: true,
@@ -324,7 +323,7 @@ func TestSecurityCheck(t *testing.T) {
 			tt.cfg = config.NewConfig()
 		}
 		if tt.prep != nil {
-			tt.prep(testTarget, tmp)
+			tt.prep(t, testTarget, tmp)
 		}
 		dst := filepath.Join(tmp, tt.dst)
 		err := SecurityCheck(testTarget, dst, tt.name, tt.cfg)
