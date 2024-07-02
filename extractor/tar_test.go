@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestTarUnpack implements test cases
@@ -217,6 +218,9 @@ func TestTarUnpackNew(t *testing.T) {
 	// run cases
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create testing directory
 			testDir := t.TempDir()

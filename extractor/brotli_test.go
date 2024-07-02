@@ -10,6 +10,7 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestUnpackBrotli tests the UnpackBrotli function
@@ -65,6 +66,10 @@ func TestUnpackBrotli(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
+
 			// Create a temporary file (if necessary)
 			tmpDir := t.TempDir()
 			tmpFile := filepath.Join(tmpDir, tt.archiveName)

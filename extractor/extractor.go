@@ -36,7 +36,7 @@ func checkPatterns(patterns []string, path string) (bool, error) {
 	// check if path matches any pattern
 	for _, pattern := range patterns {
 		if match, err := filepath.Match(pattern, path); err != nil {
-			return false, fmt.Errorf("failed to match pattern: %s", err)
+			return false, fmt.Errorf("failed to match pattern: %w", err)
 		} else if match {
 			return true, nil
 		}
@@ -174,7 +174,7 @@ func handleError(c *config.Config, td *telemetry.Data, msg string, err error) er
 
 	// increase error counter and set error
 	td.ExtractionErrors++
-	td.LastExtractionError = fmt.Errorf("%s: %s", msg, err)
+	td.LastExtractionError = fmt.Errorf("%s: %w", msg, err)
 
 	// do not end on error
 	if c.ContinueOnError() {
@@ -192,7 +192,7 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 	// start extraction
 	cfg.Logger().Info("start extraction", "type", src.Type())
 	var fileCounter int64
-	var extractionSize uint64
+	var extractionSize int64
 
 	for {
 		// check if context is canceled
@@ -261,9 +261,8 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 		// if it's a file create it
 		case ae.IsRegular():
 
-			// check extraction size
-			extractionSize = extractionSize + uint64(ae.Size())
-			if err := cfg.CheckExtractionSize(int64(extractionSize)); err != nil {
+			// check extraction size forecast
+			if err := cfg.CheckExtractionSize(extractionSize + ae.Size()); err != nil {
 				return handleError(cfg, td, "max extraction size exceeded", err)
 			}
 
@@ -275,7 +274,10 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 			defer fin.Close()
 
 			// create file
-			if err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg); err != nil {
+			n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
+			extractionSize = extractionSize + n
+			td.ExtractionSize = extractionSize
+			if err != nil {
 
 				// increase error counter, set error and end if necessary
 				if err := handleError(cfg, td, "failed to create safe file", err); err != nil {
@@ -287,8 +289,8 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 			}
 
 			// store telemetry
-			td.ExtractionSize = int64(extractionSize)
 			td.ExtractedFiles++
+
 			continue
 
 		// its a symlink !!

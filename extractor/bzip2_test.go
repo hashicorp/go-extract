@@ -11,6 +11,7 @@ import (
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestIsBzip2 tests the IsBzip2 function.
@@ -86,6 +87,10 @@ func TestUnpackBzip2(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
+
 			// create a temporary file
 			tmpDir := t.TempDir()
 			tFile := filepath.Join(tmpDir, tt.testFileName)
