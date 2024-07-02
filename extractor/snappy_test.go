@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/snappy"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 // TestIsSnappy checks if the header matches the snappy magic bytes.
@@ -77,6 +78,9 @@ func TestUnpackSnappy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// Create a context
 			ctx := context.Background()

@@ -44,3 +44,11 @@ func (l *LimitErrorWriter) Write(p []byte) (n int, err error) {
 func NewLimitErrorWriter(w io.Writer, l int64) *LimitErrorWriter {
 	return &LimitErrorWriter{W: w, L: l}
 }
+
+// limitWriter returns a new writer that wraps the given writer and limits the
+func limitWriter(w io.Writer, maxSize int64) io.Writer {
+	if maxSize < 0 {
+		return w
+	}
+	return NewLimitErrorWriter(w, maxSize)
+}

@@ -18,7 +18,7 @@ func NewHeaderReader(r io.Reader, headerSize int) (*HeaderReader, error) {
 	buf := make([]byte, headerSize)
 	n, err := io.ReadFull(r, buf)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-		return nil, fmt.Errorf("cannot read header: %s", err)
+		return nil, fmt.Errorf("cannot read header: %w", err)
 	}
 	return &HeaderReader{r, buf[:n]}, nil
 }

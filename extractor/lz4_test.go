@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -78,6 +79,9 @@ func TestUnpackLZ4(t *testing.T) {
 	// run tests
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// prepare context
 			ctx, cancel := context.WithCancel(context.Background())

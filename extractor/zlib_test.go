@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 )
 
 func TestIsZlib(t *testing.T) {
@@ -78,6 +79,9 @@ func TestUnpackZlib(t *testing.T) {
 			// prepare context
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create a temporary file
 			tmpDir := t.TempDir()

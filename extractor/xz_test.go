@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/ulikunitz/xz"
 )
 
@@ -78,6 +79,9 @@ func TestUnpackXz(t *testing.T) {
 			defer cancel()
 			tmpDir := t.TempDir()
 			archivePath := filepath.Join(tmpDir, "test.xz")
+
+			// Create a new target
+			testingTarget := target.NewOS()
 
 			// create a temporary file
 			reader := tt.generator(archivePath, tt.testData)

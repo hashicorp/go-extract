@@ -43,7 +43,7 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 	// read headerReader to identify archive type
 	header, reader, err := getHeader(src)
 	if err != nil {
-		return fmt.Errorf("failed to read header: %s", err)
+		return fmt.Errorf("failed to read header: %w", err)
 	}
 
 	// find extractor by header
@@ -77,19 +77,19 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 		// read header from source
 		_, err := src.Read(header)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read header: %s", err)
+			return nil, nil, fmt.Errorf("failed to read header: %w", err)
 		}
 		// reset reader
 		_, err = s.Seek(0, io.SeekStart)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to reset reader: %s", err)
+			return nil, nil, fmt.Errorf("failed to reset reader: %w", err)
 		}
 		return header, src, nil
 	}
 
 	headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create header reader: %s", err)
+		return nil, nil, fmt.Errorf("failed to create header reader: %w", err)
 	}
 	return headerReader.PeekHeader(), headerReader, nil
 }
