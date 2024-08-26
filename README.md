@@ -146,7 +146,8 @@ Extracted entries can be accessed afterwards by `os.*` API calls.
 
 ```golang
 // create a target
-target := target.NewOS()
+osTarget := target.NewOS()
+extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg) 
 ```
 
 ### Memory
@@ -156,49 +157,53 @@ are supported. File permissions are not validated. Extracted entries are accesse
 or via a map key. Symlink semantically not processed by the implementation.
 
 ```golang
-m := NewMemory()
-m.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
-m.CreateDir("dir", 0755)
-m.CreateSymlink("file.txt", "link.txt", true)
+// use target to unpack archive
+memTarget := target.NewMemory()
+extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg)
+
+// manual usage
+memTarget.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
+memTarget.CreateDir("dir", 0755)
+memTarget.CreateSymlink("file.txt", "link.txt", true)
 
 // interact with the filesystem
-f, e := m.Open("file.txt") // contains "hello world"
+f, e := memTarget.Open("file.txt") // contains "hello world"
 if e != nil {
   // handle error
 }
 defer f.Close()
 
 // open symlink
-f, e = m.Open("link.txt") // contains "hello world"
+f, e = memTarget.Open("link.txt") // contains "hello world"
 if e != nil {
   // handle error
 }
 defer f.Close()
 
 // Stat the file
-s, e := m.Stat("file.txt")
+s, e := memTarget.Stat("file.txt")
 if e != nil {
   // handle error
 }
 fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
 
 // Lstat the symlink
-l, e := m.Lstat("link.txt")
+l, e := memTarget.Lstat("link.txt")
 if e != nil {
   // handle error
 }
 fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
 
 // Readlink the symlink
-t, e := m.Readlink("link.txt")
+t, e := memTarget.Readlink("link.txt")
 if e != nil {
   // handle error
 }
 fmt.Println(t)
 
 // direct access
-fmt.Println(m["file.txt"].FileInfo.Name())
-fmt.Println(m["file.txt"].Data)
+fmt.Println(memTarget["file.txt"].FileInfo.Name())
+fmt.Println(memTarget["file.txt"].Data)
 ```
 
 ## Telemetry data
