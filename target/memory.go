@@ -8,7 +8,15 @@ import (
 	"time"
 )
 
-// NewMemory creates a new in-memory filesystem
+// Memory is an in-memory filesystem implementation. It is a map of file paths to MemoryEntry.
+// The MemoryEntry contains the file information and the file data.
+// The Memory filesystem can be used to create, read, and write files in memory. It can also be
+// used to create directories and symlinks. Permissions on entries (owner, group, others) are
+// not enforced. Entries can be accessed by the path as a key in the map, or by calling
+// the m.Open(<path>) function.
+type Memory map[string]MemoryEntry
+
+// NewMemory creates a new in-memory filesystem.
 func NewMemory() Memory {
 	return make(Memory)
 }
@@ -80,12 +88,31 @@ func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) er
 
 // Open opens a file in the in-memory filesystem. The file is returned as a ReadCloser
 // which can be used to read the file contents. If the file does not exist, an error is returned.
-// If the file is opened successfully, the ReadCloser is returned.
+// If the file is opened successfully, the ReadCloser is returned. The caller is responsible for
+// closing the ReadCloser. If the file is a symlink, the target of the symlink is opened.
+// If the file is a directory, an error is returned.
 func (m Memory) Open(path string) (io.ReadCloser, error) {
-	if e, ok := m[path]; ok {
-		return io.NopCloser(bytes.NewReader(e.Data)), nil
+	e, ok := m[path]
+
+	// file does not exist
+	if !ok {
+		return nil, fs.ErrNotExist
 	}
-	return nil, fs.ErrNotExist
+
+	// handle directory
+	if e.FileInfo.Mode()&fs.ModeDir != 0 {
+		return nil, fmt.Errorf("cannot open directory")
+	}
+
+	// handle symlink
+	if e.FileInfo.Mode()&fs.ModeSymlink != 0 {
+		linkTarget := string(e.Data)
+		return m.Open(linkTarget)
+	}
+
+	// return file data
+	return io.NopCloser(bytes.NewReader(e.Data)), nil
+
 }
 
 // Lstat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the symlink is returned.
@@ -109,9 +136,6 @@ func (m Memory) Stat(path string) (fs.FileInfo, error) {
 	}
 	return nil, fs.ErrNotExist
 }
-
-// Memory is an in-memory filesystem implementation
-type Memory map[string]MemoryEntry
 
 // MemoryEntry is an entry in the in-memory filesystem
 type MemoryEntry struct {
