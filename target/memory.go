@@ -92,11 +92,13 @@ func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) er
 // closing the ReadCloser. If the file is a symlink, the target of the symlink is opened.
 // If the file is a directory, an error is returned.
 func (m Memory) Open(path string) (io.ReadCloser, error) {
+
+	// get entry
 	e, ok := m[path]
 
 	// file does not exist
 	if !ok {
-		return nil, fs.ErrNotExist
+		return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
 	}
 
 	// handle directory
@@ -121,7 +123,7 @@ func (m Memory) Lstat(path string) (fs.FileInfo, error) {
 	if e, ok := m[path]; ok {
 		return e.FileInfo, nil
 	}
-	return nil, fs.ErrNotExist
+	return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
 }
 
 // Stat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the target of the symlink is returned.
@@ -134,7 +136,25 @@ func (m Memory) Stat(path string) (fs.FileInfo, error) {
 		}
 		return e.FileInfo, nil
 	}
-	return nil, fs.ErrNotExist
+	return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+}
+
+// Readlink returns the target of the symlink at the given path. If the path is not a symlink, an error is returned.
+// If the path does not exist, an error is returned. If the symlink exists, the target of the symlink is returned.
+func (m Memory) Readlink(path string) (string, error) {
+	if e, ok := m[path]; ok {
+		if e.FileInfo.Mode()&fs.ModeSymlink != 0 {
+			return string(e.Data), nil
+		}
+		return "", fmt.Errorf("not a symlink")
+	}
+	return "", fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+}
+
+// Remove removes the entry at the given path. If the path does not exist, an error is returned.
+func (m Memory) Remove(path string) error {
+	delete(m, path)
+	return nil
 }
 
 // MemoryEntry is an entry in the in-memory filesystem
@@ -179,4 +199,51 @@ func (fi MemoryFileInfo) IsDir() bool {
 // Sys returns the underlying data source (nil for in-memory filesystem)
 func (fi MemoryFileInfo) Sys() any {
 	return nil
+}
+
+func foo() {
+	m := NewMemory()
+	m.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
+	m.CreateDir("dir", 0755)
+	m.CreateSymlink("file.txt", "link.txt", true)
+
+	// interact with the filesystem
+	f, e := m.Open("file.txt") // contains "hello world"
+	if e != nil {
+		// handle error
+	}
+	defer f.Close()
+
+	// open symlink
+	f, e = m.Open("link.txt") // contains "hello world"
+	if e != nil {
+		// handle error
+	}
+	defer f.Close()
+
+	// Stat the file
+	s, e := m.Stat("file.txt")
+	if e != nil {
+		// handle error
+	}
+	fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
+
+	// Lstat the symlink
+	l, e := m.Lstat("link.txt")
+	if e != nil {
+		// handle error
+	}
+	fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
+
+	// Readlink the symlink
+	t, e := m.Readlink("link.txt")
+	if e != nil {
+		// handle error
+	}
+	fmt.Println(t)
+
+	// direct access
+	fmt.Println(m["file.txt"].FileInfo.Name())
+	fmt.Println(m["file.txt"].Data)
+
 }
