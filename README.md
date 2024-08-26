@@ -263,9 +263,9 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 - [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
 - [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
 - [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
+- [x] in-memory extraction
 - [ ] Handle passwords
 - [ ] recursive extraction
-- [ ] virtual fs as target
 
 ## References
 
