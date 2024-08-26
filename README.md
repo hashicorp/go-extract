@@ -2,19 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure file decompression and extraction of following types:
-
-- 7-Zip
-- Brotli
-- Bzip2
-- GZip
-- LZ4
-- Snappy
-- Tar
-- Xz
-- Zip
-- Zlib
-- Zstandard
+Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Snappy, Tar, Xz, Zip, Zlib and Zstandard.
 
 ## Code Example
 
@@ -165,7 +153,7 @@ target := target.NewOS()
 
 Extract archives to memory by using the `target.Memory` implementation. Files, directories and symlinks
 are supported. File permissions are not validated. Extracted entries are accessed ether via the call of `m.Open(..)`
-or via a map key. Symlink semantically not processed by the implementation. 
+or via a map key. Symlink semantically not processed by the implementation.
 
 ```golang
 m := NewMemory()
