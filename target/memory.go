@@ -74,7 +74,7 @@ func (m Memory) CreateDir(path string, mode fs.FileMode) error {
 func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) error {
 	if !overwrite {
 		if _, ok := m[newName]; ok {
-			return fs.ErrExist
+			return fmt.Errorf("%w: %s", fs.ErrExist, path)
 		}
 	}
 
