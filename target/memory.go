@@ -29,7 +29,7 @@ func NewMemory() Memory {
 func (m Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	if !overwrite {
 		if _, ok := m[path]; ok {
-			return 0, fmt.Errorf("file already exists")
+			return 0, fmt.Errorf("%w: %s", fs.ErrExist, path)
 		}
 	}
 
