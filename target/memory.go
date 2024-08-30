@@ -98,7 +98,7 @@ func (m Memory) Open(path string) (io.ReadCloser, error) {
 
 	// file does not exist
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+		return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 	}
 
 	// handle directory
