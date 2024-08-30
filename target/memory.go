@@ -136,7 +136,7 @@ func (m Memory) Stat(path string) (fs.FileInfo, error) {
 		}
 		return e.FileInfo, nil
 	}
-	return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
 // Readlink returns the target of the symlink at the given path. If the path is not a symlink, an error is returned.
