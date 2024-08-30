@@ -27,6 +27,9 @@ func NewMemory() Memory {
 // If the file exceeds the maxSize, an error is returned. If the file is created successfully, the number of bytes
 // written is returned.
 func (m Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
+	if !fs.ValidPath(path) {
+		return 0, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 	if !overwrite {
 		if _, ok := m[path]; ok {
 			return 0, fmt.Errorf("%w: %s", fs.ErrExist, path)
@@ -57,6 +60,10 @@ func (m Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwri
 // If the directory already exists, nothing is done. If the directory does not exist, it is created.
 // The directory is created with the given mode. If the directory is created successfully, nil is returned.
 func (m Memory) CreateDir(path string, mode fs.FileMode) error {
+	if !fs.ValidPath(path) {
+		return fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
+
 	if _, ok := m[path]; ok {
 		return nil
 	}
@@ -72,9 +79,12 @@ func (m Memory) CreateDir(path string, mode fs.FileMode) error {
 // If the overwrite flag is set to false and the symlink already exists, an error is returned.
 // If the overwrite flag is set to true, the symlink is overwritten. If the symlink is created successfully, nil is returned.
 func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) error {
+	if !fs.ValidPath(newName) {
+		return fmt.Errorf("%w: %s", fs.ErrInvalid, newName)
+	}
 	if !overwrite {
 		if _, ok := m[newName]; ok {
-			return fmt.Errorf("%w: %s", fs.ErrExist, path)
+			return fmt.Errorf("%w: %s", fs.ErrExist, newName)
 		}
 	}
 
@@ -86,11 +96,14 @@ func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) er
 	return nil
 }
 
-// Open opens the named file for reading. If successful, the file is returned 
-// as an [io.ReadCloser] which can be used to read the file contents. If the 
-// file is  a symlink, the target of the symlink is opened. If the file does not 
+// Open opens the named file for reading. If successful, the file is returned
+// as an [io.ReadCloser] which can be used to read the file contents. If the
+// file is  a symlink, the target of the symlink is opened. If the file does not
 // exist, or is a directory, an error is returned.
 func (m Memory) Open(path string) (io.ReadCloser, error) {
+	if !fs.ValidPath(path) {
+		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 
 	// get entry
 	e, ok := m[path]
@@ -119,6 +132,9 @@ func (m Memory) Open(path string) (io.ReadCloser, error) {
 // Lstat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the symlink is returned.
 // If the path does not exist, an error is returned.
 func (m Memory) Lstat(path string) (fs.FileInfo, error) {
+	if fs.ValidPath(path) {
+		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 	if e, ok := m[path]; ok {
 		return e.FileInfo, nil
 	}
@@ -128,6 +144,9 @@ func (m Memory) Lstat(path string) (fs.FileInfo, error) {
 // Stat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the target of the symlink is returned.
 // If the path does not exist, an error is returned.
 func (m Memory) Stat(path string) (fs.FileInfo, error) {
+	if !fs.ValidPath(path) {
+		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 	if e, ok := m[path]; ok {
 		if m[path].FileInfo.Mode()&fs.ModeSymlink != 0 {
 			linkTarget := string(m[path].Data)
@@ -141,17 +160,23 @@ func (m Memory) Stat(path string) (fs.FileInfo, error) {
 // Readlink returns the target of the symlink at the given path. If the path is not a symlink, an error is returned.
 // If the path does not exist, an error is returned. If the symlink exists, the target of the symlink is returned.
 func (m Memory) Readlink(path string) (string, error) {
+	if !fs.ValidPath(path) {
+		return "", fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 	if e, ok := m[path]; ok {
 		if e.FileInfo.Mode()&fs.ModeSymlink != 0 {
 			return string(e.Data), nil
 		}
-		return "", fmt.Errorf("not a symlink: %w: %s", ErrInvalid, path)
+		return "", fmt.Errorf("not a symlink: %w: %s", fs.ErrInvalid, path)
 	}
 	return "", fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
 // Remove removes the entry at the given path. If the path does not exist, an error is returned.
 func (m Memory) Remove(path string) error {
+	if !fs.ValidPath(path) {
+		return fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+	}
 	delete(m, path)
 	return nil
 }
