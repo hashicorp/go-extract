@@ -17,7 +17,7 @@ import (
 type Memory map[string]MemoryEntry
 
 // NewMemory creates a new in-memory filesystem.
-func NewMemory() Memory {
+func NewMemory() Target {
 	return make(Memory)
 }
 
@@ -132,7 +132,7 @@ func (m Memory) Open(path string) (io.ReadCloser, error) {
 // Lstat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the symlink is returned.
 // If the path does not exist, an error is returned.
 func (m Memory) Lstat(path string) (fs.FileInfo, error) {
-	if fs.ValidPath(path) {
+	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 	if e, ok := m[path]; ok {

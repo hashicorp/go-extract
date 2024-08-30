@@ -12,7 +12,7 @@ type OS struct {
 }
 
 // NewOS creates a new Os and applies provided options from opts
-func NewOS() *OS {
+func NewOS() Target {
 	// create object
 	os := &OS{}
 	return os
