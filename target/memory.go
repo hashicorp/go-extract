@@ -145,7 +145,7 @@ func (m Memory) Readlink(path string) (string, error) {
 		if e.FileInfo.Mode()&fs.ModeSymlink != 0 {
 			return string(e.Data), nil
 		}
-		return "", fmt.Errorf("not a symlink")
+		return "", fmt.Errorf("not a symlink: %w: %s", ErrInvalid, path)
 	}
 	return "", fmt.Errorf("%s: %s", fs.ErrNotExist, path)
 }
