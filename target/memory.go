@@ -147,7 +147,7 @@ func (m Memory) Readlink(path string) (string, error) {
 		}
 		return "", fmt.Errorf("not a symlink: %w: %s", ErrInvalid, path)
 	}
-	return "", fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+	return "", fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
 // Remove removes the entry at the given path. If the path does not exist, an error is returned.
