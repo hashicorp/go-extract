@@ -123,7 +123,7 @@ func (m Memory) Lstat(path string) (fs.FileInfo, error) {
 	if e, ok := m[path]; ok {
 		return e.FileInfo, nil
 	}
-	return nil, fmt.Errorf("%s: %s", fs.ErrNotExist, path)
+	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
 // Stat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the target of the symlink is returned.
