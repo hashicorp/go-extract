@@ -15,7 +15,7 @@ func TestMemoryAccessContent(t *testing.T) {
 	testDirName := "test_dir"
 
 	// create a memory target
-	mem := NewMemory().(Memory)
+	mem := NewMemory().(*Memory)
 
 	// create a file
 	if _, err := mem.CreateFile(testFileName, bytes.NewReader(content), 0644, false, -1); err != nil {
