@@ -86,11 +86,10 @@ func (m Memory) CreateSymlink(oldName string, newName string, overwrite bool) er
 	return nil
 }
 
-// Open opens a file in the in-memory filesystem. The file is returned as a ReadCloser
-// which can be used to read the file contents. If the file does not exist, an error is returned.
-// If the file is opened successfully, the ReadCloser is returned. The caller is responsible for
-// closing the ReadCloser. If the file is a symlink, the target of the symlink is opened.
-// If the file is a directory, an error is returned.
+// Open opens the named file for reading. If successful, the file is returned 
+// as an [io.ReadCloser] which can be used to read the file contents. If the 
+// file is  a symlink, the target of the symlink is opened. If the file does not 
+// exist, or is a directory, an error is returned.
 func (m Memory) Open(path string) (io.ReadCloser, error) {
 
 	// get entry
