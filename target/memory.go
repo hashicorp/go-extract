@@ -22,6 +22,11 @@ type Memory struct {
 	files sync.Map // map[string]*MemoryEntry
 }
 
+// PathSeparator is the path separator used in the in-memory filesystem
+const (
+	PathSeparator = "/"
+)
+
 // NewMemory creates a new in-memory filesystem.
 func NewMemory() Target {
 	return &Memory{
