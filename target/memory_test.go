@@ -2,9 +2,9 @@ package target
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"testing"
 )
 
@@ -354,7 +354,7 @@ func TestMemorySub(t *testing.T) {
 	}
 
 	// create an additional directory
-	if err := mem.CreateDir(filepath.Join(testDir, testSubDir), 0755); err != nil {
+	if err := mem.CreateDir(fmt.Sprintf("%s%s%s", testDir, PathSeparator, testSubDir), 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
