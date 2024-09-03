@@ -88,7 +88,7 @@ func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error
 
 	// create link
 	if err := os.Symlink(oldname, newname); err != nil {
-		return fmt.Errorf("[os] failed to create symlink: %w", err)
+		return fmt.Errorf("[os] failed to create symlink ('%s' -> '%s'): %w", newname, oldname, err)
 	}
 
 	return nil
