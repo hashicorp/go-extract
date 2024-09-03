@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -130,6 +131,11 @@ var AvailableExtractors = map[string]AvailableExtractor{
 		Unpacker:    UnpackZstd,
 		HeaderCheck: IsZstd,
 		MagicBytes:  magicBytesZstd,
+	},
+	FileExtensionRar: {
+		Unpacker:    UnpackRar,
+		HeaderCheck: IsRar,
+		MagicBytes:  magicBytesRar,
 	},
 }
 
@@ -404,4 +410,65 @@ func ReaderToReaderAtSeeker(c *config.Config, r io.Reader) (SeekerReaderAt, erro
 
 	// return temp file
 	return tmpFile, nil
+}
+
+// ReaderToCache caches the reader in memory or on disk depending on the configuration.
+// It returns the cached reader, a boolean indicating if the reader is cached and an error.
+// If the reader is a file or a buffer, it returns the reader as is. If the reader is a
+// stream, it caches the stream in memory or on disk depending on the configuration.
+// The function returns an error if the reader cannot be cached. In case of a caching error,
+// the reader is closed and the temporary file is removed. The caller is responsible for
+// closing the reader r.
+func ReaderToCache(c *config.Config, r io.Reader) (io.Reader, bool, error) {
+
+	// check if reader is a file
+	if f, ok := r.(*os.File); ok {
+		stat, err := f.Stat()
+		if err != nil {
+			return nil, false, fmt.Errorf("cannot get file stat: %w", err)
+		}
+		if stat.Size() > c.MaxInputSize() {
+			return nil, false, fmt.Errorf("file size exceeds maximum input size")
+		}
+		return f, false, nil
+	}
+
+	// check if reader is a buffer
+	if br, ok := r.(*bufio.Reader); ok {
+		if b, err := br.Peek(br.Buffered()); err != nil {
+			return nil, false, fmt.Errorf("cannot peek buffer: %w", err)
+		} else if int64(len(b)) > c.MaxInputSize() {
+			return nil, false, fmt.Errorf("buffer size exceeds maximum input size")
+		}
+		return r, false, nil
+	}
+
+	// cache reader
+	ler := NewLimitErrorReader(r, c.MaxInputSize())
+	if c.CacheInMemory() {
+		return bufio.NewReader(ler), true, nil
+	}
+
+	// create temp file
+	tmpFile, err := os.CreateTemp("", "extractor-*")
+	if err != nil {
+		return nil, true, fmt.Errorf("cannot create temp file: %w", err)
+	}
+	if _, err := io.Copy(tmpFile, ler); err != nil {
+		defer func() { // clean up
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
+		}()
+		return nil, true, fmt.Errorf("cannot copy reader to temp file: %w", err)
+	}
+	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+		defer func() { // clean up
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
+		}()
+		return nil, true, fmt.Errorf("cannot seek to start of temp file: %w", err)
+	}
+
+	// return temp file
+	return tmpFile, true, nil
 }
