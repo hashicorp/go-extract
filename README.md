@@ -9,6 +9,7 @@ Secure file decompression and extraction of following types:
 - Bzip2
 - GZip
 - LZ4
+- Rar
 - Snappy
 - Tar
 - Xz
@@ -184,7 +185,7 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
   - [x] flate
   - [x] xz
   - [x] snappy
-  - [ ] rar
+  - [x] rar
   - [x] 7zip
   - [x] zstandard
   - [x] zlib
