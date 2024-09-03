@@ -40,7 +40,7 @@ func TestUnpackRar(t *testing.T) {
 	// Decode the base64 string
 	archiveBytes, err := base64.StdEncoding.DecodeString(testRarArchiveBase64)
 	if err != nil {
-		log.Fatalf("Error decoding base64 string: %v", err)
+		log.Fatalf("error decoding base64 string: %v", err)
 	}
 	archiveReader := bytes.NewReader(archiveBytes)
 
@@ -51,7 +51,7 @@ func TestUnpackRar(t *testing.T) {
 	tmpDir := t.TempDir()
 	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfg)
 	if err != nil {
-		t.Fatalf("Error unpacking Rar archive: %v", err)
+		t.Fatalf("error unpacking rar archive: %v", err)
 	}
 
 	// reset the reader
@@ -62,7 +62,7 @@ func TestUnpackRar(t *testing.T) {
 	cfgCachedInMemory := config.NewConfig(config.WithCacheInMemory(true))
 	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfgCachedInMemory)
 	if err != nil {
-		t.Fatalf("Error unpacking Rar archive: %v", err)
+		t.Fatalf("error unpacking rar archive: %v", err)
 	}
 
 }
