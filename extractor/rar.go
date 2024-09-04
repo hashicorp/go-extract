@@ -92,7 +92,11 @@ func (rw *rarWalker) Next() (archiveEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &rarEntry{fh, rw.r}, nil
+	re := &rarEntry{fh, rw.r}
+	if re.IsSymlink() { // symlink not supported
+		return rw.Next()
+	}
+	return re, nil
 }
 
 // rarEntry is an archiveEntry for Rar files
@@ -116,12 +120,8 @@ func (z *rarEntry) Mode() os.FileMode {
 	return z.f.Mode()
 }
 
-// Linkname returns the linkname of the file
+// Linkname symlinks are not supported
 func (re *rarEntry) Linkname() string {
-	if re.IsSymlink() {
-		data, _ := io.ReadAll(re.r)
-		return string(data)
-	}
 	return ""
 }
 

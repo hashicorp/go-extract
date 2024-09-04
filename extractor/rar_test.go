@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-var testRarArchiveBase64 = "UmFyIRoHAQAzkrXlCgEFBgAFAQGAgACUHbvqIgIDC50ABJ0ApIMCPs+7qoAAAQRmaWxlCgMTxA3XZsR7EA5EaSAgMyBTZXAgMjAyNCAxNToyMzoxNiBDRVNUCpbhsN0pAgMUAAQE7cMCAAAAAIAAAQRsaW5rCgMTyQ3XZizK2TQIBQEABGZpbGVVBY+/GwIDCwABAO2DAYAAAQNkaXIKAxO3DddmazZtHx13VlEDBQQA"
+var testRarArchiveBase64 = "UmFyIRoHAQAzkrXlCgEFBgAFAQGAgAADk1YoJQIDC50ABJ0ApIMClAgA9IAAAQdkaXIvZm9vCgMTQPjXZsjBSQhNaSAgNCBTZXAgMjAyNCAwODowMzo0NCBDRVNUCpQdu+oiAgMLnQAEnQCkgwI+z7uqgAABBGZpbGUKAxPEDddmxHsQDkRpICAzIFNlcCAyMDI0IDE1OjIzOjE2IENFU1QKe1xvKCwCAxcABAftwwIAAAAAgAABBGxpbmsKAxNM+NdmSCZHGAsFAQAHZGlyL2Zvb0A2hh0bAgMLAAEA7YMBgAABA2RpcgoDE0D412Z533kHHXdWUQMFBAA="
 
 // TestIsRar tests the IsRar function
 func TestIsRar(t *testing.T) {
@@ -47,15 +47,18 @@ func TestUnpackRar(t *testing.T) {
 	// Create a temporary directory and unpack the Rar archive
 	ctx := context.Background()
 	target := target.NewOS()
-	cfg := config.NewConfig()
 	tmpDir := t.TempDir()
+	cfg := config.NewConfig()
 	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfg)
 	if err != nil {
 		t.Fatalf("error unpacking rar archive: %v", err)
 	}
 
 	// reset the reader
-	archiveReader = bytes.NewReader(archiveBytes)
+	_, err = archiveReader.Seek(0, 0)
+	if err != nil {
+		t.Fatalf("error resetting reader: %v", err)
+	}
 
 	// Create a temporary directory and unpack the Rar archive with cached in memory
 	tmpDir = t.TempDir()
