@@ -9,7 +9,7 @@ Secure file decompression and extraction of following types:
 - Bzip2
 - GZip
 - LZ4
-- Rar
+- Rar (without symlinks)
 - Snappy
 - Tar
 - Xz
