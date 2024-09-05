@@ -28,7 +28,7 @@ const (
 )
 
 // NewMemory creates a new in-memory filesystem.
-func NewMemory() Target {
+func NewMemory() *Memory {
 	return &Memory{
 		files: sync.Map{},
 	}
