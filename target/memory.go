@@ -255,7 +255,7 @@ func (m *Memory) Sub(dir string) (fs.FS, error) {
 
 	// Create a new Memory filesystem for the subdirectory
 	dir = filepath.Clean(dir) + "/"
-	subFS := NewMemory().(*Memory)
+	subFS := NewMemory()
 	m.files.Range(func(path, entry any) bool {
 		if strings.HasPrefix(path.(string), dir) {
 			subFS.files.Store(path.(string)[len(dir):], entry)

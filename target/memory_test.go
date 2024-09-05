@@ -11,7 +11,7 @@ import (
 func TestMemoryOpen(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -96,7 +96,7 @@ func TestMemoryOpen(t *testing.T) {
 func TestMemoryLstat(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -128,7 +128,7 @@ func TestMemoryLstat(t *testing.T) {
 func TestMemoryStat(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -183,7 +183,7 @@ func TestMemoryStat(t *testing.T) {
 func TestMemoryReadlink(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -225,7 +225,7 @@ func TestMemoryReadlink(t *testing.T) {
 func TestMemoryRemove(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -251,7 +251,7 @@ func TestMemoryRemove(t *testing.T) {
 func TestMemoryReadDir(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testDir := "dir"
@@ -298,7 +298,7 @@ func TestMemoryReadDir(t *testing.T) {
 func TestMemoryReadFile(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -341,7 +341,7 @@ func TestMemoryReadFile(t *testing.T) {
 func TestMemorySub(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testDir := "dir"
@@ -388,7 +388,7 @@ func TestMemorySub(t *testing.T) {
 func TestMemoryGlob(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
@@ -420,7 +420,7 @@ func TestMemoryGlob(t *testing.T) {
 func TestInvalidPath(t *testing.T) {
 
 	// instantiate a new memory target
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "../invalid/path"
@@ -490,7 +490,7 @@ func TestInvalidPath(t *testing.T) {
 func TestMemoryEntry(t *testing.T) {
 
 	// instantiate a new memory
-	mem := NewMemory().(*Memory)
+	mem := NewMemory()
 
 	// test data
 	testPath := "test"
