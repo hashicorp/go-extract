@@ -272,7 +272,7 @@ func (m *Memory) Sub(dir string) (fs.FS, error) {
 	return subFS, nil
 }
 
-// Glob implements the [io/fs.Glob] interface. It returns
+// Glob implements the [io/fs.GlobFS] interface. It returns
 // the names of all files matching pattern.
 func (m *Memory) Glob(pattern string) ([]string, error) {
 	if !fs.ValidPath(pattern) {
