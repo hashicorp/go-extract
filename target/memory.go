@@ -36,11 +36,11 @@ func NewMemory() *Memory {
 // written is returned.
 func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	if !fs.ValidPath(path) {
-		return 0, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrInvalid}
 	}
 	if !overwrite {
 		if _, ok := m.files.Load(path); ok {
-			return 0, fmt.Errorf("%w: %s", fs.ErrExist, path)
+			return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrExist}
 		}
 	}
 
@@ -70,7 +70,7 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 // The directory is created with the given mode. If the directory is created successfully, nil is returned.
 func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 	if !fs.ValidPath(path) {
-		return fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return &fs.PathError{Op: "CreateDir", Path: path, Err: fs.ErrInvalid}
 	}
 
 	// check if an entry already exists
@@ -92,7 +92,7 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 // If the overwrite flag is set to true, the symlink is overwritten. If the symlink is created successfully, nil is returned.
 func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) error {
 	if !fs.ValidPath(newName) {
-		return fmt.Errorf("%w: %s", fs.ErrInvalid, newName)
+		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: fs.ErrInvalid}
 	}
 	if !overwrite {
 		if _, ok := m.files.Load(newName); ok {
@@ -114,7 +114,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 // an error is returned. If the file is a symlink, the target of the symlink is returned.
 func (m *Memory) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "Open", Path: path, Err: fs.ErrInvalid}
 	}
 
 	// get entry
@@ -122,13 +122,13 @@ func (m *Memory) Open(path string) (fs.File, error) {
 
 	// file does not exist
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
+		return nil, &fs.PathError{Op: "Open", Path: path, Err: fs.ErrNotExist}
 	}
 
 	// handle directory
 	me := e.(*memoryEntry)
 	if me.FileInfo.Mode()&fs.ModeDir != 0 {
-		return nil, fmt.Errorf("%w: cannot open directory as file for reading: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "Open", Path: path, Err: fs.ErrInvalid}
 	}
 
 	// handle symlink
@@ -153,20 +153,20 @@ func (m *Memory) Open(path string) (fs.File, error) {
 // If the path does not exist, an error is returned.
 func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "Lstat", Path: path, Err: fs.ErrInvalid}
 	}
 	if e, ok := m.files.Load(path); ok {
 		me := e.(*memoryEntry)
 		return me.FileInfo, nil
 	}
-	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
+	return nil, &fs.PathError{Op: "Lstat", Path: path, Err: fs.ErrNotExist}
 }
 
 // Stat implements the [io/fs.StatFS] interface. It returns the
 // FileInfo for the given path.
 func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "Stat", Path: path, Err: fs.ErrInvalid}
 	}
 	if e, ok := m.files.Load(path); ok {
 		me := e.(*memoryEntry)
@@ -177,23 +177,23 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 		}
 		return me.FileInfo, nil
 	}
-	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
+	return nil, &fs.PathError{Op: "Stat", Path: path, Err: fs.ErrNotExist}
 }
 
 // Readlink returns the target of the symlink at the given path. If the
 // path is not a symlink, an error is returned.
 func (m *Memory) Readlink(path string) (string, error) {
 	if !fs.ValidPath(path) {
-		return "", fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrInvalid}
 	}
 	if e, ok := m.files.Load(path); ok {
 		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
 			return string(me.Data), nil
 		}
-		return "", fmt.Errorf("not a symlink: %w: %s", fs.ErrInvalid, path)
+		return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrInvalid}
 	}
-	return "", fmt.Errorf("%w: %s", fs.ErrNotExist, path)
+	return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrNotExist}
 }
 
 // Remove removes the file or directory at the given path. If the path
@@ -201,7 +201,7 @@ func (m *Memory) Readlink(path string) (string, error) {
 // is returned.
 func (m *Memory) Remove(path string) error {
 	if !fs.ValidPath(path) {
-		return fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return &fs.PathError{Op: "Remove", Path: path, Err: fs.ErrInvalid}
 	}
 	m.files.Delete(path)
 	return nil
@@ -211,7 +211,7 @@ func (m *Memory) Remove(path string) error {
 // the directory named by dirname and returns a list of
 func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrInvalid}
 	}
 
 	// get all entries in the directory
@@ -235,23 +235,23 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 // reads the file named by filename and returns the contents.
 func (m *Memory) ReadFile(path string) ([]byte, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
+		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrInvalid}
 	}
 	if e, ok := m.files.Load(path); ok {
 		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeDir != 0 {
-			return nil, fmt.Errorf("%w: cannot read directory as file: %s", fs.ErrInvalid, path)
+			return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrInvalid}
 		}
 		return me.Data, nil
 	}
-	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
+	return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrNotExist}
 }
 
 // Sub implements the [io/fs.SubFS] interface. It returns a
 // new FS representing the subtree rooted at dir.
 func (m *Memory) Sub(dir string) (fs.FS, error) {
 	if !fs.ValidPath(dir) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, dir)
+		return nil, &fs.PathError{Op: "Sub", Path: dir, Err: fs.ErrInvalid}
 	}
 
 	// Create a new Memory filesystem for the subdirectory
@@ -271,7 +271,7 @@ func (m *Memory) Sub(dir string) (fs.FS, error) {
 // the names of all files matching pattern.
 func (m *Memory) Glob(pattern string) ([]string, error) {
 	if !fs.ValidPath(pattern) {
-		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, pattern)
+		return nil, &fs.PathError{Op: "Glob", Path: pattern, Err: fs.ErrInvalid}
 	}
 
 	var matches []string
