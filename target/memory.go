@@ -61,8 +61,8 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 
 	// create entry
 	fName := filepath.Base(path)
-	m.files.Store(path, &MemoryEntry{
-		FileInfo: &MemoryFileInfo{name: fName, size: n, mode: mode.Perm(), modTime: time.Now()},
+	m.files.Store(path, &memoryEntry{
+		FileInfo: &memoryFileInfo{name: fName, size: n, mode: mode.Perm(), modTime: time.Now()},
 		Data:     buf.Bytes(),
 	})
 
@@ -85,8 +85,8 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 
 	// create entry
 	dName := filepath.Base(path)
-	m.files.Store(path, &MemoryEntry{
-		FileInfo: &MemoryFileInfo{name: dName, mode: mode.Perm() | fs.ModeDir},
+	m.files.Store(path, &memoryEntry{
+		FileInfo: &memoryFileInfo{name: dName, mode: mode.Perm() | fs.ModeDir},
 	})
 
 	return nil
@@ -106,18 +106,17 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 	}
 
 	lName := filepath.Base(newName)
-	m.files.Store(newName, &MemoryEntry{
-		FileInfo: &MemoryFileInfo{name: lName, mode: 0777 | fs.ModeSymlink},
+	m.files.Store(newName, &memoryEntry{
+		FileInfo: &memoryFileInfo{name: lName, mode: 0777 | fs.ModeSymlink},
 		Data:     []byte(oldName),
 	})
 
 	return nil
 }
 
-// Open opens the named file for reading. If successful, the file is returned
-// as an [io.ReadCloser] which can be used to read the file contents. If the
-// file is  a symlink, the target of the symlink is opened. If the file does not
-// exist, or is a directory, an error is returned.
+// Open implements the [io/fs.FS] interface. It opens the file at the given path.
+// If the file does not exist, an error is returned. If the file is a directory,
+// an error is returned. If the file is a symlink, the target of the symlink is returned.
 func (m *Memory) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
@@ -132,7 +131,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	}
 
 	// handle directory
-	me := e.(*MemoryEntry)
+	me := e.(*memoryEntry)
 	if me.FileInfo.Mode()&fs.ModeDir != 0 {
 		return nil, fmt.Errorf("cannot open directory")
 	}
@@ -145,7 +144,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	}
 
 	// create copy of entry
-	me = &MemoryEntry{
+	me = &memoryEntry{
 		FileInfo: me.FileInfo,
 		Data:     me.Data,
 	}
@@ -162,20 +161,20 @@ func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 	if e, ok := m.files.Load(path); ok {
-		me := e.(*MemoryEntry)
+		me := e.(*memoryEntry)
 		return me.FileInfo, nil
 	}
 	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
-// Stat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the target of the symlink is returned.
-// If the path does not exist, an error is returned.
+// Stat implements the [io/fs.StatFS] interface. It returns the
+// FileInfo for the given path.
 func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 	if e, ok := m.files.Load(path); ok {
-		me := e.(*MemoryEntry)
+		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
 			linkTarget := string(me.Data)
 			linkTarget = filepath.Join(filepath.Dir(path), linkTarget)
@@ -186,14 +185,14 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
-// Readlink returns the target of the symlink at the given path. If the path is not a symlink, an error is returned.
-// If the path does not exist, an error is returned. If the symlink exists, the target of the symlink is returned.
+// Readlink returns the target of the symlink at the given path. If the
+// path is not a symlink, an error is returned.
 func (m *Memory) Readlink(path string) (string, error) {
 	if !fs.ValidPath(path) {
 		return "", fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 	if e, ok := m.files.Load(path); ok {
-		me := e.(*MemoryEntry)
+		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
 			return string(me.Data), nil
 		}
@@ -202,7 +201,9 @@ func (m *Memory) Readlink(path string) (string, error) {
 	return "", fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
-// Remove removes the entry at the given path. If the path does not exist, an error is returned.
+// Remove removes the file or directory at the given path. If the path
+// is invalid, an error is returned. If the path does not exist, no error
+// is returned.
 func (m *Memory) Remove(path string) error {
 	if !fs.ValidPath(path) {
 		return fmt.Errorf("%w: %s", fs.ErrInvalid, path)
@@ -211,6 +212,8 @@ func (m *Memory) Remove(path string) error {
 	return nil
 }
 
+// ReadDir implements the [io/fs.ReadDirFS] interface. It reads
+// the directory named by dirname and returns a list of
 func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("%w: %s	", fs.ErrInvalid, path)
@@ -220,7 +223,7 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	var entries []fs.DirEntry
 	m.files.Range(func(entryPath, me any) bool {
 		if filepath.Dir(entryPath.(string)) == path {
-			entries = append(entries, me.(*MemoryEntry))
+			entries = append(entries, me.(*memoryEntry))
 		}
 		return true
 	})
@@ -233,12 +236,14 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	return entries, nil
 }
 
+// ReadFile implements the [io/fs.ReadFileFS] interface. It
+// reads the file named by filename and returns the contents.
 func (m *Memory) ReadFile(path string) ([]byte, error) {
 	if !fs.ValidPath(path) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 	if e, ok := m.files.Load(path); ok {
-		me := e.(*MemoryEntry)
+		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeDir != 0 {
 			return nil, fmt.Errorf("cannot read directory")
 		}
@@ -247,7 +252,8 @@ func (m *Memory) ReadFile(path string) ([]byte, error) {
 	return nil, fmt.Errorf("%w: %s", fs.ErrNotExist, path)
 }
 
-// Sub returns an FS corresponding to the subtree rooted at dir.
+// Sub implements the [io/fs.SubFS] interface. It returns a
+// new FS representing the subtree rooted at dir.
 func (m *Memory) Sub(dir string) (fs.FS, error) {
 	if !fs.ValidPath(dir) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, dir)
@@ -266,7 +272,8 @@ func (m *Memory) Sub(dir string) (fs.FS, error) {
 	return subFS, nil
 }
 
-// Glob returns the names of all files matching pattern or nil if there is no matching file.
+// Glob implements the [io/fs.Glob] interface. It returns
+// the names of all files matching pattern.
 func (m *Memory) Glob(pattern string) ([]string, error) {
 	if !fs.ValidPath(pattern) {
 		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, pattern)
@@ -287,21 +294,19 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 	return matches, nil
 }
 
-// MemoryEntry is an entry in the in-memory filesystem
-type MemoryEntry struct {
+// memoryEntry is a File implementation for the in-memory filesystem
+type memoryEntry struct {
 	FileInfo fs.FileInfo
 	Data     []byte
 }
 
-func (me *MemoryEntry) Name() string {
-	return me.FileInfo.Name()
-}
-
-func (me *MemoryEntry) Stat() (fs.FileInfo, error) {
+// Stat implements the [io/fs.File] interface.
+func (me *memoryEntry) Stat() (fs.FileInfo, error) {
 	return me.FileInfo, nil
 }
 
-func (me *MemoryEntry) Read(p []byte) (int, error) {
+// Read implements the [io/fs.File] interface.
+func (me *memoryEntry) Read(p []byte) (int, error) {
 	n := copy(p, me.Data)
 	if n == 0 {
 		return 0, io.EOF
@@ -310,56 +315,65 @@ func (me *MemoryEntry) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-func (me *MemoryEntry) Close() error {
+// Close implements the [io/fs.File] interface.
+func (me *memoryEntry) Close() error {
 	return nil
 }
 
-func (me *MemoryEntry) IsDir() bool {
+// Name implements the [io/fs.DirEntry] interface.
+func (me *memoryEntry) Name() string {
+	return me.FileInfo.Name()
+}
+
+// IsDir implements the [io/fs.DirEntry] interface.
+func (me *memoryEntry) IsDir() bool {
 	return me.FileInfo.IsDir()
 }
 
-func (me *MemoryEntry) Type() fs.FileMode {
+// Type implements the [io/fs.DirEntry] interface.
+func (me *memoryEntry) Type() fs.FileMode {
 	return me.FileInfo.Mode().Type()
 }
 
-func (me *MemoryEntry) Info() (fs.FileInfo, error) {
+// Info implements the [io/fs.DirEntry] interface.
+func (me *memoryEntry) Info() (fs.FileInfo, error) {
 	return me.FileInfo, nil
 }
 
-// MemoryFileInfo is a FileInfo implementation for the in-memory filesystem
-type MemoryFileInfo struct {
+// memoryFileInfo is a FileInfo implementation for the in-memory filesystem
+type memoryFileInfo struct {
 	name    string
 	size    int64
 	mode    fs.FileMode
 	modTime time.Time
 }
 
-// Name returns the name of the file
-func (fi *MemoryFileInfo) Name() string {
+// Name implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) Name() string {
 	return fi.name
 }
 
-// Size returns the size of the file
-func (fi *MemoryFileInfo) Size() int64 {
+// Size implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) Size() int64 {
 	return fi.size
 }
 
-// Mode returns the mode of the file
-func (fi *MemoryFileInfo) Mode() fs.FileMode {
+// Mode implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) Mode() fs.FileMode {
 	return fi.mode
 }
 
-// ModTime returns the modification time of the file
-func (fi *MemoryFileInfo) ModTime() time.Time {
+// ModTime implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) ModTime() time.Time {
 	return fi.modTime
 }
 
-// IsDir returns true if the file is a directory
-func (fi *MemoryFileInfo) IsDir() bool {
+// IsDir implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) IsDir() bool {
 	return fi.mode.IsDir()
 }
 
-// Sys returns the underlying data source (nil for in-memory filesystem)
-func (fi *MemoryFileInfo) Sys() any {
+// Sys implements [io/fs.FileInfo] interface, but returns always nil
+func (fi *memoryFileInfo) Sys() any {
 	return nil
 }
