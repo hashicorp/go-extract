@@ -9,148 +9,133 @@ import (
 
 type TargetFunc func() Target
 
-// list of function to create new targets
-var testTargets = []TargetFunc{
-	NewOS,
-	NewMemory,
+func testTargets(t *testing.T) []struct {
+	name   string
+	path   string
+	link   string
+	data   []byte
+	target Target
+} {
+	tmpDir := t.TempDir()
+	testData := []byte("test data")
+	return []struct {
+		name   string
+		path   string
+		link   string
+		data   []byte
+		target Target
+	}{
+		{
+			name:   "os",
+			path:   filepath.Join(tmpDir, "test"),
+			link:   filepath.Join(tmpDir, "symlink"),
+			data:   testData,
+			target: NewOS(),
+		},
+		{
+			name:   "Memory",
+			path:   "test",
+			link:   "symlink",
+			data:   testData,
+			target: NewMemory(),
+		},
+	}
 }
-
-// var testTargets = [](func() *Target){
-// 	&NewOS(),
-// 	&NewMemory(),
-// }
 
 // TestCreateDir tests the CreateDir function from Os
 func TestCreateDir(t *testing.T) {
 
-	for _, tt := range testTargets {
+	for _, test := range testTargets(t) {
+		t.Run(test.name, func(t *testing.T) {
+			// Create a directory, expect success.
+			if err := test.target.CreateDir(test.path, 0755); err != nil {
+				t.Fatal(err)
+			}
 
-		target := tt()
+			// Check if directory exists, expect success.
+			if _, err := test.target.Lstat(test.path); err != nil {
+				t.Fatal(err)
+			}
 
-		testPath := "test"
-
-		// create tmp dir if target is os
-		if _, ok := target.(*OS); ok {
-			tmp := t.TempDir()
-			testPath = filepath.Join(tmp, testPath)
-		}
-
-		// create a directory
-		if err := target.CreateDir(testPath, 0755); err != nil {
-			t.Fatalf("CreateDir() failed: %s", err)
-		}
-
-		// check if directory exists
-		if _, err := target.Lstat(testPath); err != nil {
-			t.Fatalf("CreateDir() failed: %s", err)
-		}
-
-		// create a directory that already exists
-		if err := target.CreateDir(testPath, 0755); err != nil {
-			t.Fatalf("CreateDir() failed: %s", err)
-		}
+			// Create a directory that already exists, expect success.
+			// This is a no-op, so it should not return an error.
+			if err := test.target.CreateDir(test.path, 0755); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
 // TestCreateFile tests the CreateFile function from Os
 func TestCreateFile(t *testing.T) {
 
-	for _, tt := range testTargets {
+	for _, test := range testTargets(t) {
+		t.Run(test.name, func(t *testing.T) {
 
-		target := tt()
+			// create a file
+			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err != nil {
+				t.Fatalf("CreateFile() failed: %s", err)
+			}
 
-		// test file details
-		testFile := "test"
-		testData := []byte("test data")
-		testReader := bytes.NewReader(testData)
+			// check if file exists
+			if _, err := test.target.Lstat(test.path); err != nil {
+				t.Fatalf("Lstat() returned an error, but no error was expected: %s", err)
+			}
 
-		// create tmp dir if target is os
-		if _, ok := target.(*OS); ok {
-			tmp := t.TempDir()
-			testFile = filepath.Join(tmp, testFile)
-		}
+			// overwrite the file
+			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, true, -1); err != nil {
+				t.Fatalf("overwriting file with CreateFile() failed with an error, but no error expected: %s", err)
+			}
 
-		// create a file
-		if _, err := target.CreateFile(testFile, testReader, 0644, false, -1); err != nil {
-			t.Fatalf("1 CreateFile() failed: %s", err)
-		}
+			// create a file with overwrite expect fail
+			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err == nil {
+				t.Fatalf("file overwrite succeeded, but error expected")
+			}
 
-		// check if file exists
-		if _, err := target.Lstat(testFile); err != nil {
-			t.Fatalf("2 CreateFile() failed: %s", err)
-		}
-
-		// create a file with overwrite
-		if _, err := target.CreateFile(testFile, testReader, 0644, true, -1); err != nil {
-			t.Fatalf("3 CreateFile() with overwrite failed: %s", err)
-		}
-		if _, err := testReader.Seek(0, 0); err != nil {
-			t.Fatalf("failed to set testReader: %s", err)
-		}
-		// create a file with overwrite expect fail
-		if _, err := target.CreateFile(testFile, testReader, 0644, false, -1); err == nil {
-			t.Fatalf("CreateFile() with disabled overwrite try to overwrite failed: %s", err)
-		}
-		if _, err := testReader.Seek(0, 0); err != nil {
-			t.Fatalf("failed to set testReader: %s", err)
-		}
-
-		// create a file with maxSize
-		if n, err := target.CreateFile(testFile, testReader, 0644, true, 5); err == nil {
-			t.Fatalf("CreateFile() with maxSize failed: err: %s, n: %v", err, n)
-		}
+			// create a file with maxSize
+			maxSize := int64(5)
+			if n, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, true, maxSize); err == nil {
+				t.Fatalf("file was created, but error was expected due to maxSize exceeded: err: %s, maxSize: %v n: %v", err, maxSize, n)
+			}
+		})
 	}
-
 }
 
 // TestCreateSymlink tests the CreateSymlink function from Os
 func TestCreateSymlink(t *testing.T) {
 
-	for _, tt := range testTargets {
+	for _, test := range testTargets(t) {
+		t.Run(test.name, func(t *testing.T) {
 
-		target := tt()
+			// create a file
+			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err != nil {
+				t.Fatalf("CreateFile() failed with an error, but no error was expected: %s", err)
+			}
 
-		// prepare test data and link details
-		testFile := "test"
-		testSymlink := "symlink"
-		testData := []byte("test data")
-		testReader := bytes.NewReader(testData)
+			// create a symlink
+			if err := test.target.CreateSymlink(test.path, test.link, false); err != nil {
+				t.Fatalf("CreateSymlink() failed with an error, but no error was expected: %s", err)
+			}
 
-		// create tmp dir if target is os
-		if _, ok := target.(*OS); ok {
-			tmp := t.TempDir()
-			testFile = filepath.Join(tmp, testFile)
-			testSymlink = filepath.Join(tmp, testSymlink)
-		}
+			// check if symlink exists
+			lstat, err := test.target.Lstat(test.link)
+			if err != nil {
+				t.Fatalf("Lstat() returned an error, but no error was expected: %s", err)
+			}
+			if lstat.Mode()&os.ModeSymlink == 0 {
+				t.Fatalf("CreateSymlink() failed: %s", "not a symlink")
+			}
 
-		// create a file
-		if _, err := target.CreateFile(testFile, testReader, 0644, false, -1); err != nil {
-			t.Fatalf("CreateFile() failed: %s", err)
-		}
+			// create a symlink with overwrite
+			if err := test.target.CreateSymlink(test.link, test.path, true); err != nil {
+				t.Fatalf("CreateSymlink() with overwrite failed, but no error was expected: %s", err)
+			}
 
-		// create a symlink
-		if err := target.CreateSymlink(testFile, testSymlink, false); err != nil {
-			t.Fatalf("CreateSymlink() failed: %s", err)
-		}
+			// create a symlink with overwrite expect fail
+			if err := test.target.CreateSymlink(test.link, test.path, false); err == nil {
+				t.Fatalf("CreateSymlink() with disabled overwrite try to let the function fail, but error returned: %s", err)
+			}
 
-		// check if symlink exists
-		lstat, err := target.Lstat(testSymlink)
-		if err != nil {
-			t.Fatalf("CreateSymlink() failed: %s", err)
-		}
-		if lstat.Mode()&os.ModeSymlink == 0 {
-			t.Fatalf("CreateSymlink() failed: %s", "not a symlink")
-		}
-
-		// create a symlink with overwrite
-		if err := target.CreateSymlink(testSymlink, testFile, true); err != nil {
-			t.Fatalf("CreateSymlink() with overwrite failed: %s", err)
-		}
-
-		// create a symlink with overwrite expect fail
-		if err := target.CreateSymlink(testSymlink, testFile, false); err == nil {
-			t.Fatalf("CreateSymlink() with disabled overwrite try to overwrite failed: %s", err)
-		}
+		})
 	}
-
 }
