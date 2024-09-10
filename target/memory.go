@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -224,8 +224,8 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	})
 
 	// sort slice of entries based on name
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name() < entries[j].Name()
+	slices.SortStableFunc(entries, func(i, j fs.DirEntry) int {
+		return strings.Compare(i.Name(), j.Name())
 	})
 
 	return entries, nil
