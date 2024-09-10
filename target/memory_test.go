@@ -423,65 +423,65 @@ func TestInvalidPath(t *testing.T) {
 	mem := NewMemory()
 
 	// test data
-	testPath := "../invalid/path"
+	invalidPath := "../invalid/path"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
+	if _, err := mem.CreateFile(invalidPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
 		t.Fatalf("CreateFile() failed: expected error, got nil")
 	}
 
 	// create a directory
-	if err := mem.CreateDir(testPath, 0755); err == nil {
+	if err := mem.CreateDir(invalidPath, 0755); err == nil {
 		t.Fatalf("CreateDir() failed: expected error, got nil")
 	}
 
 	// create a symlink
-	if err := mem.CreateSymlink("target", testPath, false); err == nil {
+	if err := mem.CreateSymlink("target", invalidPath, false); err == nil {
 		t.Fatalf("CreateSymlink() failed: expected error, got nil")
 	}
 
 	// open the file
-	if _, err := mem.Open(testPath); err == nil {
+	if _, err := mem.Open(invalidPath); err == nil {
 		t.Fatalf("Open() failed: expected error, got nil")
 	}
 
 	// lstat the file
-	if _, err := mem.Lstat(testPath); err == nil {
+	if _, err := mem.Lstat(invalidPath); err == nil {
 		t.Fatalf("Lstat() failed: expected error, got nil")
 	}
 
 	// stat the file
-	if _, err := mem.Stat(testPath); err == nil {
+	if _, err := mem.Stat(invalidPath); err == nil {
 		t.Fatalf("Stat() failed: expected error, got nil")
 	}
 
 	// readlink the file
-	if _, err := mem.Readlink(testPath); err == nil {
+	if _, err := mem.Readlink(invalidPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 
 	// remove the file
-	if err := mem.Remove(testPath); err == nil {
+	if err := mem.Remove(invalidPath); err == nil {
 		t.Fatalf("Remove() failed: expected error, got nil")
 	}
 
 	// read the file
-	if _, err := mem.ReadFile(testPath); err == nil {
+	if _, err := mem.ReadFile(invalidPath); err == nil {
 		t.Fatalf("ReadFile() failed: expected error, got nil")
 	}
 
 	// readdir
-	if _, err := mem.ReadDir(testPath); err == nil {
+	if _, err := mem.ReadDir(invalidPath); err == nil {
 		t.Fatalf("ReadDir() failed: expected error, got nil")
 	}
 
 	// sub the file
-	if _, err := mem.Sub(testPath); err == nil {
+	if _, err := mem.Sub(invalidPath); err == nil {
 		t.Fatalf("Sub() failed: expected error, got nil")
 	}
 
 	// glob the file
-	if _, err := mem.Glob(testPath); err == nil {
+	if _, err := mem.Glob(invalidPath); err == nil {
 		t.Fatalf("Glob() failed: expected error, got nil")
 	}
 }
@@ -510,12 +510,12 @@ func TestMemoryEntry(t *testing.T) {
 
 	// is dir
 	if f.(fs.DirEntry).IsDir() {
-		t.Fatalf("IsDir() failed: expected false, got true")
+		t.Fatalf("IsDir() returned unexpected value: expected false, got true")
 	}
 
 	// type
 	if f.(fs.DirEntry).Type() != 0 {
-		t.Fatalf("Type() failed: expected 0, got %d", f.(fs.DirEntry).Type())
+		t.Fatalf("Type() returned unexpected value: expected 0, got %d", f.(fs.DirEntry).Type())
 	}
 
 	// stat the file
@@ -526,17 +526,17 @@ func TestMemoryEntry(t *testing.T) {
 
 	// check isDir
 	if stat.IsDir() {
-		t.Fatalf("IsDir() failed: expected false, got true")
+		t.Fatalf("IsDir() returned unexpected value: expected false, got true")
 	}
 
 	// check name
 	if stat.Name() != testPath {
-		t.Fatalf("Name() failed: expected %s, got %s", testPath, stat.Name())
+		t.Fatalf("Name() returned unexpected value: expected %s, got %s", testPath, stat.Name())
 	}
 
 	// check mode
 	if int(stat.Mode().Perm()&fs.ModePerm) != testPerm {
-		t.Fatalf("Mode() failed: expected %d, got %d", testPerm, stat.Mode().Perm())
+		t.Fatalf("Mode() returned unexpected value: expected %d, got %d", testPerm, stat.Mode().Perm())
 	}
 
 	// check type
@@ -551,22 +551,22 @@ func TestMemoryEntry(t *testing.T) {
 	}
 
 	if de != stat {
-		t.Fatalf("Info() failed: expected %v, got %v", stat, de)
+		t.Fatalf("Info() returned unexpected value: expected %v, got %v", stat, de)
 	}
 
 	// check size
 	if stat.Size() != int64(len(testContent)) {
-		t.Fatalf("Size() failed: expected %d, got %d", len(testContent), stat.Size())
+		t.Fatalf("Size() returned unexpected value: expected %d, got %d", len(testContent), stat.Size())
 	}
 
 	// modtime
 	if stat.ModTime().IsZero() {
-		t.Fatalf("ModTime() failed: expected non-zero, got zero")
+		t.Fatalf("unexpected ModTime() value: expected non-zero, got zero")
 	}
 
 	// check sys
 	if stat.Sys() != nil {
-		t.Fatalf("Sys() failed: expected nil, got %v", stat.Sys())
+		t.Fatalf("unexpected return value from Sys(): expected nil, got %v", stat.Sys())
 	}
 
 	// read the file
@@ -576,7 +576,7 @@ func TestMemoryEntry(t *testing.T) {
 	}
 
 	if !bytes.Equal(data, []byte(testContent)) {
-		t.Fatalf("ReadAll() failed: expected %s, got %s", testContent, data)
+		t.Fatalf("unexpected file contents: expected %s, got %s", testContent, data)
 	}
 
 	// close the file
