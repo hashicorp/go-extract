@@ -128,7 +128,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	// handle directory
 	me := e.(*memoryEntry)
 	if me.FileInfo.Mode()&fs.ModeDir != 0 {
-		return nil, fmt.Errorf("cannot open directory")
+		return nil, fmt.Errorf("%w: cannot open directory as file for reading: %s" fs.ErrInvalid, path)
 	}
 
 	// handle symlink
