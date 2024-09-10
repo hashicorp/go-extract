@@ -211,7 +211,7 @@ func (m *Memory) Remove(path string) error {
 // the directory named by dirname and returns a list of
 func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	if !fs.ValidPath(path) {
-		return nil, fmt.Errorf("%w: %s	", fs.ErrInvalid, path)
+		return nil, fmt.Errorf("%w: %s", fs.ErrInvalid, path)
 	}
 
 	// get all entries in the directory
