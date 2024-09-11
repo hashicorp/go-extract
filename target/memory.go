@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
+	p "path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -134,8 +134,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 
 	// handle symlink
 	if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
-		linkTarget := string(me.Data)
-		linkTarget = filepath.Join(filepath.Dir(path), linkTarget)
+		linkTarget := resolveLink(path, me.Data)
 		return m.Open(linkTarget)
 	}
 
@@ -148,6 +147,15 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	// return file data
 	return me, nil
 
+}
+
+// resolveLink resolves the target of a symlink. The target is resolved by joining the
+// directory of the symlink with the target name. The target name is read from the symlink data.
+func resolveLink(path string, data []byte) string {
+	linkTarget := string(data)
+	linkDir := p.Dir(path)
+	p.Join(linkDir, linkTarget)
+	return linkTarget
 }
 
 // Lstat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the symlink is returned.
@@ -172,8 +180,7 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	if e, ok := m.files.Load(path); ok {
 		me := e.(*memoryEntry)
 		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
-			linkTarget := string(me.Data)
-			linkTarget = filepath.Join(filepath.Dir(path), linkTarget)
+			linkTarget := resolveLink(path, me.Data)
 			return m.Stat(linkTarget)
 		}
 		return me.FileInfo, nil
@@ -209,10 +216,34 @@ func (m *Memory) Remove(path string) error {
 }
 
 // ReadDir implements the [io/fs.ReadDirFS] interface. It reads
-// the directory named by dirname and returns a list of
+// the directory named by dirname and returns a list of directory
+// entries sorted by filename.
 func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrInvalid}
+	}
+
+	// handle non-root directory
+	if path != "." {
+
+		// load entry from map
+		e, ok := m.files.Load(path)
+		if !ok {
+			return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrNotExist}
+		}
+		me := e.(*memoryEntry)
+
+		// handle symlink
+		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
+			linkTarget := resolveLink(path, me.Data)
+			return m.ReadDir(linkTarget)
+		}
+
+		// handle file
+		if me.FileInfo.Mode().IsRegular() {
+			return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrInvalid}
+		}
+
 	}
 
 	// get all entries in the directory
@@ -238,29 +269,58 @@ func (m *Memory) ReadFile(path string) ([]byte, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrInvalid}
 	}
-	if e, ok := m.files.Load(path); ok {
-		me := e.(*memoryEntry)
-		if me.FileInfo.Mode()&fs.ModeDir != 0 {
-			return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrInvalid}
-		}
-		return me.Data, nil
+
+	// open file for reading to ensure that symlinks are resolved
+	f, err := m.Open(path)
+	if err != nil {
+		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrNotExist}
 	}
-	return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrNotExist}
+	defer f.Close()
+
+	// read file data
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: err}
+	}
+
+	return data, nil
 }
 
 // Sub implements the [io/fs.SubFS] interface. It returns a
 // new FS representing the subtree rooted at dir.
-func (m *Memory) Sub(dir string) (fs.FS, error) {
-	if !fs.ValidPath(dir) {
-		return nil, &fs.PathError{Op: "Sub", Path: dir, Err: fs.ErrInvalid}
+func (m *Memory) Sub(subPath string) (fs.FS, error) {
+	if !fs.ValidPath(subPath) {
+		return nil, &fs.PathError{Op: "Sub", Path: subPath, Err: fs.ErrInvalid}
 	}
 
-	// Create a new Memory filesystem for the subdirectory
-	dir = filepath.Clean(dir) + string(os.PathSeparator)
+	// handle non-root directory
+	if subPath != "." {
+
+		// load entry from map
+		e, ok := m.files.Load(subPath)
+		if !ok {
+			return nil, &fs.PathError{Op: "Sub", Path: subPath, Err: fs.ErrNotExist}
+		}
+		me := e.(*memoryEntry)
+
+		// handle symlink
+		if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
+			linkTarget := resolveLink(subPath, me.Data)
+			return m.Sub(linkTarget)
+		}
+
+		// handle files
+		if me.FileInfo.Mode().IsRegular() {
+			return nil, &fs.PathError{Op: "Sub", Path: subPath, Err: fs.ErrInvalid}
+		}
+	}
+
+	// handle directories
+	subPath = p.Clean(subPath) + "/"
 	subFS := NewMemory()
-	m.files.Range(func(path, entry any) bool {
-		if strings.HasPrefix(path.(string), dir) {
-			subFS.files.Store(path.(string)[len(dir):], entry)
+	m.files.Range(func(dir, entry any) bool {
+		if strings.HasPrefix(dir.(string), subPath) {
+			subFS.files.Store(dir.(string)[len(subPath):], entry)
 		}
 		return true
 	})

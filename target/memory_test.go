@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
-	"path/filepath"
+	p "path"
 	"testing"
 )
 
@@ -132,7 +132,7 @@ func TestMemoryStat(t *testing.T) {
 
 	// test data
 	testPath := "test"
-	testInvalidPath := filepath.Join("..", "test", "invalid")
+	testInvalidPath := "../test/invalid"
 	testLink := "link"
 	testPathNotExist := "notexist"
 
@@ -289,8 +289,8 @@ func TestMemoryReadDir(t *testing.T) {
 	}
 
 	// read a directory that does not exist
-	if _, err := mem.ReadDir(testPathNotExist); err != nil {
-		t.Fatalf("ReadDir() failed: %s", err)
+	if _, err := mem.ReadDir(testPathNotExist); err == nil {
+		t.Fatalf("ReadDir() failed: expected error, got nil")
 	}
 }
 
@@ -354,7 +354,7 @@ func TestMemorySub(t *testing.T) {
 	}
 
 	// create an additional directory
-	if err := mem.CreateDir(filepath.Join(testDir, testSubDir), 0755); err != nil {
+	if err := mem.CreateDir(p.Join(testDir, testSubDir), 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
@@ -379,8 +379,8 @@ func TestMemorySub(t *testing.T) {
 	}
 
 	// sub a directory that does not exist
-	if _, err := mem.Sub(testPathNotExist); err != nil {
-		t.Fatalf("Sub() failed: %s", err)
+	if _, err := mem.Sub(testPathNotExist); err == nil {
+		t.Fatalf("Sub() failed: expected error, got nil")
 	}
 }
 
@@ -423,7 +423,7 @@ func TestInvalidPath(t *testing.T) {
 	mem := NewMemory()
 
 	// test data
-	invalidPath := filepath.Join("..", "invalid", "path")
+	invalidPath := "../invalid/path"
 
 	// create a file
 	if _, err := mem.CreateFile(invalidPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
