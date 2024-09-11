@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/fs"
 	p "path"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -56,7 +55,7 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 	}
 
 	// create entry
-	fName := filepath.Base(path)
+	fName := p.Base(path)
 	m.files.Store(path, &memoryEntry{
 		FileInfo: &memoryFileInfo{name: fName, size: n, mode: mode.Perm(), modTime: time.Now()},
 		Data:     buf.Bytes(),
@@ -80,7 +79,7 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 	}
 
 	// create entry
-	dName := filepath.Base(path)
+	dName := p.Base(path)
 	m.files.Store(path, &memoryEntry{
 		FileInfo: &memoryFileInfo{name: dName, mode: mode.Perm() | fs.ModeDir},
 	})
@@ -101,7 +100,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 		}
 	}
 
-	lName := filepath.Base(newName)
+	lName := p.Base(newName)
 	m.files.Store(newName, &memoryEntry{
 		FileInfo: &memoryFileInfo{name: lName, mode: 0777 | fs.ModeSymlink},
 		Data:     []byte(oldName),
@@ -249,7 +248,7 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	// get all entries in the directory
 	var entries []fs.DirEntry
 	m.files.Range(func(entryPath, me any) bool {
-		if filepath.Dir(entryPath.(string)) == path {
+		if p.Dir(entryPath.(string)) == path {
 			entries = append(entries, me.(*memoryEntry))
 		}
 		return true
@@ -337,7 +336,7 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 
 	var matches []string
 	m.files.Range(func(path, entry any) bool {
-		match, err := filepath.Match(pattern, path.(string))
+		match, err := p.Match(pattern, path.(string))
 		if err != nil {
 			return false
 		}
