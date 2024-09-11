@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -255,7 +256,7 @@ func (m *Memory) Sub(dir string) (fs.FS, error) {
 	}
 
 	// Create a new Memory filesystem for the subdirectory
-	dir = filepath.Clean(dir) + "/"
+	dir = filepath.Clean(dir) + string(os.PathSeparator)
 	subFS := NewMemory()
 	m.files.Range(func(path, entry any) bool {
 		if strings.HasPrefix(path.(string), dir) {
