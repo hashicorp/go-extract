@@ -371,11 +371,11 @@ func TestMemorySub(t *testing.T) {
 	}
 	entries, err := subFs.ReadDir(".")
 	if err != nil {
-		t.Fatalf("ReadDir() failed: %s", err)
+		t.Fatalf("[%v].ReadDir(.) failed: %s", subFs, err)
 	}
 
 	if len(entries) != 1 {
-		t.Fatalf("ReadDir() failed: expected 1, got %d", len(entries))
+		t.Fatalf("[%v].ReadDir(.) failed: expected 1, got %d", subFs, len(entries))
 	}
 
 	// sub a directory that does not exist
@@ -427,7 +427,7 @@ func TestInvalidPath(t *testing.T) {
 
 	// create a file
 	if _, err := mem.CreateFile(invalidPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
-		t.Fatalf("CreateFile() failed: expected error, got nil")
+		t.Fatalf("CreateFile(%s) failed: expected error, got nil", invalidPath)
 	}
 
 	// create a directory
