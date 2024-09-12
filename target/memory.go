@@ -12,12 +12,9 @@ import (
 	"time"
 )
 
-// Memory is an in-memory filesystem implementation. It is a map of file paths to MemoryEntry.
-// The MemoryEntry contains the file information and the file data.
-// The Memory filesystem can be used to create, read, and write files in memory. It can also be
-// used to create directories and symlinks. Permissions on entries (owner, group, others) are
-// not enforced. Entries can be accessed by the path as a key in the map, or by calling
-// the m.Open(<path>) function.
+// Memory is an in-memory filesystem implementation that can be used to 
+// create, read, and write files in memory. It can also be used to create 
+// directories and symlinks. Permissions (such as owner or group) are not enforced. 
 type Memory struct {
 	files sync.Map // map[string]*MemoryEntry
 }
