@@ -482,7 +482,9 @@ func (m *Memory) Remove(path string) error {
 			return &fs.PathError{Op: "Remove", Path: path, Err: err}
 		}
 		for _, entry := range entries {
-			m.Remove(p.Join(path, entry.Name()))
+			if err := m.Remove(p.Join(path, entry.Name())); err != nil {
+				return &fs.PathError{Op: "Remove", Path: path, Err: err}
+			}
 		}
 	}
 
