@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	p "path"
 	"testing"
+	"testing/fstest"
 )
 
 func TestMemoryOpen(t *testing.T) {
@@ -60,12 +61,12 @@ func TestMemoryOpen(t *testing.T) {
 
 	// create a directory
 	if err := mem.CreateDir(testDir, 0755); err != nil {
-		t.Fatalf("CreateDir() failed: %s", err)
+		t.Fatalf("failed to perform CreateDir(): %s", err)
 	}
 
 	// open the directory
-	if _, err := mem.Open(testDir); err == nil {
-		t.Fatalf("Open() failed: expected error, got nil")
+	if _, err := mem.Open(testDir); err != nil {
+		t.Fatalf("failed to Open() directory: %s", err)
 	}
 
 	// create a symlink
@@ -90,6 +91,102 @@ func TestMemoryOpen(t *testing.T) {
 		t.Fatalf("ReadAll() on symlink failed: expected %s, got %s", testContent, data)
 	}
 
+}
+
+func TestMemoryWithFsTest(t *testing.T) {
+
+	// instantiate a new memory target
+	mem := NewMemory()
+
+	// test data
+	testPath := "foo"
+	testContent := "hello world"
+	testLink := "bar"
+	testDir := "baz"
+	testDirFile := "baz/qux"
+
+	expectedFiles := []string{testPath, testLink, testDir, testDirFile}
+
+	// create a file
+	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// create a symlink
+	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+
+	// create directory
+	if err := mem.CreateDir(testDir, 0755); err != nil {
+		t.Fatalf("CreateDir() failed: %s", err)
+	}
+
+	// create file with directory
+	if _, err := mem.CreateFile(testDirFile, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// perform test
+	if err := fstest.TestFS(mem); err == nil {
+		t.Fatalf("TestFS() failed: %s", err)
+	}
+
+	// perform test
+	if err := fstest.TestFS(mem, expectedFiles...); err != nil {
+		t.Fatalf("TestFS() failed: %s", err)
+	}
+
+}
+
+// TestMemoryOpen
+func TestMemoryOpen2(t *testing.T) {
+
+	// instantiate a new memory target
+	mem := NewMemory()
+
+	// test data
+	testPath := "test"
+	testContent := "test"
+	testPathNotExist := "notexist"
+	testDir := "dir"
+
+	// create a file
+	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// open the file
+	f, err := mem.Open(testPath)
+	if err != nil {
+		t.Fatalf("Open() failed: %s", err)
+	}
+	defer f.Close()
+
+	// read the file
+	data, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll() failed: %s", err)
+	}
+
+	if !bytes.Equal(data, []byte(testContent)) {
+		t.Fatalf("ReadAll() failed: expected %s, got %s", testContent, data)
+	}
+
+	// open a file that does not exist
+	if _, err := mem.Open(testPathNotExist); err == nil {
+		t.Fatalf("Open() failed: expected error, got nil")
+	}
+
+	// create a directory
+	if err := mem.CreateDir(testDir, 0755); err != nil {
+		t.Fatalf("CreateDir() failed: %s", err)
+	}
+
+	// open the directory
+	if _, err := mem.Open(testDir); err != nil {
+		t.Fatalf("Open() failed: %s", err)
+	}
 }
 
 // TestMemoryLstat tests the Lstat function from Memory
@@ -230,6 +327,8 @@ func TestMemoryRemove(t *testing.T) {
 	// test data
 	testPath := "test"
 	testPathNotExist := "notexist"
+	testDir := "dir"
+	testDirFile := "dir/file"
 
 	// create a file
 	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
@@ -245,6 +344,22 @@ func TestMemoryRemove(t *testing.T) {
 	if err := mem.Remove(testPathNotExist); err != nil {
 		t.Fatalf("Remove() failed: %s", err)
 	}
+
+	// create a directory
+	if err := mem.CreateDir(testDir, 0755); err != nil {
+		t.Fatalf("CreateDir() failed: %s", err)
+	}
+
+	// create a file in the directory
+	if _, err := mem.CreateFile(testDirFile, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// remove the directory
+	if err := mem.Remove(testDir); err != nil {
+		t.Fatalf("Remove() failed: %s", err)
+	}
+
 }
 
 // TestMemoryReadDir tests the ReadDir function from Memory
