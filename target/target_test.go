@@ -13,6 +13,7 @@ func testTargets(t *testing.T) []struct {
 	name   string
 	path   string
 	link   string
+	file   string
 	data   []byte
 	target Target
 } {
@@ -22,6 +23,7 @@ func testTargets(t *testing.T) []struct {
 		name   string
 		path   string
 		link   string
+		file   string
 		data   []byte
 		target Target
 	}{
@@ -29,6 +31,7 @@ func testTargets(t *testing.T) []struct {
 			name:   "os",
 			path:   filepath.Join(tmpDir, "test"),
 			link:   filepath.Join(tmpDir, "symlink"),
+			file:   filepath.Join(tmpDir, "file"),
 			data:   testData,
 			target: NewOS(),
 		},
@@ -36,6 +39,7 @@ func testTargets(t *testing.T) []struct {
 			name:   "Memory",
 			path:   "test",
 			link:   "symlink",
+			file:   "file",
 			data:   testData,
 			target: NewMemory(),
 		},
@@ -61,6 +65,16 @@ func TestCreateDir(t *testing.T) {
 			// This is a no-op, so it should not return an error.
 			if err := test.target.CreateDir(test.path, 0755); err != nil {
 				t.Fatal(err)
+			}
+
+			// create a file in the directory
+			if _, err := test.target.CreateFile(test.file, bytes.NewReader(test.data), 0644, false, -1); err != nil {
+				t.Fatalf("CreateFile() failed: %s", err)
+			}
+
+			// create a directory where a file already exists, expect fail
+			if err := test.target.CreateDir(test.file, 0755); err == nil {
+				t.Fatalf("CreateDir() succeeded, but error was expected")
 			}
 		})
 	}
