@@ -201,9 +201,7 @@ if e != nil {
 }
 fmt.Println(t)
 
-// direct access
-fmt.Println(memTarget["file.txt"].FileInfo.Name())
-fmt.Println(memTarget["file.txt"].Data)
+
 ```
 
 ## Telemetry data
