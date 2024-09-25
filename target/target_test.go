@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-type TargetFunc func() Target
 
 func testTargets(t *testing.T) []struct {
 	name   string
