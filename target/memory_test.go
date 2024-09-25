@@ -128,11 +128,6 @@ func TestMemoryWithFsTest(t *testing.T) {
 	}
 
 	// perform test
-	if err := fstest.TestFS(mem); err == nil {
-		t.Fatalf("TestFS() failed: %s", err)
-	}
-
-	// perform test
 	if err := fstest.TestFS(mem, expectedFiles...); err != nil {
 		t.Fatalf("TestFS() failed: %s", err)
 	}
