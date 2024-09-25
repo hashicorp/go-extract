@@ -634,6 +634,9 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 		return true
 	})
 
+	// sort matches
+	slices.Sort(matches)
+
 	return matches, err
 }
 
