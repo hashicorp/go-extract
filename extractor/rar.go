@@ -52,7 +52,7 @@ func UnpackRar(ctx context.Context, t target.Target, dst string, src io.Reader, 
 	return unpackRar(ctx, t, dst, cachedReader, cfg, td)
 }
 
-// unpackRar extracts a Rar archive from sra to dst.
+// unpackRar extracts a Rar archive from src to dst.
 func unpackRar(ctx context.Context, t target.Target, dst string, src io.Reader, cfg *config.Config, td *telemetry.Data) error {
 
 	// log extraction
