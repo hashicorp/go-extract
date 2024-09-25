@@ -350,7 +350,7 @@ func (m *Memory) resolvePath(path string) (string, error) {
 		resultingPath = p.Clean(p.Join(resultingPath, part))
 
 		// following symlinks, protect against endless loops
-		for j := 100; j >= 0; j-- {
+		for j := 255; j >= 0; j-- {
 
 			if j == 0 {
 				return "", &fs.PathError{Op: "resolvePath", Path: path, Err: fs.ErrInvalid}
