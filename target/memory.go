@@ -45,7 +45,11 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 	}
 
 	// verify that realDir is a directory
-	if realDirMe, _ := m.resolveEntry(realDir); !realDirMe.FileInfo.Mode().IsDir() {
+	realDirMe, err := m.resolveEntry(realDir)
+	if err != nil {
+		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: err}
+	}
+	if !realDirMe.FileInfo.Mode().IsDir() {
 		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -116,7 +120,11 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 	}
 
 	// verify that realDir is a directory
-	if realDirMe, _ := m.resolveEntry(realDir); !realDirMe.FileInfo.Mode().IsDir() {
+	realDirMe, err := m.resolveEntry(realDir)
+	if err != nil {
+		return &fs.PathError{Op: "CreateDir", Path: path, Err: err}
+	}
+	if !realDirMe.FileInfo.Mode().IsDir() {
 		return &fs.PathError{Op: "CreateDir", Path: path, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -157,7 +165,11 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 	}
 
 	// verify that realDir is a directory
-	if realDirMe, _ := m.resolveEntry(realDir); !realDirMe.FileInfo.Mode().IsDir() {
+	realDirMe, err := m.resolveEntry(realDir)
+	if err != nil {
+		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: err}
+	}
+	if !realDirMe.FileInfo.Mode().IsDir() {
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -543,7 +555,11 @@ func (m *Memory) ReadFile(path string) ([]byte, error) {
 	defer f.Close()
 
 	// check if it is a directory
-	if stat, _ := f.Stat(); stat.IsDir() {
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: err}
+	}
+	if stat.IsDir() {
 		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrInvalid}
 	}
 
