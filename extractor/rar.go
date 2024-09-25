@@ -81,7 +81,7 @@ type rarWalker struct {
 	r *rardecode.Reader
 }
 
-// Type returns the file extension for 7zip files
+// Type returns the file extension for rar files
 func (rw *rarWalker) Type() string {
 	return FileExtensionRar
 }
