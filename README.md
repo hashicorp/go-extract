@@ -167,36 +167,36 @@ memTarget.CreateDir("dir", 0755)
 memTarget.CreateSymlink("file.txt", "link.txt", true)
 
 // interact with the filesystem
-f, e := memTarget.Open("file.txt") // contains "hello world"
-if e != nil {
+f, err := memTarget.Open("file.txt") // contains "hello world"
+if err != nil {
   // handle error
 }
 defer f.Close()
 
 // open symlink
-f, e = memTarget.Open("link.txt") // contains "hello world"
-if e != nil {
+f, err = memTarget.Open("link.txt") // contains "hello world"
+if err != nil {
   // handle error
 }
 defer f.Close()
 
 // Stat the file
-s, e := memTarget.Stat("file.txt")
-if e != nil {
+s, err := memTarget.Stat("file.txt")
+if err != nil {
   // handle error
 }
 fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
 
 // Lstat the symlink
-l, e := memTarget.Lstat("link.txt")
-if e != nil {
+l, err := memTarget.Lstat("link.txt")
+if err != nil {
   // handle error
 }
 fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
 
 // Readlink the symlink
-t, e := memTarget.Readlink("link.txt")
-if e != nil {
+t, err := memTarget.Readlink("link.txt")
+if err != nil {
   // handle error
 }
 fmt.Println(t)
