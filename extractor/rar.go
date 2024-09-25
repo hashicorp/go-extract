@@ -86,7 +86,7 @@ func (rw *rarWalker) Type() string {
 	return FileExtensionRar
 }
 
-// Next returns the next entry in the 7zip file
+// Next returns the next entry in the rar file
 func (rw *rarWalker) Next() (archiveEntry, error) {
 	fh, err := rw.r.Next()
 	if err != nil {
