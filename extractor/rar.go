@@ -43,10 +43,21 @@ func UnpackRar(ctx context.Context, t target.Target, dst string, src io.Reader, 
 		if !cached {
 			return
 		}
-		if f, ok := cachedReader.(*os.File); ok {
-			_ = f.Close()
-			_ = os.Remove(f.Name())
+
+		// close the cached reader
+		if closer, ok := cachedReader.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				cfg.Logger().Error("error closing cached reader", "err", err)
+			}
 		}
+
+		// remove the cached file
+		if f, ok := cachedReader.(*os.File); ok {
+			if err := os.Remove(f.Name()); err != nil {
+				cfg.Logger().Error("error removing cached file", "err", err)
+			}
+		}
+
 	}()
 
 	return unpackRar(ctx, t, dst, cachedReader, cfg, td)
