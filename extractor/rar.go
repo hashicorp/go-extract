@@ -34,33 +34,13 @@ func UnpackRar(ctx context.Context, t target.Target, dst string, src io.Reader, 
 	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
-	// ensure that all bytes are read from the reader
-	cachedReader, cached, err := ReaderToCache(cfg, src)
+	// cache reader if needed
+	reader, err := ReaderToReaderAtSeeker(cfg, src)
 	if err != nil {
 		return handleError(cfg, td, "cannot cache reader", err)
 	}
-	defer func() {
-		if !cached {
-			return
-		}
 
-		// close the cached reader
-		if closer, ok := cachedReader.(io.Closer); ok {
-			if err := closer.Close(); err != nil {
-				cfg.Logger().Error("error closing cached reader", "err", err)
-			}
-		}
-
-		// remove the cached file
-		if f, ok := cachedReader.(*os.File); ok {
-			if err := os.Remove(f.Name()); err != nil {
-				cfg.Logger().Error("error removing cached file", "err", err)
-			}
-		}
-
-	}()
-
-	return unpackRar(ctx, t, dst, cachedReader, cfg, td)
+	return unpackRar(ctx, t, dst, reader.(io.Reader), cfg, td)
 }
 
 // unpackRar extracts a Rar archive from src to dst.
