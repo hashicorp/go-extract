@@ -287,7 +287,7 @@ func (de *dirEntry) Read(p []byte) (int, error) {
 	return 0, &fs.PathError{Op: "Read", Path: de.FileInfo.Name(), Err: fmt.Errorf("is a directory")}
 }
 
-// fileEntry is a File implementation for the in-memory filesystem
+// fileEntry is a [io/fs.File] implementation for the in-memory filesystem
 type fileEntry struct {
 	memoryEntry
 	reader io.Reader
