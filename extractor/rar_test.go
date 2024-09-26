@@ -48,7 +48,7 @@ func TestUnpackRar(t *testing.T) {
 	ctx := context.Background()
 	target := target.NewOS()
 	tmpDir := t.TempDir()
-	cfg := config.NewConfig()
+	cfg := config.NewConfig(config.WithContinueOnUnsupportedFiles(true))
 	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfg)
 	if err != nil {
 		t.Fatalf("error unpacking rar archive: %v", err)
@@ -62,10 +62,23 @@ func TestUnpackRar(t *testing.T) {
 
 	// Create a temporary directory and unpack the Rar archive with cached in memory
 	tmpDir = t.TempDir()
-	cfgCachedInMemory := config.NewConfig(config.WithCacheInMemory(true))
-	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfgCachedInMemory)
+	cfgCachedInMemoryIgnoreSymlink := config.NewConfig(
+		config.WithCacheInMemory(true),
+		config.WithContinueOnUnsupportedFiles(true))
+	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfgCachedInMemoryIgnoreSymlink)
 	if err != nil {
 		t.Fatalf("error unpacking rar archive: %v", err)
+	}
+
+	// Create a temporary directory and unpack the Rar archive with cached in memory,
+	// but fail due to the symlink in the archive
+	tmpDir = t.TempDir()
+	cfgCachedInMemoryFailOnSymlink := config.NewConfig(
+		config.WithCacheInMemory(true),
+		config.WithContinueOnUnsupportedFiles(false))
+	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfgCachedInMemoryFailOnSymlink)
+	if err == nil {
+		t.Fatalf("expected error unpacking symlink from rar archive, but got nil")
 	}
 
 }

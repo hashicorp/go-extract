@@ -94,7 +94,7 @@ func (rw *rarWalker) Next() (archiveEntry, error) {
 	}
 	re := &rarEntry{fh, rw.r}
 	if re.IsSymlink() { // symlink not supported
-		return rw.Next()
+		return nil, UnsupportedFile(re.Name())
 	}
 	return re, nil
 }
