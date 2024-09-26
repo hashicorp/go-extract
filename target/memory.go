@@ -403,6 +403,10 @@ func (m *Memory) resolvePath(path string) (string, error) {
 
 // Lstat returns the FileInfo for the given path. If the path is a symlink, the FileInfo for the symlink is returned.
 // If the path does not exist, an error is returned.
+//
+// golang/go#49580 proposes adding a standard io/fs.SymlinkFS interface to the io/fs package, which discusses
+// if the Lstat method should be moved to the io/fs.SymlinkFS interface.
+// ref: https://github.com/golang/go/issues/49580#issuecomment-2344253737
 func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "Lstat", Path: path, Err: fs.ErrInvalid}
