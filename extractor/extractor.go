@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -131,6 +132,11 @@ var AvailableExtractors = map[string]AvailableExtractor{
 		HeaderCheck: IsZstd,
 		MagicBytes:  magicBytesZstd,
 	},
+	FileExtensionRar: {
+		Unpacker:    UnpackRar,
+		HeaderCheck: IsRar,
+		MagicBytes:  magicBytesRar,
+	},
 }
 
 var MaxHeaderLength int
@@ -170,15 +176,29 @@ func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
 
 // handleError increases the error counter, sets the latest error and
 // decides if extraction should continue.
-func handleError(c *config.Config, td *telemetry.Data, msg string, err error) error {
+func handleError(cfg *config.Config, td *telemetry.Data, msg string, err error) error {
+
+	// check if error is an unsupported file
+	if uf, ok := err.(*UnsupportedFileError); ok {
+
+		// increase unsupported file counter and set last unsupported file to unknown
+		td.UnsupportedFiles++
+		td.LastUnsupportedFile = uf.Filename()
+
+		// log error and return nil
+		if cfg.ContinueOnUnsupportedFiles() {
+			cfg.Logger().Error("not supported file", "msg", msg, "error", err)
+			return nil
+		}
+	}
 
 	// increase error counter and set error
 	td.ExtractionErrors++
 	td.LastExtractionError = fmt.Errorf("%s: %w", msg, err)
 
 	// do not end on error
-	if c.ContinueOnError() {
-		c.Logger().Error(msg, "error", err)
+	if cfg.ContinueOnError() {
+		cfg.Logger().Error(msg, "error", err)
 		return nil
 	}
 
@@ -210,9 +230,12 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 			// extraction finished
 			return nil
 
-		// return any other error
+		// handle other errors and end extraction or continue
 		case err != nil:
-			return handleError(cfg, td, "error reading", err)
+			if err := handleError(cfg, td, "error reading", err); err != nil {
+				return err
+			}
+			continue
 
 		// if the header is nil, just skip it (not sure how this happens)
 		case ae == nil:
@@ -299,14 +322,8 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 			// check if symlinks are allowed
 			if cfg.DenySymlinkExtraction() {
 
-				// check for continue for unsupported files
-				if cfg.ContinueOnUnsupportedFiles() {
-					td.UnsupportedFiles++
-					td.LastUnsupportedFile = ae.Name()
-					continue
-				}
-
-				if err := handleError(cfg, td, "symlinks are not allowed", fmt.Errorf("symlinks are not allowed")); err != nil {
+				err := UnsupportedFile(ae.Name())
+				if err := handleError(cfg, td, "symlink extraction disabled", err); err != nil {
 					return err
 				}
 
@@ -337,15 +354,9 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 				continue
 			}
 
-			// check if unsupported files should be skipped
-			if cfg.ContinueOnUnsupportedFiles() {
-				td.UnsupportedFiles++
-				td.LastUnsupportedFile = ae.Name()
-				continue
-			}
-
-			// increase error counter, set error and end if necessary
-			if err := handleError(cfg, td, "cannot extract file", fmt.Errorf("unsupported filetype in archive (%x)", ae.Mode())); err != nil {
+			err := UnsupportedFile(ae.Name())
+			msg := fmt.Sprintf("unsupported filetype in archive (%x)", ae.Mode())
+			if err := handleError(cfg, td, msg, err); err != nil {
 				return err
 			}
 
@@ -404,4 +415,33 @@ func ReaderToReaderAtSeeker(c *config.Config, r io.Reader) (SeekerReaderAt, erro
 
 	// return temp file
 	return tmpFile, nil
+}
+
+// ErrUnsupportedFile is an error that indicates that the file is not supported.
+var ErrUnsupportedFile = errors.New("unsupported file")
+
+// UnsupportedFile returns an error that indicates that the file is not supported.
+func UnsupportedFile(filename string) error {
+	return &UnsupportedFileError{error: ErrUnsupportedFile, filename: filename}
+}
+
+// UnsupportedFileError is an error that indicates that the file is not supported.
+type UnsupportedFileError struct {
+	error
+	filename string
+}
+
+// Filename returns the filename of the unsupported file.
+func (e *UnsupportedFileError) Filename() string {
+	return e.filename
+}
+
+// Unwrap returns the underlying error.
+func (e *UnsupportedFileError) Unwrap() error {
+	return e.error
+}
+
+// Error returns the error message.
+func (e UnsupportedFileError) Error() string {
+	return fmt.Sprintf("%v: %s", e.error, e.filename)
 }
