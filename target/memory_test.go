@@ -288,7 +288,7 @@ func TestMemoryReadlink(t *testing.T) {
 	}
 
 	// read the symlink
-	link, err := mem.Readlink(testLink)
+	link, err := mem.readlink(testLink)
 	if err != nil {
 		t.Fatalf("Readlink() failed: %s", err)
 	}
@@ -298,7 +298,7 @@ func TestMemoryReadlink(t *testing.T) {
 	}
 
 	// read a symlink that does not exist
-	if _, err := mem.Readlink(testPathNotExist); err == nil {
+	if _, err := mem.readlink(testPathNotExist); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 
@@ -308,7 +308,7 @@ func TestMemoryReadlink(t *testing.T) {
 	}
 
 	// readlink a file
-	if _, err := mem.Readlink(testPath); err == nil {
+	if _, err := mem.readlink(testPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 }
@@ -566,7 +566,7 @@ func TestInvalidPath(t *testing.T) {
 	}
 
 	// readlink the file
-	if _, err := mem.Readlink(invalidPath); err == nil {
+	if _, err := mem.readlink(invalidPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 

@@ -453,9 +453,14 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	}, nil
 }
 
-// Readlink returns the target of the symlink at the given path. If the
+// readlink returns the target of the symlink at the given path. If the
 // path is not a symlink, an error is returned.
-func (m *Memory) Readlink(path string) (string, error) {
+//
+// golang/go#49580 proposes adding a standard io/fs.SymlinkFS interface
+// to the io/fs package. If this proposal is accepted, the readlink
+// method will be moved to the io/fs.SymlinkFS interface.
+// Until then, the readlink method is kept not exposed.
+func (m *Memory) readlink(path string) (string, error) {
 	if !fs.ValidPath(path) {
 		return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrInvalid}
 	}
