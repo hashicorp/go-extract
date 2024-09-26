@@ -424,8 +424,8 @@ func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 	}, nil
 }
 
-// Stat implements the [io/fs.StatFS] interface. It returns the
-// FileInfo for the given path.
+// Stat implements the [io/fs.File] and [io/fs.StatFS] interfaces. It returns the
+// [io/fs.FileInfo] for the given path.
 func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "Stat", Path: path, Err: fs.ErrInvalid}
