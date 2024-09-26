@@ -230,7 +230,13 @@ func (m *Memory) Open(path string) (fs.File, error) {
 		return &dirEntry{memoryEntry: *me, memory: m, path: actualPath, readDirCounter: 0}, nil
 	}
 
-	return &fileEntry{memoryEntry: *me, reader: bytes.NewBuffer(me.Data)}, nil
+	ome := &memoryEntry{
+		FileInfo: &memoryFileInfo{name: me.FileInfo.Name(), size: me.FileInfo.Size(), mode: me.FileInfo.Mode(), modTime: me.FileInfo.ModTime()},
+		Data:     me.Data,
+		Opened:   true,
+	}
+
+	return &fileEntry{memoryEntry: *ome, reader: bytes.NewBuffer(me.Data)}, nil
 }
 
 type dirEntry struct {
@@ -295,6 +301,9 @@ type fileEntry struct {
 
 // Read implements the [io/fs.File] interface.
 func (fe *fileEntry) Read(p []byte) (int, error) {
+	if !fe.Opened {
+		return 0, &fs.PathError{Op: "Read", Path: fe.FileInfo.Name(), Err: fmt.Errorf("file is not opened")}
+	}
 	return fe.reader.Read(p)
 }
 
@@ -653,6 +662,7 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 type memoryEntry struct {
 	FileInfo fs.FileInfo
 	Data     []byte
+	Opened   bool
 }
 
 // Stat implements the [io/fs.File] interface.
@@ -662,6 +672,7 @@ func (me *memoryEntry) Stat() (fs.FileInfo, error) {
 
 // Close implements the [io/fs.File] interface.
 func (me *memoryEntry) Close() error {
+	me.Opened = false
 	return nil
 }
 
