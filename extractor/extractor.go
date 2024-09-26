@@ -490,16 +490,24 @@ func ReaderToCache(c *config.Config, r io.Reader) (io.Reader, bool, error) {
 		return nil, true, fmt.Errorf("cannot create temp file: %w", err)
 	}
 	if _, err := io.Copy(tmpFile, ler); err != nil {
-		defer func() { // clean up
-			_ = tmpFile.Close()
-			_ = os.Remove(tmpFile.Name())
+		defer func() { // clean up on error
+			if err := tmpFile.Close(); err != nil {
+				c.Logger().Error("error closing temp file", "err", err)
+			}
+			if err := os.Remove(tmpFile.Name()); err != nil {
+				c.Logger().Error("error removing temp file", "err", err)
+			}
 		}()
 		return nil, true, fmt.Errorf("cannot copy reader to temp file: %w", err)
 	}
 	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
-		defer func() { // clean up
-			_ = tmpFile.Close()
-			_ = os.Remove(tmpFile.Name())
+		defer func() { // clean up on error
+			if err := tmpFile.Close(); err != nil {
+				c.Logger().Error("error closing temp file", "err", err)
+			}
+			if err := os.Remove(tmpFile.Name()); err != nil {
+				c.Logger().Error("error removing temp file", "err", err)
+			}
 		}()
 		return nil, true, fmt.Errorf("cannot seek to start of temp file: %w", err)
 	}
