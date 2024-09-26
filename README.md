@@ -2,7 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Snappy, Tar, Xz, Zip, Zlib and Zstandard.
+Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
 
 ## Code Example
 
@@ -239,7 +239,7 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
   - [x] flate
   - [x] xz
   - [x] snappy
-  - [ ] rar
+  - [x] rar
   - [x] 7zip
   - [x] zstandard
   - [x] zlib
