@@ -651,12 +651,6 @@ func (me *memoryEntry) Stat() (fs.FileInfo, error) {
 	return me.FileInfo, nil
 }
 
-// Read implements the [io/fs.File] interface.
-func (me *memoryEntry) Read(p []byte) (int, error) {
-	// return not implemented
-	return 0, &fs.PathError{Op: "Read", Path: me.FileInfo.Name(), Err: fmt.Errorf("not implemented")}
-}
-
 // Close implements the [io/fs.File] interface.
 func (me *memoryEntry) Close() error {
 	return nil
