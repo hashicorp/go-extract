@@ -240,7 +240,7 @@ type dirEntry struct {
 	readDirCounter int
 }
 
-// ReadDir implements the [io/fs.ReadDirFS] interface. It reads the directory
+// ReadDir implements the [io/fs.ReadDirFile] interface. It reads the directory
 // named by the entry and returns a list of directory entries sorted by filename.
 // If n > 0, ReadDir returns at most n DirEntry. In this case, if there are fewer
 // than n DirEntry, it also returns an io.EOF error.
