@@ -179,7 +179,7 @@ func matchesMagicBytes(data []byte, offset int, magicBytes [][]byte) bool {
 func handleError(cfg *config.Config, td *telemetry.Data, msg string, err error) error {
 
 	// check if error is an unsupported file
-	if uf, ok := err.(*UnsupportedFileError); ok {
+	if uf, ok := err.(*unsupportedFileError); ok {
 
 		// increase unsupported file counter and set last unsupported file to unknown
 		td.UnsupportedFiles++
@@ -322,7 +322,7 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 			// check if symlinks are allowed
 			if cfg.DenySymlinkExtraction() {
 
-				err := UnsupportedFile(ae.Name())
+				err := unsupportedFile(ae.Name())
 				if err := handleError(cfg, td, "symlink extraction disabled", err); err != nil {
 					return err
 				}
@@ -354,7 +354,7 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 				continue
 			}
 
-			err := UnsupportedFile(ae.Name())
+			err := unsupportedFile(ae.Name())
 			msg := fmt.Sprintf("unsupported filetype in archive (%x)", ae.Mode())
 			if err := handleError(cfg, td, msg, err); err != nil {
 				return err
@@ -417,31 +417,31 @@ func readerToReaderAtSeeker(c *config.Config, r io.Reader) (seekerReaderAt, erro
 	return tmpFile, nil
 }
 
-// ErrUnsupportedFile is an error that indicates that the file is not supported.
-var ErrUnsupportedFile = errors.New("unsupported file")
+// errUnsupportedFile is an error that indicates that the file is not supported.
+var errUnsupportedFile = errors.New("unsupported file")
 
-// UnsupportedFile returns an error that indicates that the file is not supported.
-func UnsupportedFile(filename string) error {
-	return &UnsupportedFileError{error: ErrUnsupportedFile, filename: filename}
+// unsupportedFile returns an error that indicates that the file is not supported.
+func unsupportedFile(filename string) error {
+	return &unsupportedFileError{error: errUnsupportedFile, filename: filename}
 }
 
-// UnsupportedFileError is an error that indicates that the file is not supported.
-type UnsupportedFileError struct {
+// unsupportedFileError is an error that indicates that the file is not supported.
+type unsupportedFileError struct {
 	error
 	filename string
 }
 
 // Filename returns the filename of the unsupported file.
-func (e *UnsupportedFileError) Filename() string {
+func (e *unsupportedFileError) Filename() string {
 	return e.filename
 }
 
 // Unwrap returns the underlying error.
-func (e *UnsupportedFileError) Unwrap() error {
+func (e *unsupportedFileError) Unwrap() error {
 	return e.error
 }
 
 // Error returns the error message.
-func (e UnsupportedFileError) Error() string {
+func (e unsupportedFileError) Error() string {
 	return fmt.Sprintf("%v: %s", e.error, e.filename)
 }
