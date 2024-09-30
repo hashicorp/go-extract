@@ -113,7 +113,7 @@ func (t *tarEntry) IsSymlink() bool {
 
 // Open returns a reader for the entry
 func (t *tarEntry) Open() (io.ReadCloser, error) {
-	return &NoopReaderCloser{t.tr}, nil
+	return &noopReaderCloser{t.tr}, nil
 }
 
 // Type returns the type of the entry
