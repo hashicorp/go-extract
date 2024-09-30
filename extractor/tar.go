@@ -39,7 +39,7 @@ func UnpackTar(ctx context.Context, t target.Target, dst string, src io.Reader, 
 	defer captureExtractionDuration(td, now())
 
 	// prepare reader
-	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
+	limitedReader := newLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(td, limitedReader)
 
 	// start extraction

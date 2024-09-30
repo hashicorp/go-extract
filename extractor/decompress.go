@@ -29,7 +29,7 @@ func decompress(ctx context.Context, t target.Target, dst string, src io.Reader,
 	defer captureExtractionDuration(m, now())
 
 	// limit input size
-	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
+	limitedReader := newLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(m, limitedReader)
 
 	// start decompression

@@ -52,7 +52,7 @@ func captureExtractionDuration(m *telemetry.Data, start time.Time) {
 }
 
 // captureInputSize captures the input size of the extraction
-func captureInputSize(td *telemetry.Data, ler *LimitErrorReader) {
+func captureInputSize(td *telemetry.Data, ler *limitErrorReader) {
 	td.InputSize = int64(ler.ReadBytes())
 }
 
@@ -384,7 +384,7 @@ func readerToReaderAtSeeker(c *config.Config, r io.Reader) (seekerReaderAt, erro
 	}
 
 	// limit reader
-	ler := NewLimitErrorReader(r, c.MaxInputSize())
+	ler := newLimitErrorReader(r, c.MaxInputSize())
 
 	// check how to cache
 	if c.CacheInMemory() {
