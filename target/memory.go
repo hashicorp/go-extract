@@ -227,22 +227,18 @@ func (m *Memory) Open(path string) (fs.File, error) {
 
 	// check if it is a directory
 	if me.fileInfo.Mode().IsDir() {
-		return &dirEntry{memoryEntry: *me, memory: m, path: actualPath, readDirCounter: 0}, nil
+		return &dirEntry{memoryEntry: me, memory: m, path: actualPath, readDirCounter: 0}, nil
 	}
 
-	ome := memoryEntry{
-		fileInfo: &memoryFileInfo{name: me.fileInfo.Name(), size: me.fileInfo.Size(), mode: me.fileInfo.Mode(), modTime: me.fileInfo.ModTime()},
-		data:     me.data,
-	}
-
-	return &fileEntry{memoryEntry: ome, reader: bytes.NewReader(me.data)}, nil
+	return &fileEntry{memoryEntry: me, reader: bytes.NewReader(me.data)}, nil
 }
 
 type dirEntry struct {
-	memoryEntry
+	*memoryEntry
 	memory         *Memory
 	path           string
 	readDirCounter int
+	closed         bool
 }
 
 // ReadDir implements the [io/fs.ReadDirFile] interface. It reads the directory
@@ -292,9 +288,16 @@ func (de *dirEntry) Read(p []byte) (int, error) {
 	return 0, &fs.PathError{Op: "Read", Path: de.fileInfo.Name(), Err: fmt.Errorf("is a directory")}
 }
 
+// Close implements the [io/fs.File] interface.
+func (de *dirEntry) Close() error {
+	de.closed = true
+	return nil
+}
+
 // fileEntry is a [io/fs.File] implementation for the in-memory filesystem
 type fileEntry struct {
 	*memoryEntry
+	closed bool
 	reader io.Reader
 }
 
@@ -304,6 +307,12 @@ func (fe *fileEntry) Read(p []byte) (int, error) {
 		return 0, &fs.PathError{Op: "Read", Path: fe.fileInfo.Name(), Err: fs.ErrClosed}
 	}
 	return fe.reader.Read(p)
+}
+
+// Close implements the [io/fs.File] interface.
+func (fe *fileEntry) Close() error {
+	fe.closed = true
+	return nil
 }
 
 // resolveEntry resolves the entry at the given path. If the path does not exist, an error is returned.
@@ -661,18 +670,11 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 type memoryEntry struct {
 	fileInfo fs.FileInfo
 	data     []byte
-	closed   bool
 }
 
 // Stat implements the [io/fs.File] interface.
 func (me *memoryEntry) Stat() (fs.FileInfo, error) {
 	return me.fileInfo, nil
-}
-
-// Close implements the [io/fs.File] interface.
-func (me *memoryEntry) Close() error {
-	me.closed = true
-	return nil
 }
 
 // Name implements the [io/fs.DirEntry] interface.
