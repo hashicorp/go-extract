@@ -230,13 +230,13 @@ func (m *Memory) Open(path string) (fs.File, error) {
 		return &dirEntry{memoryEntry: *me, memory: m, path: actualPath, readDirCounter: 0}, nil
 	}
 
-	ome := &memoryEntry{
+	ome := memoryEntry{
 		FileInfo: &memoryFileInfo{name: me.FileInfo.Name(), size: me.FileInfo.Size(), mode: me.FileInfo.Mode(), modTime: me.FileInfo.ModTime()},
 		Data:     me.Data,
 		Opened:   true,
 	}
 
-	return &fileEntry{memoryEntry: *ome, reader: bytes.NewBuffer(me.Data)}, nil
+	return &fileEntry{memoryEntry: ome, reader: bytes.NewBuffer(me.Data)}, nil
 }
 
 type dirEntry struct {
