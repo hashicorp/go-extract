@@ -19,8 +19,8 @@ import (
 // now is a function point that returns time.Now to the caller.
 var now = time.Now
 
-// SeekerReaderAt is a struct that combines the io.ReaderAt and io.Seeker interfaces
-type SeekerReaderAt interface {
+// seekerReaderAt is a struct that combines the io.ReaderAt and io.Seeker interfaces
+type seekerReaderAt interface {
 	io.ReaderAt
 	io.Seeker
 }
@@ -366,10 +366,10 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 	}
 }
 
-// ReaderToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
-func ReaderToReaderAtSeeker(c *config.Config, r io.Reader) (SeekerReaderAt, error) {
+// readerToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
+func readerToReaderAtSeeker(c *config.Config, r io.Reader) (seekerReaderAt, error) {
 
-	if s, ok := r.(SeekerReaderAt); ok {
+	if s, ok := r.(seekerReaderAt); ok {
 		return s, nil
 	}
 

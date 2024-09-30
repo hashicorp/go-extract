@@ -35,7 +35,7 @@ func UnpackRar(ctx context.Context, t target.Target, dst string, src io.Reader, 
 	defer captureExtractionDuration(td, now())
 
 	// cache reader if needed
-	reader, err := ReaderToReaderAtSeeker(cfg, src)
+	reader, err := readerToReaderAtSeeker(cfg, src)
 	if err != nil {
 		return handleError(cfg, td, "cannot cache reader", err)
 	}

@@ -36,12 +36,12 @@ func UnpackZip(ctx context.Context, t target.Target, dst string, src io.Reader, 
 	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
-	if sra, ok := src.(SeekerReaderAt); ok {
+	if sra, ok := src.(seekerReaderAt); ok {
 		return unpackZip(ctx, t, sra, dst, c, td)
 	}
 
 	// convert
-	sra, err := ReaderToReaderAtSeeker(c, src)
+	sra, err := readerToReaderAtSeeker(c, src)
 	if err != nil {
 		return handleError(c, td, "cannot convert reader to readerAt and seeker", err)
 	}
@@ -57,7 +57,7 @@ func UnpackZip(ctx context.Context, t target.Target, dst string, src io.Reader, 
 
 // unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZip(ctx context.Context, t target.Target, src SeekerReaderAt, dst string, cfg *config.Config, m *telemetry.Data) error {
+func unpackZip(ctx context.Context, t target.Target, src seekerReaderAt, dst string, cfg *config.Config, m *telemetry.Data) error {
 
 	// log extraction
 	cfg.Logger().Info("extracting zip")

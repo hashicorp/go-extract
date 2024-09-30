@@ -35,12 +35,12 @@ func Unpack7Zip(ctx context.Context, t target.Target, dst string, src io.Reader,
 	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
-	if sra, ok := src.(SeekerReaderAt); ok {
+	if sra, ok := src.(seekerReaderAt); ok {
 		return unpack7zip(ctx, t, dst, sra, cfg, td)
 	}
 
 	// convert
-	sra, err := ReaderToReaderAtSeeker(cfg, src)
+	sra, err := readerToReaderAtSeeker(cfg, src)
 	if err != nil {
 		return handleError(cfg, td, "cannot convert reader to readerAt and seeker", err)
 	}
@@ -55,7 +55,7 @@ func Unpack7Zip(ctx context.Context, t target.Target, dst string, src io.Reader,
 }
 
 // unpack7zip checks ctx for cancellation, while it reads a 7zip file from src and extracts the contents to dst.
-func unpack7zip(ctx context.Context, t target.Target, dst string, sra SeekerReaderAt, cfg *config.Config, td *telemetry.Data) error {
+func unpack7zip(ctx context.Context, t target.Target, dst string, sra seekerReaderAt, cfg *config.Config, td *telemetry.Data) error {
 
 	// log extraction
 	cfg.Logger().Info("extracting 7zip")
