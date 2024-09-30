@@ -969,38 +969,6 @@ func compressBzip2(data []byte) []byte {
 	return buf.Bytes()
 }
 
-// TestValidTypes is a test function
-func TestValidTypes(t *testing.T) {
-	// test cases
-	cases := []struct {
-		name     string
-		types    []string
-		expected bool
-	}{
-		{
-			name:     "valid types",
-			types:    []string{"zip", "tar", "tgz", "br", "bz2", "7z"},
-			expected: true,
-		},
-		{
-			name:     "invalid types",
-			types:    []string{"foo", "bar", "baz"},
-			expected: false,
-		},
-	}
-
-	for i, tc := range cases {
-		validTypes := ValidTypes()
-		t.Run(tc.name, func(t *testing.T) {
-			for _, typ := range tc.types {
-				if strings.Contains(validTypes, typ) != tc.expected {
-					t.Errorf("test case %d failed: %s\nexpected: %v\ngot: %v", i, tc.name, tc.expected, strings.Contains(validTypes, typ))
-				}
-			}
-		})
-	}
-}
-
 // tarContent is a struct to store the content of a tar file
 type tarContent struct {
 	Content    []byte

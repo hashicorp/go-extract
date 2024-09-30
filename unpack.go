@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-extract/config"
@@ -36,8 +35,7 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 			return ae.Unpacker(ctx, t, dst, src, cfg)
 		}
 
-		//
-		return fmt.Errorf("not supported file type %s (valid: %s)", cfg.ExtractType(), ValidTypes())
+		return fmt.Errorf("not supported file type %s (valid: %s)", cfg.ExtractType(), extractor.ValidTypes())
 	}
 
 	// read headerReader to identify archive type
@@ -144,13 +142,3 @@ const (
 	FileTypeZlib    = extractor.FileExtensionZlib
 	FileTypeZstd    = extractor.FileExtensionZstd
 )
-
-// ValidTypes returns a string with all available types.
-func ValidTypes() string {
-	var types []string
-	for t := range extractor.AvailableExtractors {
-		types = append(types, t)
-	}
-	sort.Strings(types)
-	return strings.Join(types, ", ")
-}

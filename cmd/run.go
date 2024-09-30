@@ -16,6 +16,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
+	"github.com/hashicorp/go-extract/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -52,7 +53,7 @@ func Run(version, commit, date string) {
 		kong.UsageOnError(),
 		kong.Vars{
 			"version":      fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":  extract.ValidTypes(),
+			"valid_types":  extractor.ValidTypes(),
 			"default_type": "", // default is empty, but needs to be set to avoid kong error
 		},
 	)
