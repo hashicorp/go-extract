@@ -49,7 +49,7 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 	if err != nil {
 		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: err}
 	}
-	if !realDirMe.FileInfo.Mode().IsDir() {
+	if !realDirMe.fileInfo.Mode().IsDir() {
 		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -62,7 +62,7 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 	me := e.(*memoryEntry)
 
 	// handle directory
-	if me.FileInfo.Mode().IsDir() {
+	if me.fileInfo.Mode().IsDir() {
 		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrExist}
 	}
 
@@ -96,8 +96,8 @@ func (m *Memory) createFile(path string, mode fs.FileMode, src io.Reader, maxSiz
 
 	// create entry
 	m.files.Store(path, &memoryEntry{
-		FileInfo: &memoryFileInfo{name: name, size: n, mode: mode.Perm(), modTime: time.Now()},
-		Data:     buf.Bytes(),
+		fileInfo: &memoryFileInfo{name: name, size: n, mode: mode.Perm(), modTime: time.Now()},
+		data:     buf.Bytes(),
 	})
 	return n, nil
 
@@ -124,7 +124,7 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 	if err != nil {
 		return &fs.PathError{Op: "CreateDir", Path: path, Err: err}
 	}
-	if !realDirMe.FileInfo.Mode().IsDir() {
+	if !realDirMe.fileInfo.Mode().IsDir() {
 		return &fs.PathError{Op: "CreateDir", Path: path, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -136,11 +136,11 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 	switch {
 	case !ok: // create directory if it does not exist
 		m.files.Store(realPath, &memoryEntry{
-			FileInfo: &memoryFileInfo{name: name, mode: mode.Perm() | fs.ModeDir},
+			fileInfo: &memoryFileInfo{name: name, mode: mode.Perm() | fs.ModeDir},
 		})
 		return nil
 
-	case e.(*memoryEntry).FileInfo.Mode().IsDir(): // directory already exists
+	case e.(*memoryEntry).fileInfo.Mode().IsDir(): // directory already exists
 		return nil
 
 	default: // entry exists but is not a directory
@@ -169,7 +169,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 	if err != nil {
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: err}
 	}
-	if !realDirMe.FileInfo.Mode().IsDir() {
+	if !realDirMe.fileInfo.Mode().IsDir() {
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: fs.ErrInvalid}
 	}
 	realPath := p.Join(realDir, name)
@@ -182,13 +182,13 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 	// create symlink, bc/it does not exist
 	case !ok:
 		m.files.Store(realPath, &memoryEntry{
-			FileInfo: &memoryFileInfo{name: name, mode: 0777 | fs.ModeSymlink},
-			Data:     []byte(oldName),
+			fileInfo: &memoryFileInfo{name: name, mode: 0777 | fs.ModeSymlink},
+			data:     []byte(oldName),
 		})
 		return nil
 
 	// directories cannot be overwritten
-	case e.(*memoryEntry).FileInfo.Mode().IsDir():
+	case e.(*memoryEntry).fileInfo.Mode().IsDir():
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: fs.ErrExist}
 
 	// remove existing entry and create symlink
@@ -197,8 +197,8 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 			return &fs.PathError{Op: "CreateSymlink", Path: realPath, Err: err}
 		}
 		m.files.Store(realPath, &memoryEntry{
-			FileInfo: &memoryFileInfo{name: name, mode: 0777 | fs.ModeSymlink},
-			Data:     []byte(oldName),
+			fileInfo: &memoryFileInfo{name: name, mode: 0777 | fs.ModeSymlink},
+			data:     []byte(oldName),
 		})
 		return nil
 
@@ -226,17 +226,16 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	}
 
 	// check if it is a directory
-	if me.FileInfo.Mode().IsDir() {
+	if me.fileInfo.Mode().IsDir() {
 		return &dirEntry{memoryEntry: *me, memory: m, path: actualPath, readDirCounter: 0}, nil
 	}
 
 	ome := memoryEntry{
-		FileInfo: &memoryFileInfo{name: me.FileInfo.Name(), size: me.FileInfo.Size(), mode: me.FileInfo.Mode(), modTime: me.FileInfo.ModTime()},
-		Data:     me.Data,
-		Opened:   true,
+		fileInfo: &memoryFileInfo{name: me.fileInfo.Name(), size: me.fileInfo.Size(), mode: me.fileInfo.Mode(), modTime: me.fileInfo.ModTime()},
+		data:     me.data,
 	}
 
-	return &fileEntry{memoryEntry: ome, reader: bytes.NewBuffer(me.Data)}, nil
+	return &fileEntry{memoryEntry: ome, reader: bytes.NewBuffer(me.data)}, nil
 }
 
 type dirEntry struct {
@@ -290,7 +289,7 @@ func (de *dirEntry) ReadDir(n int) ([]fs.DirEntry, error) {
 }
 
 func (de *dirEntry) Read(p []byte) (int, error) {
-	return 0, &fs.PathError{Op: "Read", Path: de.FileInfo.Name(), Err: fmt.Errorf("is a directory")}
+	return 0, &fs.PathError{Op: "Read", Path: de.fileInfo.Name(), Err: fmt.Errorf("is a directory")}
 }
 
 // fileEntry is a [io/fs.File] implementation for the in-memory filesystem
@@ -301,8 +300,8 @@ type fileEntry struct {
 
 // Read implements the [io/fs.File] interface.
 func (fe *fileEntry) Read(p []byte) (int, error) {
-	if !fe.Opened {
-		return 0, &fs.PathError{Op: "Read", Path: fe.FileInfo.Name(), Err: fmt.Errorf("file is not opened")}
+	if fe.closed {
+		return 0, &fs.PathError{Op: "Read", Path: fe.fileInfo.Name(), Err: fs.ErrClosed}
 	}
 	return fe.reader.Read(p)
 }
@@ -322,7 +321,7 @@ func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
 	// handle root directory
 	if realPath == "." {
 		me := &memoryEntry{
-			FileInfo: &memoryFileInfo{name: ".", mode: 0777 ^ fs.ModeDir},
+			fileInfo: &memoryFileInfo{name: ".", mode: 0777 ^ fs.ModeDir},
 		}
 		return me, nil
 	}
@@ -384,13 +383,13 @@ func (m *Memory) resolvePath(path string) (string, error) {
 
 			// check if we are in a directory, if so break the loop
 			// and continue with the next part of the path
-			if me.FileInfo.Mode().IsDir() {
+			if me.fileInfo.Mode().IsDir() {
 				break
 			}
 
 			// check if we are pointing to a file, if so check if we are
 			// at the end of the path
-			if me.FileInfo.Mode().IsRegular() {
+			if me.fileInfo.Mode().IsRegular() {
 				if i < len(parts)-1 {
 					return resultingPath, &fs.PathError{Op: "resolvePath", Path: path, Err: fs.ErrInvalid}
 				}
@@ -399,8 +398,8 @@ func (m *Memory) resolvePath(path string) (string, error) {
 
 			// check if we are in a symlink, if so resolve the symlink
 			// and repeat the previous checks with the resolved path
-			if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
-				linkTarget := p.Join(p.Dir(resultingPath), string(me.Data))
+			if me.fileInfo.Mode()&fs.ModeSymlink != 0 {
+				linkTarget := p.Join(p.Dir(resultingPath), string(me.data))
 				resultingPath = linkTarget
 			}
 		}
@@ -430,10 +429,10 @@ func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 
 	// return file info copy
 	return &memoryFileInfo{
-		name:    me.FileInfo.Name(),
-		size:    me.FileInfo.Size(),
-		mode:    me.FileInfo.Mode(),
-		modTime: me.FileInfo.ModTime(),
+		name:    me.fileInfo.Name(),
+		size:    me.fileInfo.Size(),
+		mode:    me.fileInfo.Mode(),
+		modTime: me.fileInfo.ModTime(),
 	}, nil
 }
 
@@ -459,10 +458,10 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 
 	// return file info copy
 	return &memoryFileInfo{
-		name:    me.FileInfo.Name(),
-		size:    me.FileInfo.Size(),
-		mode:    me.FileInfo.Mode(),
-		modTime: me.FileInfo.ModTime(),
+		name:    me.fileInfo.Name(),
+		size:    me.fileInfo.Size(),
+		mode:    me.fileInfo.Mode(),
+		modTime: me.fileInfo.ModTime(),
 	}, nil
 }
 
@@ -485,8 +484,8 @@ func (m *Memory) readlink(path string) (string, error) {
 	}
 
 	// handle symlink
-	if me.FileInfo.Mode()&fs.ModeSymlink != 0 {
-		return string(me.Data), nil
+	if me.fileInfo.Mode()&fs.ModeSymlink != 0 {
+		return string(me.data), nil
 	}
 
 	return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrInvalid}
@@ -506,7 +505,7 @@ func (m *Memory) Remove(path string) error {
 		return nil
 	}
 	me := e.(*memoryEntry)
-	if me.FileInfo.Mode().IsDir() {
+	if me.fileInfo.Mode().IsDir() {
 		entries, err := m.ReadDir(path)
 		if err != nil {
 			return &fs.PathError{Op: "Remove", Path: path, Err: err}
@@ -540,7 +539,7 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 	// get entry and check if it is a directory
 	if e, err := m.resolveEntry(realPath); err != nil {
 		return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: err}
-	} else if !e.FileInfo.Mode().IsDir() {
+	} else if !e.fileInfo.Mode().IsDir() {
 		return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrInvalid}
 	}
 
@@ -612,7 +611,7 @@ func (m *Memory) Sub(subPath string) (fs.FS, error) {
 	}
 
 	// check if it is not a directory
-	if !me.FileInfo.Mode().IsDir() {
+	if !me.fileInfo.Mode().IsDir() {
 		return nil, &fs.PathError{Op: "Sub", Path: subPath, Err: fs.ErrInvalid}
 	}
 
@@ -662,44 +661,44 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 type memoryEntry struct {
 	fileInfo fs.FileInfo
 	data     []byte
-	opened   bool
+	closed   bool
 }
 
 // Stat implements the [io/fs.File] interface.
 func (me *memoryEntry) Stat() (fs.FileInfo, error) {
-	return me.FileInfo, nil
+	return me.fileInfo, nil
 }
 
 // Close implements the [io/fs.File] interface.
 func (me *memoryEntry) Close() error {
-	me.Opened = false
+	me.closed = true
 	return nil
 }
 
 // Name implements the [io/fs.DirEntry] interface.
 func (me *memoryEntry) Name() string {
-	return me.FileInfo.Name()
+	return me.fileInfo.Name()
 }
 
 // IsDir implements the [io/fs.DirEntry] interface.
 func (me *memoryEntry) IsDir() bool {
-	return me.FileInfo.IsDir()
+	return me.fileInfo.IsDir()
 }
 
 // Type implements the [io/fs.DirEntry] interface.
 func (me *memoryEntry) Type() fs.FileMode {
-	return me.FileInfo.Mode().Type()
+	return me.fileInfo.Mode().Type()
 }
 
 // Info implements the [io/fs.DirEntry] interface.
 func (me *memoryEntry) Info() (fs.FileInfo, error) {
-	return me.FileInfo, nil
+	return me.fileInfo, nil
 }
 
 // ReadDir implements the [io/fs.ReadDirFile] interface.
 func (me *memoryEntry) ReadDir(n int) ([]fs.DirEntry, error) {
 	// return not implemented
-	return nil, &fs.PathError{Op: "ReadDir", Path: me.FileInfo.Name(), Err: fmt.Errorf("not implemented")}
+	return nil, &fs.PathError{Op: "ReadDir", Path: me.fileInfo.Name(), Err: fmt.Errorf("not implemented")}
 }
 
 // memoryFileInfo is a FileInfo implementation for the in-memory filesystem
