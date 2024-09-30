@@ -355,6 +355,26 @@ func TestMemoryRemove(t *testing.T) {
 		t.Fatalf("Remove() failed: %s", err)
 	}
 
+	// remove a file thats open and expect to fail
+	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+		t.Fatalf("CreateFile() for testPath failed: %s", err)
+	}
+	f, err := mem.Open(testPath)
+	if err != nil {
+		t.Fatalf("Open() testPath failed: %s", err)
+	}
+	err = mem.Remove(testPath)
+	if err == nil {
+		t.Fatalf("Remove() misbehaved failed: expected error, got nil")
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close() failed: %s", err)
+	}
+	err = mem.Remove(testPath)
+	if err != nil {
+		t.Fatalf("Remove() failed: %s", err)
+	}
+
 }
 
 // TestMemoryReadDir tests the ReadDir function from Memory

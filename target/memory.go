@@ -535,6 +535,12 @@ func (m *Memory) Remove(path string) error {
 	}
 
 	// delete entry
+	if !me.mux.TryLock() {
+		return &fs.PathError{Op: "Remove", Path: path, Err: fmt.Errorf("file is in use")}
+	}
+	defer me.mux.Unlock()
+
+	// delete entry
 	m.files.Delete(path)
 	return nil
 }
