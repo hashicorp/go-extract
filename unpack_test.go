@@ -79,7 +79,7 @@ func TestGetUnpackFunction(t *testing.T) {
 				f.Close()
 				t.Fatal(err)
 			}
-			got := GetUnpackFunction(input)
+			got := getUnpackFunction(input)
 			f.Close()
 
 			// success if both are nil and no engine found
@@ -770,7 +770,7 @@ func TestIsKnownArchiveFileExtension(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsKnownArchiveFileExtension(tt.filename); got != tt.want {
+			if got := isKnownArchiveFileExtension(tt.filename); got != tt.want {
 				t.Errorf("IsKnownArchiveFileExtension(%s) = %v, want %v", tt.filename, got, tt.want)
 			}
 		})

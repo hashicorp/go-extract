@@ -47,13 +47,13 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 	}
 
 	// find extractor by header
-	if unpacker := GetUnpackFunction(header); unpacker != nil {
+	if unpacker := getUnpackFunction(header); unpacker != nil {
 		return unpacker(ctx, t, dst, reader, cfg)
 	}
 
 	// find extractor by file extension
 	if f, ok := src.(*os.File); ok {
-		if unpacker := GetUnpackFunctionByFileName(f.Name()); unpacker != nil {
+		if unpacker := getUnpackFunctionByFileName(f.Name()); unpacker != nil {
 			return unpacker(ctx, t, dst, reader, cfg)
 		}
 	}
@@ -94,8 +94,8 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 	return headerReader.PeekHeader(), headerReader, nil
 }
 
-// GetUnpackFunction identifies the correct extractor based on magic bytes.
-func GetUnpackFunction(data []byte) extractor.UnpackFunc {
+// getUnpackFunction identifies the correct extractor based on magic bytes.
+func getUnpackFunction(data []byte) extractor.UnpackFunc {
 	// find extractor with longest suffix match
 	for _, ex := range extractor.AvailableExtractors {
 		if ex.HeaderCheck(data) {
@@ -107,8 +107,8 @@ func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 	return nil
 }
 
-// GetUnpackFunctionByFileName identifies the correct extractor based on file extension.
-func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
+// getUnpackFunctionByFileName identifies the correct extractor based on file extension.
+func getUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 	// get file extension from file name
 	src = strings.ToLower(src)
 	if strings.Contains(src, ".") {
@@ -124,9 +124,9 @@ func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 	return nil
 }
 
-// IsKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
-func IsKnownArchiveFileExtension(src string) bool {
-	return GetUnpackFunctionByFileName(src) != nil
+// isKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
+func isKnownArchiveFileExtension(src string) bool {
+	return getUnpackFunctionByFileName(src) != nil
 }
 
 // Available file types
