@@ -9,7 +9,7 @@ import (
 // TestLimitErrorWriter tests the LimitErrorWriter
 func TestLimitErrorWriter(t *testing.T) {
 	var buf bytes.Buffer
-	l := NewLimitErrorWriter(&buf, 5)
+	l := newLimitErrorWriter(&buf, 5)
 
 	n, err := l.Write([]byte("hello"))
 	if n != 5 || err != nil {
