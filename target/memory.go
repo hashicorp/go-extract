@@ -660,9 +660,9 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 
 // memoryEntry is a File implementation for the in-memory filesystem
 type memoryEntry struct {
-	FileInfo fs.FileInfo
-	Data     []byte
-	Opened   bool
+	fileInfo fs.FileInfo
+	data     []byte
+	opened   bool
 }
 
 // Stat implements the [io/fs.File] interface.
