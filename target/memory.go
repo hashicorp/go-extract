@@ -294,7 +294,7 @@ func (de *dirEntry) Read(p []byte) (int, error) {
 
 // fileEntry is a [io/fs.File] implementation for the in-memory filesystem
 type fileEntry struct {
-	memoryEntry
+	*memoryEntry
 	reader io.Reader
 }
 
