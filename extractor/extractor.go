@@ -59,12 +59,12 @@ func captureInputSize(td *telemetry.Data, ler *limitErrorReader) {
 // UnpackFunc is a function that extracts the contents from src and extracts them to dst.
 type UnpackFunc func(context.Context, target.Target, string, io.Reader, *config.Config) error
 
-// HeaderCheck is a function that checks if the given header matches the expected magic bytes.
-type HeaderCheck func([]byte) bool
+// headerCheck is a function that checks if the given header matches the expected magic bytes.
+type headerCheck func([]byte) bool
 
 type AvailableExtractor struct {
 	Unpacker    UnpackFunc
-	HeaderCheck HeaderCheck
+	HeaderCheck headerCheck
 	MagicBytes  [][]byte
 	Offset      int
 }
