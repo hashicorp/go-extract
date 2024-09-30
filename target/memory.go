@@ -235,7 +235,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 		data:     me.data,
 	}
 
-	return &fileEntry{memoryEntry: ome, reader: bytes.NewBuffer(me.data)}, nil
+	return &fileEntry{memoryEntry: ome, reader: bytes.NewReader(me.data)}, nil
 }
 
 type dirEntry struct {
@@ -693,12 +693,6 @@ func (me *memoryEntry) Type() fs.FileMode {
 // Info implements the [io/fs.DirEntry] interface.
 func (me *memoryEntry) Info() (fs.FileInfo, error) {
 	return me.fileInfo, nil
-}
-
-// ReadDir implements the [io/fs.ReadDirFile] interface.
-func (me *memoryEntry) ReadDir(n int) ([]fs.DirEntry, error) {
-	// return not implemented
-	return nil, &fs.PathError{Op: "ReadDir", Path: me.fileInfo.Name(), Err: fmt.Errorf("not implemented")}
 }
 
 // memoryFileInfo is a FileInfo implementation for the in-memory filesystem
