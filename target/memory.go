@@ -315,7 +315,6 @@ func (fe *fileEntry) Read(p []byte) (int, error) {
 // Close implements the [io/fs.File] interface.
 func (fe *fileEntry) Close() error {
 	if fe.closed {
-		fmt.Println("file already closed")
 		return &fs.PathError{Op: "Close", Path: fe.fileInfo.Name(), Err: fs.ErrClosed}
 	}
 	fe.mux.RUnlock()
