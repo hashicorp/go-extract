@@ -3,7 +3,7 @@ module fetch-testing
 go 1.21.0
 
 require (
-	github.com/alecthomas/kong v0.9.0
+	github.com/alecthomas/kong v1.2.1
 	github.com/hashicorp/go-extract v0.3.2-0.20240313145657-056868eb167a
 	github.com/hashicorp/go-slug v0.14.0
 	github.com/pkg/errors v0.9.1

@@ -2,20 +2,7 @@
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
 
-Secure file decompression and extraction of following types:
-
-- 7-Zip
-- Brotli
-- Bzip2
-- GZip
-- LZ4
-- Rar (without symlinks)
-- Snappy
-- Tar
-- Xz
-- Zip
-- Zlib
-- Zstandard
+Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
 
 ## Code Example
 
@@ -150,6 +137,73 @@ Flags:
   -V, --version                            Print release version information.
 ```
 
+## Extraction targets
+
+### Operating System (Os)
+
+Interact with the local operating system to, to create files, directories and symlinks.
+Extracted entries can be accessed afterwards by `os.*` API calls.
+
+```golang
+// create a target
+osTarget := target.NewOS()
+extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg) 
+```
+
+### Memory
+
+Extract archives to memory by using the `target.Memory` implementation. Files, directories and symlinks
+are supported. File permissions are not validated. Extracted entries are accessed ether via the call of `m.Open(..)`
+or via a map key. Symlink semantically not processed by the implementation.
+
+```golang
+// use target to unpack archive
+memTarget := target.NewMemory()
+extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg)
+
+// manual usage
+memTarget.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
+memTarget.CreateDir("dir", 0755)
+memTarget.CreateSymlink("file.txt", "link.txt", true)
+
+// interact with the filesystem
+f, err := memTarget.Open("file.txt") // contains "hello world"
+if err != nil {
+  // handle error
+}
+defer f.Close()
+
+// open symlink
+f, err = memTarget.Open("link.txt") // contains "hello world"
+if err != nil {
+  // handle error
+}
+defer f.Close()
+
+// Stat the file
+s, err := memTarget.Stat("file.txt")
+if err != nil {
+  // handle error
+}
+fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
+
+// Lstat the symlink
+l, err := memTarget.Lstat("link.txt")
+if err != nil {
+  // handle error
+}
+fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
+
+// Readlink the symlink
+t, err := memTarget.Readlink("link.txt")
+if err != nil {
+  // handle error
+}
+fmt.Println(t)
+
+
+```
+
 ## Telemetry data
 
 It is possible to collect telemetry data ether by specifying a telemetry hook via the config option `config.WithTelemetryHook(telemetryToLog)` or as a cli parameter `-T, --telemetry`.
@@ -212,9 +266,9 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 - [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
 - [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
 - [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
+- [x] in-memory extraction
 - [ ] Handle passwords
 - [ ] recursive extraction
-- [ ] virtual fs as target
 
 ## References
 
