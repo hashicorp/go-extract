@@ -98,7 +98,7 @@ func (m *Memory) createFile(path string, mode fs.FileMode, src io.Reader, maxSiz
 	m.files.Store(path, &memoryEntry{
 		fileInfo: &memoryFileInfo{name: name, size: n, mode: mode.Perm(), modTime: time.Now()},
 		data:     buf.Bytes(),
-		mux:      sync.RWMutex{},
+		lock:     sync.RWMutex{},
 	})
 	return n, nil
 
@@ -232,7 +232,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 	}
 
 	// get lock and create reader
-	me.mux.RLock()
+	me.lock.RLock()
 	return &fileEntry{memoryEntry: me, reader: bytes.NewReader(me.data)}, nil
 }
 
@@ -317,7 +317,7 @@ func (fe *fileEntry) Close() error {
 	if fe.closed {
 		return &fs.PathError{Op: "Close", Path: fe.fileInfo.Name(), Err: fs.ErrClosed}
 	}
-	fe.mux.RUnlock()
+	fe.lock.RUnlock()
 	fe.closed = true
 	return nil
 }
@@ -534,10 +534,10 @@ func (m *Memory) Remove(path string) error {
 	}
 
 	// delete entry
-	if !me.mux.TryLock() {
+	if !me.lock.TryLock() {
 		return &fs.PathError{Op: "Remove", Path: path, Err: fmt.Errorf("file is in use")}
 	}
-	defer me.mux.Unlock()
+	defer me.lock.Unlock()
 
 	// delete entry
 	m.files.Delete(path)
@@ -683,7 +683,7 @@ func (m *Memory) Glob(pattern string) ([]string, error) {
 type memoryEntry struct {
 	fileInfo fs.FileInfo
 	data     []byte
-	mux      sync.RWMutex
+	lock     sync.RWMutex
 }
 
 // Stat implements the [io/fs.File] interface.
