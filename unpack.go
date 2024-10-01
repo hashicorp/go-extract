@@ -39,19 +39,19 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 	}
 
 	// read headerReader to identify archive type
-	header, reader, err := getHeader(src)
+	header, reader, err := GetHeader(src)
 	if err != nil {
 		return fmt.Errorf("failed to read header: %w", err)
 	}
 
 	// find extractor by header
-	if unpacker := getUnpackFunction(header); unpacker != nil {
+	if unpacker := GetUnpackFunction(header); unpacker != nil {
 		return unpacker(ctx, t, dst, reader, cfg)
 	}
 
 	// find extractor by file extension
 	if f, ok := src.(*os.File); ok {
-		if unpacker := getUnpackFunctionByFileName(f.Name()); unpacker != nil {
+		if unpacker := GetUnpackFunctionByFileName(f.Name()); unpacker != nil {
 			return unpacker(ctx, t, dst, reader, cfg)
 		}
 	}
@@ -60,11 +60,11 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 	return fmt.Errorf("no supported archive type ether not detected")
 }
 
-// getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
+// GetHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
 // directly from the reader and the reader gets reset. If src is not a io.Seeker, the header is read
 // and transformed into a HeaderReader, which is returned as the second return value. If an error
 // occurs, the header is nil and the error is returned as the third return value
-func getHeader(src io.Reader) ([]byte, io.Reader, error) {
+func GetHeader(src io.Reader) ([]byte, io.Reader, error) {
 
 	// check if source offers seek and preserve type of source
 	if s, ok := src.(io.Seeker); ok {
@@ -92,8 +92,8 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 	return headerReader.PeekHeader(), headerReader, nil
 }
 
-// getUnpackFunction identifies the correct extractor based on magic bytes.
-func getUnpackFunction(data []byte) extractor.UnpackFunc {
+// GetUnpackFunction identifies the correct extractor based on magic bytes.
+func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 	// find extractor with longest suffix match
 	for _, ex := range extractor.AvailableExtractors {
 		if ex.HeaderCheck(data) {
@@ -105,8 +105,8 @@ func getUnpackFunction(data []byte) extractor.UnpackFunc {
 	return nil
 }
 
-// getUnpackFunctionByFileName identifies the correct extractor based on file extension.
-func getUnpackFunctionByFileName(src string) extractor.UnpackFunc {
+// GetUnpackFunctionByFileName identifies the correct extractor based on file extension.
+func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 	// get file extension from file name
 	src = strings.ToLower(src)
 	if strings.Contains(src, ".") {
@@ -120,11 +120,6 @@ func getUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 
 	// no matching reader found
 	return nil
-}
-
-// isKnownArchiveFileExtension checks if the given file extension is a known archive file extension.
-func isKnownArchiveFileExtension(src string) bool {
-	return getUnpackFunctionByFileName(src) != nil
 }
 
 // Available file types

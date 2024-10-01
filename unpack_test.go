@@ -79,7 +79,7 @@ func TestGetUnpackFunction(t *testing.T) {
 				f.Close()
 				t.Fatal(err)
 			}
-			got := getUnpackFunction(input)
+			got := GetUnpackFunction(input)
 			f.Close()
 
 			// success if both are nil and no engine found
@@ -394,7 +394,7 @@ func TestGetHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := getHeader(tt.src)
+			_, _, err := GetHeader(tt.src)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getHeader() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -712,67 +712,6 @@ func TestTelemetryHook(t *testing.T) {
 				t.Errorf("test case %d failed: %s (ExtractedType)\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData.ExtractedType, td.ExtractedType)
 			}
 
-		})
-	}
-}
-
-func TestIsKnownArchiveFileExtension(t *testing.T) {
-	tests := []struct {
-		name     string
-		filename string
-		want     bool
-	}{
-		{
-			name:     "known extension",
-			filename: "test.zip",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.tar",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.tar.gz",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.br",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.bZ2",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.7z",
-			want:     true,
-		},
-		{
-			name:     "unknown extension",
-			filename: "test.txt",
-			want:     false,
-		},
-		{
-			name:     "unknown extension",
-			filename: "test",
-			want:     false,
-		},
-		{
-			name:     "test if only the extension is provided",
-			filename: "zip",
-			want:     true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isKnownArchiveFileExtension(tt.filename); got != tt.want {
-				t.Errorf("IsKnownArchiveFileExtension(%s) = %v, want %v", tt.filename, got, tt.want)
-			}
 		})
 	}
 }
