@@ -35,6 +35,10 @@ test_coverage_html:
 	go test ./... -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o=coverage.html
 
+godoc:
+	open http://127.0.0.1:6060/pkg/github.com/hashicorp/go-extract/
+	godoc -http=:6060
+
 fuzz:
 	# Fuzzing FuzzSecurityCheckOs in ./extractor/target_test.go
 	go test ./extractor -run=FuzzSecurityCheckOs -fuzz=FuzzSecurityCheckOs -fuzztime=30s
