@@ -58,7 +58,7 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxInputSize int64
 
-	// telemetryHook is a function pointer to consume telemetry data after finished extraction
+	// telemetryHook is a function to consume telemetry data after finished extraction
 	// Important: do not adjust this value after extraction started
 	telemetryHook telemetry.TelemetryHook
 
