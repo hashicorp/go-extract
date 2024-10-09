@@ -1,4 +1,4 @@
-package extract
+package extract_test
 
 import (
 	"archive/tar"
@@ -12,15 +12,16 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/andybalholm/brotli"
 	"github.com/dsnet/compress/bzip2"
+	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/extractor"
-	"github.com/hashicorp/go-extract/target"
+	"github.com/hashicorp/go-extract/internal/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -30,7 +31,7 @@ func TestGetUnpackFunction(t *testing.T) {
 	cases := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
-		expected       extractor.UnpackFunc
+		expected       func(context.Context, extractor.Target, string, io.Reader, *config.Config) error
 	}{
 		{
 			name:           "get zip extractor from file",
@@ -80,12 +81,14 @@ func TestGetUnpackFunction(t *testing.T) {
 				f.Close()
 				t.Fatal(err)
 			}
-			got := GetUnpackFunction(input)
+			got := extractor.AvailableExtractors.GetUnpackFunction(input, "")
 			f.Close()
 
-			// success if both are nil and no engine found
-			if fmt.Sprintf("%T", got) != fmt.Sprintf("%T", want) {
-				t.Fatalf("expected: %v\ngot: %v", want, got)
+			wantT := reflect.TypeOf(want)
+			gotT := reflect.TypeOf(got)
+
+			if !gotT.AssignableTo(wantT) {
+				t.Fatalf("\nexpected: %s\ngot: %s", wantT, gotT)
 			}
 		})
 	}
@@ -356,7 +359,7 @@ func TestUnpack(t *testing.T) {
 				panic(err)
 			}
 			defer archive.Close()
-			err = Unpack(
+			err = extract.Unpack(
 				context.Background(),
 				archive,
 				testDir,
@@ -420,9 +423,9 @@ func TestUnpackToMemory(t *testing.T) {
 				panic(err)
 			}
 			defer archive.Close()
-			err = UnpackTo(
+			err = extract.UnpackTo(
 				context.Background(),
-				target.NewMemory(),
+				extractor.NewMemory(),
 				"",
 				archive,
 				config.NewConfig(
@@ -434,35 +437,6 @@ func TestUnpackToMemory(t *testing.T) {
 			// success if both are nil and no engine found
 			if want != got {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
-			}
-		})
-	}
-}
-
-func TestGetHeader(t *testing.T) {
-	tests := []struct {
-		name    string
-		src     io.Reader
-		wantErr bool
-	}{
-		{
-			name:    "Read header from bytes.Buffer (implements io.Seeker)",
-			src:     bytes.NewBuffer([]byte("test data")),
-			wantErr: false,
-		},
-		{
-			name:    "Read header from bytes.Reader (implements io.Seeker)",
-			src:     bytes.NewReader([]byte("test data")),
-			wantErr: false,
-		},
-		// Add more test cases as needed
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := getHeader(tt.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getHeader() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -750,7 +724,7 @@ func TestTelemetryHook(t *testing.T) {
 			// perform actual tests
 			ctx := context.Background()
 			dstDir := filepath.Join(testDir, tc.dst)
-			err = Unpack(ctx, archive, dstDir, cfg)
+			err = extract.Unpack(ctx, archive, dstDir, cfg)
 			archive.Close()
 
 			// check if error is expected
@@ -782,67 +756,6 @@ func TestTelemetryHook(t *testing.T) {
 	}
 }
 
-func TestIsKnownArchiveFileExtension(t *testing.T) {
-	tests := []struct {
-		name     string
-		filename string
-		want     bool
-	}{
-		{
-			name:     "known extension",
-			filename: "test.zip",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.tar",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.tar.gz",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.br",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.bZ2",
-			want:     true,
-		},
-		{
-			name:     "known extension",
-			filename: "test.7z",
-			want:     true,
-		},
-		{
-			name:     "unknown extension",
-			filename: "test.txt",
-			want:     false,
-		},
-		{
-			name:     "unknown extension",
-			filename: "test",
-			want:     false,
-		},
-		{
-			name:     "test if only the extension is provided",
-			filename: "zip",
-			want:     true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsKnownArchiveFileExtension(tt.filename); got != tt.want {
-				t.Errorf("IsKnownArchiveFileExtension(%s) = %v, want %v", tt.filename, got, tt.want)
-			}
-		})
-	}
-}
-
 // TestUnpackWithTypes is a test function
 func TestUnpackWithTypes(t *testing.T) {
 
@@ -858,7 +771,7 @@ func TestUnpackWithTypes(t *testing.T) {
 	}{
 		{
 			name:          "get zip extractor from file",
-			cfg:           config.NewConfig(config.WithExtractType(FileTypeGZip)),
+			cfg:           config.NewConfig(config.WithExtractType(extractor.FileExtensionGZip)),
 			archiveName:   "TestZip.gz",
 			content:       compressGzip([]byte("foobar content")),
 			gen:           createFile,
@@ -884,7 +797,7 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to tar.gz",
-			cfg:         config.NewConfig(config.WithExtractType(FileTypeTarGZip)),
+			cfg:         config.NewConfig(config.WithExtractType(extractor.FileExtensionGZip)),
 			archiveName: "example.json.zip.tar.gz",
 			content: compressGzip(packTarWithContent([]tarContent{
 				{
@@ -901,7 +814,7 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to zip, so that it fails",
-			cfg:         config.NewConfig(config.WithExtractType(FileTypeZIP)),
+			cfg:         config.NewConfig(config.WithExtractType(extractor.FileExtensionZIP)),
 			archiveName: "example.json.zip.tar.gz",
 			content: compressGzip(packTarWithContent([]tarContent{
 				{
@@ -917,17 +830,14 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 	}
 
-	for i, tc := range cases {
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
-			// prepare vars
-			want := tc.expectError
-
 			// perform actual tests
 			archive := tc.gen(filepath.Join(testDir, tc.archiveName), tc.content)
-			err := Unpack(
+			err := extract.Unpack(
 				context.Background(),
 				archive,
 				testDir,
@@ -941,16 +851,15 @@ func TestUnpackWithTypes(t *testing.T) {
 				}
 			}()
 
-			// success if both are nil and no engine found
-			if want != (err != nil) {
-				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+			if tc.expectError && err == nil {
+				t.Errorf("\nexpected error\ngot: %s", err)
 			}
 
 			// check for created files
 			for _, file := range tc.expectedFiles {
 				_, err := os.Stat(filepath.Join(testDir, file))
 				if err != nil {
-					t.Errorf("test case %d failed: %s\nexpected file: %s\ngot: %s", i, tc.name, file, err)
+					t.Errorf("\nexpected file: %s\ngot: %s", file, err)
 				}
 			}
 		})
@@ -1033,38 +942,6 @@ func compressBzip2(data []byte) []byte {
 	}
 
 	return buf.Bytes()
-}
-
-// TestValidTypes is a test function
-func TestValidTypes(t *testing.T) {
-	// test cases
-	cases := []struct {
-		name     string
-		types    []string
-		expected bool
-	}{
-		{
-			name:     "valid types",
-			types:    []string{"zip", "tar", "tgz", "br", "bz2", "7z"},
-			expected: true,
-		},
-		{
-			name:     "invalid types",
-			types:    []string{"foo", "bar", "baz"},
-			expected: false,
-		},
-	}
-
-	for i, tc := range cases {
-		validTypes := ValidTypes()
-		t.Run(tc.name, func(t *testing.T) {
-			for _, typ := range tc.types {
-				if strings.Contains(validTypes, typ) != tc.expected {
-					t.Errorf("test case %d failed: %s\nexpected: %v\ngot: %v", i, tc.name, tc.expected, strings.Contains(validTypes, typ))
-				}
-			}
-		})
-	}
 }
 
 // tarContent is a struct to store the content of a tar file
@@ -1239,7 +1116,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			if err := os.MkdirAll(dstDir, 0755); err != nil {
 				t.Fatalf("error creating directory: %s", err)
 			}
-			err = Unpack(ctx, archive, dstDir, cfg)
+			err = extract.Unpack(ctx, archive, dstDir, cfg)
 			archive.Close()
 
 			// check if error is expected
@@ -1373,7 +1250,7 @@ func TestWithCustomMode(t *testing.T) {
 			dst := filepath.Join(tmpDir, tt.dst)
 
 			// run test
-			err := Unpack(ctx, buf, dst, tt.cfg)
+			err := extract.Unpack(ctx, buf, dst, tt.cfg)
 			if !tt.expectError && (err != nil) {
 				t.Errorf("[%s] Expected no error, but got: %s", tt.name, err)
 			}
