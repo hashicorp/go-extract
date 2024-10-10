@@ -53,7 +53,7 @@ func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *co
 			return handleError(cfg, td, "cannot create rar decoder", err)
 		}
 		defer a.Close()
-		return run(ctx, t, dst, &rarWalker{&a.Reader}, cfg, td)
+		return extract(ctx, t, dst, &rarWalker{&a.Reader}, cfg, td)
 	}
 
 	// get bytes from reader
@@ -61,7 +61,7 @@ func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *co
 	if err != nil {
 		return handleError(cfg, td, "cannot create rar decoder", err)
 	}
-	return run(ctx, t, dst, &rarWalker{a}, cfg, td)
+	return extract(ctx, t, dst, &rarWalker{a}, cfg, td)
 }
 
 // rarWalker is an archiveWalker for Rar files.

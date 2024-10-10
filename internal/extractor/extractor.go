@@ -263,8 +263,8 @@ func handleError(cfg *config.Config, td *telemetry.Data, msg string, err error) 
 	return td.LastExtractionError
 }
 
-// run checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
-func run(ctx context.Context, t Target, dst string, src archiveWalker, cfg *config.Config, td *telemetry.Data) error {
+// extract checks ctx for cancellation, while it reads a tar file from src and extracts the contents to dst.
+func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *config.Config, td *telemetry.Data) error {
 
 	// start extraction
 	cfg.Logger().Info("start extraction", "type", src.Type())

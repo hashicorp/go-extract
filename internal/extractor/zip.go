@@ -79,7 +79,7 @@ func unpackZip(ctx context.Context, t Target, src seekerReaderAt, dst string, cf
 	if err != nil {
 		return handleError(cfg, m, "cannot create zip reader", err)
 	}
-	return run(ctx, t, dst, &zipWalker{zr: reader}, cfg, m)
+	return extract(ctx, t, dst, &zipWalker{zr: reader}, cfg, m)
 }
 
 // zipWalker is a walker for zip files

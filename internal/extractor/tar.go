@@ -46,7 +46,7 @@ func UnpackTar(ctx context.Context, t Target, dst string, src io.Reader, cfg *co
 
 // unpackTar extracts the tar archive from src to dst
 func unpackTar(ctx context.Context, t Target, src io.Reader, dst string, c *config.Config, td *telemetry.Data) error {
-	return run(ctx, t, dst, &tarWalker{tr: tar.NewReader(src)}, c, td)
+	return extract(ctx, t, dst, &tarWalker{tr: tar.NewReader(src)}, c, td)
 }
 
 // tarWalker is a walker for tar files

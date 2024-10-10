@@ -77,7 +77,7 @@ func unpack7zip(ctx context.Context, t Target, dst string, sra seekerReaderAt, c
 		return handleError(cfg, td, "cannot create 7zip reader", err)
 	}
 
-	return run(ctx, t, dst, &sevenZipWalker{reader, 0}, cfg, td)
+	return extract(ctx, t, dst, &sevenZipWalker{reader, 0}, cfg, td)
 }
 
 // sevenZipWalker is a walker for 7zip files
