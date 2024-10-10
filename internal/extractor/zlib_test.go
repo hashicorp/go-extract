@@ -109,7 +109,6 @@ func TestUnpackZlib(t *testing.T) {
 	}
 }
 
-// compressZlib compresses the data using the zlib algorithm
 func compressZlib(t *testing.T, data []byte) []byte {
 	var buf bytes.Buffer
 

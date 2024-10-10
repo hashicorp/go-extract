@@ -53,7 +53,6 @@ type Target interface {
 //
 // If the file is created successfully, the function returns the number of bytes written and nil.
 func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMode, maxSize int64, cfg *config.Config) (int64, error) {
-
 	// check if a name is provided
 	if len(name) == 0 {
 		return 0, fmt.Errorf("cannot create file without name")

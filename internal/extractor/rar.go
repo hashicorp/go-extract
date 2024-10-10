@@ -11,16 +11,16 @@ import (
 	"github.com/nwaples/rardecode"
 )
 
-// FileExtensionRar is the file extension for Rar files
+// FileExtensionRar is the file extension for Rar files.
 const FileExtensionRar = "rar"
 
-// magicBytesRar are the magic bytes for Rar files
+// magicBytesRar are the magic bytes for Rar files.
 var magicBytesRar = [][]byte{
 	{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00},       // Rar 1.5
 	{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00}, // Rar 5.0
 }
 
-// isRar checks if the header matches the magic bytes for Rar files
+// isRar checks if the header matches the magic bytes for Rar files.
 func isRar(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesRar)
 }
@@ -43,7 +43,6 @@ func UnpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *co
 
 // unpackRar extracts a Rar archive from src to dst.
 func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *config.Config, td *telemetry.Data) error {
-
 	// log extraction
 	cfg.Logger().Info("extracting rar")
 
@@ -65,17 +64,17 @@ func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *co
 	return run(ctx, t, dst, &rarWalker{a}, cfg, td)
 }
 
-// rarWalker is an archiveWalker for Rar files
+// rarWalker is an archiveWalker for Rar files.
 type rarWalker struct {
 	r *rardecode.Reader
 }
 
-// Type returns the file extension for rar files
+// Type returns the file extension for rar files.
 func (rw *rarWalker) Type() string {
 	return FileExtensionRar
 }
 
-// Next returns the next entry in the rar file
+// Next returns the next entry in the rar file.
 func (rw *rarWalker) Next() (archiveEntry, error) {
 	fh, err := rw.r.Next()
 	if err != nil {
@@ -88,53 +87,53 @@ func (rw *rarWalker) Next() (archiveEntry, error) {
 	return re, nil
 }
 
-// rarEntry is an archiveEntry for Rar files
+// rarEntry is an archiveEntry for Rar files.
 type rarEntry struct {
 	f *rardecode.FileHeader
 	r io.Reader
 }
 
-// Name returns the name of the file
+// Name returns the name of the file.
 func (re *rarEntry) Name() string {
 	return re.f.Name
 }
 
-// Size returns the size of the file
+// Size returns the size of the file.
 func (re *rarEntry) Size() int64 {
 	return re.f.UnPackedSize
 }
 
-// Mode returns the mode of the file
+// Mode returns the mode of the file.
 func (z *rarEntry) Mode() os.FileMode {
 	return z.f.Mode()
 }
 
-// Linkname symlinks are not supported
+// Linkname symlinks are not supported.
 func (re *rarEntry) Linkname() string {
 	return ""
 }
 
-// IsRegular returns true if the file is a regular file
+// IsRegular returns true if the file is a regular file.
 func (re *rarEntry) IsRegular() bool {
 	return re.f.Mode().IsRegular()
 }
 
-// IsDir returns true if the file is a directory
+// IsDir returns true if the file is a directory.
 func (z *rarEntry) IsDir() bool {
 	return z.f.IsDir
 }
 
-// IsSymlink returns true if the file is a symlink
+// IsSymlink returns true if the file is a symlink.
 func (z *rarEntry) IsSymlink() bool {
 	return z.f.Mode()&fs.ModeSymlink != 0
 }
 
-// Type returns the type of the file
+// Type returns the type of the file.
 func (z *rarEntry) Type() fs.FileMode {
 	return z.f.Mode().Type()
 }
 
-// Open returns a reader for the file
+// Open returns a reader for the file.
 func (z *rarEntry) Open() (io.ReadCloser, error) {
 	return io.NopCloser(z.r), nil
 }

@@ -88,27 +88,26 @@ func TestDecompressTarCompress(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
 			testingTarget := NewOS()
 
 			tmpDir := t.TempDir()
-			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", tt.extension))
-			r := newTestFile(testFile, tt.compress(t, testTar))
+			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", test.extension))
+			r := newTestFile(testFile, test.compress(t, testTar))
 			defer func() {
 				if f, ok := r.(io.Closer); ok {
 					f.Close()
 				}
 			}()
-			if err := decompress(ctx, testingTarget, tmpDir, r, cfg, tt.decompress, tt.extension); err != nil {
-				t.Errorf("%v: Unpack() error = %v", tt.name, err)
+			if err := decompress(ctx, testingTarget, tmpDir, r, cfg, test.decompress, test.extension); err != nil {
+				t.Errorf("%v: Unpack() error = %v", test.name, err)
 			}
 
 			// check if file was extracted
 			if _, err := os.Stat(filepath.Join(tmpDir, filename)); err != nil {
-				t.Errorf("%v: File not found: %v", tt.name, err)
+				t.Errorf("%v: File not found: %v", test.name, err)
 			}
 		})
 	}

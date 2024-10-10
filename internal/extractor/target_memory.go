@@ -80,7 +80,6 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 }
 
 func (m *Memory) createFile(path string, mode fs.FileMode, src io.Reader, maxSize int64) (int64, error) {
-
 	// get name
 	name := p.Base(path)
 
@@ -213,7 +212,6 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 // If the file does not exist, an error is returned. If the file is a directory,
 // an error is returned. If the file is a symlink, the target of the symlink is returned.
 func (m *Memory) Open(path string) (fs.File, error) {
-
 	// follow the path & symlinks to get to the real path
 	actualPath, err := m.resolvePath(path)
 	if err != nil {
@@ -356,7 +354,6 @@ func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
 // wrong or the paths are in a symlink loop or the path is invalid, an error
 // is returned. If the path is empty, the current directory is returned.
 func (m *Memory) resolvePath(path string) (string, error) {
-
 	// handle empty path
 	if path == "" {
 		return ".", nil
@@ -585,7 +582,6 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 // ReadFile implements the [io/fs.ReadFileFS] interface. It
 // reads the file named by filename and returns the contents.
 func (m *Memory) ReadFile(path string) ([]byte, error) {
-
 	// open file for reading to ensure that symlinks are resolved
 	f, err := m.Open(path)
 	if err != nil {
@@ -614,7 +610,6 @@ func (m *Memory) ReadFile(path string) ([]byte, error) {
 // Sub implements the [io/fs.SubFS] interface. It returns a
 // new FS representing the subtree rooted at dir.
 func (m *Memory) Sub(subPath string) (fs.FS, error) {
-
 	// get real path
 	realPath, err := m.resolvePath(subPath)
 	if err != nil {

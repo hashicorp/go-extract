@@ -11,9 +11,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestIsSnappy checks if the header matches the snappy magic bytes.
-func TestIsSnappy(t *testing.T) {
-	// test cases
+func Test_isSnappy(t *testing.T) {
 	tests := []struct {
 		header []byte
 		want   bool
@@ -22,7 +20,6 @@ func TestIsSnappy(t *testing.T) {
 		{[]byte{0xff, 0x06, 0x00, 0x00, 0x73, 0x4e, 0x61, 0x50, 0x70, 0x00}, false},
 	}
 
-	// run tests
 	for _, test := range tests {
 		if got := isSnappy(test.header); got != test.want {
 			t.Errorf("IsSnappy(%v) = %v, want %v", test.header, got, test.want)
@@ -107,11 +104,9 @@ func TestUnpackSnappy(t *testing.T) {
 
 }
 
-// compressSnappy compresses the data using the snappy algorithm
 func compressSnappy(t *testing.T, data []byte) []byte {
 	t.Helper()
 
-	// Create a new snappy writer
 	var buf bytes.Buffer
 	w := snappy.NewBufferedWriter(&buf)
 

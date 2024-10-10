@@ -12,9 +12,7 @@ import (
 
 var testRarArchiveBase64 = "UmFyIRoHAQAzkrXlCgEFBgAFAQGAgAADk1YoJQIDC50ABJ0ApIMClAgA9IAAAQdkaXIvZm9vCgMTQPjXZsjBSQhNaSAgNCBTZXAgMjAyNCAwODowMzo0NCBDRVNUCpQdu+oiAgMLnQAEnQCkgwI+z7uqgAABBGZpbGUKAxPEDddmxHsQDkRpICAzIFNlcCAyMDI0IDE1OjIzOjE2IENFU1QKe1xvKCwCAxcABAftwwIAAAAAgAABBGxpbmsKAxNM+NdmSCZHGAsFAQAHZGlyL2Zvb0A2hh0bAgMLAAEA7YMBgAABA2RpcgoDE0D412Z533kHHXdWUQMFBAA="
 
-// TestIsRar tests the IsRar function
 func TestIsRar(t *testing.T) {
-	// test cases
 	tests := []struct {
 		header []byte
 		want   bool
@@ -23,7 +21,6 @@ func TestIsRar(t *testing.T) {
 		{[]byte{0x00, 0x00, 0x00, 0x00}, false},
 	}
 
-	// run tests
 	for _, test := range tests {
 		if got := isRar(test.header); got != test.want {
 			t.Errorf("IsRar(%v) = %v; want %v", test.header, got, test.want)
@@ -32,7 +29,6 @@ func TestIsRar(t *testing.T) {
 
 }
 
-// TestRarUnpacker tests the RarUnpacker function
 func TestUnpackRar(t *testing.T) {
 	// Decode the base64 string
 	archiveBytes, err := base64.StdEncoding.DecodeString(testRarArchiveBase64)
@@ -77,5 +73,4 @@ func TestUnpackRar(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error unpacking symlink from rar archive, but got nil")
 	}
-
 }

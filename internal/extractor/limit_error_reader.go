@@ -18,7 +18,6 @@ type LimitErrorReader struct {
 // It returns an error if the limit is exceeded, even if the underlying reader is not fully read.
 // If the limit is -1, all data from the original reader is read.
 func (l *LimitErrorReader) Read(p []byte) (int, error) {
-
 	// determine how many bytes to read
 	m := l.L - l.N
 	if l.L == -1 || m > int64(len(p)) {

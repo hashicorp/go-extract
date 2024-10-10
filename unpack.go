@@ -66,6 +66,7 @@ func UnpackTo(ctx context.Context, t extractor.Target, dst string, src io.Reader
 		if err != nil {
 			return fmt.Errorf("%w: %w", ErrFailedToUnpack, err)
 		}
+		return nil
 	}
 
 	return ErrNoExtractorFound

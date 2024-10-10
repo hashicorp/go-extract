@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestTarUnpack implements test cases
 func TestTarUnpackNew(t *testing.T) {
 	// generate cancled context
 	canceledCtx, cancel := context.WithCancel(context.Background())
@@ -213,10 +212,8 @@ func TestTarUnpackNew(t *testing.T) {
 		},
 	}
 
-	// run cases
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Create a new target
 			testingTarget := NewOS()
 

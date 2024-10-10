@@ -12,9 +12,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestUnpackBrotli tests the UnpackBrotli function
 func TestUnpackBrotli(t *testing.T) {
-
 	inputData := []byte("Hello, World!")
 
 	tests := []struct {
@@ -65,7 +63,6 @@ func TestUnpackBrotli(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			// Create a new target
 			testingTarget := NewOS()
 
@@ -118,19 +115,15 @@ func TestIsBrotli(t *testing.T) {
 	}
 }
 
-// Compress a byte slice with Brotli
 func compressBrotli(t *testing.T, data []byte) []byte {
-	// Create a new Brotli writer
 	brotliBuf := new(bytes.Buffer)
 	brotliWriter := brotli.NewWriter(brotliBuf)
 
-	// Write the data to the Brotli writer
 	_, err := brotliWriter.Write(data)
 	if err != nil {
 		t.Fatalf("error writing data to Brotli writer: %v", err)
 	}
 
-	// Close the Brotli writer
 	err = brotliWriter.Close()
 	if err != nil {
 		t.Fatalf("error closing Brotli writer: %v", err)

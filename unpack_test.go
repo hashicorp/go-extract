@@ -25,10 +25,8 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
-// TestGetUnpackFunction implements test cases
 func TestGetUnpackFunction(t *testing.T) {
-	// test cases
-	cases := []struct {
+	tests := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
 		expected       func(context.Context, extractor.Target, string, io.Reader, *config.Config) error
@@ -60,18 +58,16 @@ func TestGetUnpackFunction(t *testing.T) {
 		},
 	}
 
-	// run cases
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
 			// prepare vars
-			want := tc.expected
+			want := test.expected
 
 			// perform actual tests
-			f, err := os.Open(tc.createTestFile(t, testDir))
+			f, err := os.Open(test.createTestFile(t, testDir))
 			if err != nil {
 				f.Close()
 				t.Fatal(err)
@@ -95,11 +91,13 @@ func TestGetUnpackFunction(t *testing.T) {
 }
 
 // createGzip creates a gzip archive at dstFile with contents from input
-func createGzip(dstFile string, input io.Reader) {
+func createGzip(t *testing.T, dstFile string, input io.Reader) {
+	t.Helper()
+
 	// Create a new gzipped file
 	gzippedFile, err := os.Create(dstFile)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer gzippedFile.Close()
 
@@ -110,18 +108,23 @@ func createGzip(dstFile string, input io.Reader) {
 	// Copy the contents of the original file to the gzip writer
 	_, err = io.Copy(gzipWriter, input)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// Flush the gzip writer to ensure all data is written
-	gzipWriter.Flush()
+	err = gzipWriter.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func create7zip(t *testing.T, dstDir string) string {
+	t.Helper()
+
 	tmpFile := filepath.Join(t.TempDir(), "test.7z")
 	archiveBytes, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if err := os.WriteFile(tmpFile, archiveBytes, 0644); err != nil {
 		t.Fatal(err)
@@ -131,7 +134,6 @@ func create7zip(t *testing.T, dstDir string) string {
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
 func createTestGzipWithFile(t *testing.T, dstDir string) string {
-
 	// define target
 	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
 
@@ -140,25 +142,25 @@ func createTestGzipWithFile(t *testing.T, dstDir string) string {
 
 	// prepare test file for be added to zip
 	testFilePath := filepath.Join(tmpDir, "test")
-	createTestFile(testFilePath, "foobar content")
+	createTestFile(t, testFilePath, "foobar content")
 	f1, err := os.Open(testFilePath)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer f1.Close()
 
 	// create Gzip file
-	createGzip(targetFile, f1)
+	createGzip(t, targetFile, f1)
 
 	// return path to zip
 	return targetFile
 }
 
-func createGzipFromFile(dstFile string, srcFile string) {
+func createGzipFromFile(t *testing.T, dstFile string, srcFile string) {
 	// Create a new gzipped file
 	gzippedFile, err := os.Create(dstFile)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer gzippedFile.Close()
 
@@ -169,23 +171,25 @@ func createGzipFromFile(dstFile string, srcFile string) {
 	// open src file
 	src, err := os.Open(srcFile)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer src.Close()
 
 	// Copy the contents of the original file to the gzip writer
 	_, err = io.Copy(gzipWriter, src)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// Flush the gzip writer to ensure all data is written
-	gzipWriter.Flush()
+	err = gzipWriter.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 // createTestZip is a helper function to generate test data
 func createTestZip(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "TestZip.zip")
 
 	// create a temporary dir for files in zip archive
@@ -194,22 +198,23 @@ func createTestZip(t *testing.T, dstDir string) string {
 	// prepare generated zip+writer
 	archive, _ := os.Create(targetFile)
 	defer archive.Close()
+
 	zipWriter := zip.NewWriter(archive)
 	defer zipWriter.Close()
 
 	// prepare testfile for be added to zip
 	testFilePath := filepath.Join(tmpDir, "test")
-	createTestFile(testFilePath, "foobar content")
+	createTestFile(t, testFilePath, "foobar content")
 	f1, err := os.Open(testFilePath)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer f1.Close()
 
 	// write file into zip
 	w1, _ := zipWriter.Create("test")
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// return path to zip
@@ -219,21 +224,21 @@ func createTestZip(t *testing.T, dstDir string) string {
 // createTestNonArchive is a helper function to generate test data
 func createTestNonArchive(t *testing.T, dstDir string) string {
 	targetFile := filepath.Join(dstDir, "test.txt")
-	createTestFile(targetFile, "foo bar test")
+	createTestFile(t, targetFile, "foo bar test")
 	return targetFile
 }
 
 // createTestFile is a helper function to generate test files
-func createTestFile(path string, content string) {
+func createTestFile(t *testing.T, path string, content string) {
+	t.Helper()
 	err := createTestFileWithPerm(path, content, 0640)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 }
 
 // createTestTar is a helper function to generate test data
 func createTestTar(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "TarNormal.tar")
 
 	// create a temporary dir for files in tar archive
@@ -247,10 +252,10 @@ func createTestTar(t *testing.T, dstDir string) string {
 
 	// prepare testfile for be added to tar
 	testFilePath := filepath.Join(tmpDir, "test")
-	createTestFile(testFilePath, "foobar content")
+	createTestFile(t, testFilePath, "foobar content")
 	f1, err := os.Open(testFilePath)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer f1.Close()
 
@@ -264,30 +269,33 @@ func createTestTar(t *testing.T, dstDir string) string {
 	return targetFile
 }
 
-func createTestTarWithFiles(dst string, files map[string]string) {
-
+func createTestTarWithFiles(t *testing.T, dst string, files map[string]string) {
 	// prepare generated zip+writer
-	f, _ := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	f, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close()
+
 	tarWriter := tar.NewWriter(f)
 
 	for nameInArchive, origFile := range files {
 		f1, err := os.Open(origFile)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 		defer f1.Close()
 
 		addFileToTarArchive(tarWriter, nameInArchive, f1)
 	}
 
-	// close tar
-	tarWriter.Close()
+	err = tarWriter.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
-// addFileToTarArchive is a helper function
 func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
-
 	fileInfo, err := os.Lstat(f1.Name())
 	if err != nil {
 		panic(err)
@@ -313,11 +321,8 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	}
 }
 
-// TestUnpack is a test function
 func TestUnpack(t *testing.T) {
-
-	// test cases
-	cases := []struct {
+	tests := []struct {
 		name        string
 		fn          func(*testing.T, string) string
 		expectError bool
@@ -345,18 +350,18 @@ func TestUnpack(t *testing.T) {
 	}
 
 	// run cases
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
 			// prepare vars
-			want := tc.expectError
+			want := test.expectError
 
 			// perform actual tests
-			archive, err := os.Open(tc.fn(t, testDir))
+			archive, err := os.Open(test.fn(t, testDir))
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 			defer archive.Close()
 			err = extract.Unpack(
@@ -371,7 +376,7 @@ func TestUnpack(t *testing.T) {
 
 			// success if both are nil and no engine found
 			if want != got {
-				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+				t.Errorf("\nexpected error: %v\ngot: %s\n", want, err)
 			}
 		})
 	}
@@ -379,9 +384,7 @@ func TestUnpack(t *testing.T) {
 
 // TestUnpack is a test function
 func TestUnpackToMemory(t *testing.T) {
-
-	// test cases
-	cases := []struct {
+	tests := []struct {
 		name        string
 		fn          func(*testing.T, string) string
 		expectError bool
@@ -408,17 +411,16 @@ func TestUnpackToMemory(t *testing.T) {
 		},
 	}
 
-	// run cases
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
 			// prepare vars
-			want := tc.expectError
+			want := test.expectError
 
 			// perform actual tests
-			archive, err := os.Open(tc.fn(t, testDir))
+			archive, err := os.Open(test.fn(t, testDir))
 			if err != nil {
 				panic(err)
 			}
@@ -436,7 +438,7 @@ func TestUnpackToMemory(t *testing.T) {
 
 			// success if both are nil and no engine found
 			if want != got {
-				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+				t.Errorf("\nexpected error: %v\ngot: %s\n", want, err)
 			}
 		})
 	}
@@ -444,7 +446,7 @@ func TestUnpackToMemory(t *testing.T) {
 
 func gen1024ByteGzip(t *testing.T, dstDir string) string {
 	testFile := filepath.Join(dstDir, "GzipWithFile.gz")
-	createGzip(testFile, strings.NewReader(strings.Repeat("A", 1024)))
+	createGzip(t, testFile, strings.NewReader(strings.Repeat("A", 1024)))
 	return testFile
 }
 
@@ -454,10 +456,10 @@ func genSingleFileTar(t *testing.T, dstDir string) string {
 
 	// create test file
 	testFile := filepath.Join(tmpDir, "testFile")
-	createTestFile(testFile, strings.Repeat("A", 1024))
+	createTestFile(t, testFile, strings.Repeat("A", 1024))
 
 	tarFileName := filepath.Join(dstDir, "TarNormalSingleFile.tar")
-	createTestTarWithFiles(tarFileName, map[string]string{"TestFile": testFile})
+	createTestTarWithFiles(t, tarFileName, map[string]string{"TestFile": testFile})
 	return tarFileName
 }
 
@@ -468,10 +470,10 @@ func genTarGzWith5Files(t *testing.T, dstDir string) string {
 	// create test files
 	for i := 0; i < 5; i++ {
 		testFile := filepath.Join(tmpDir, fmt.Sprintf("testFile%d", i))
-		createTestFile(testFile, strings.Repeat("A", 1024))
+		createTestFile(t, testFile, strings.Repeat("A", 1024))
 	}
 	tmpTar := filepath.Join(tmpDir, "tmp.tar")
-	createTestTarWithFiles(tmpTar, map[string]string{
+	createTestTarWithFiles(t, tmpTar, map[string]string{
 		"testFile0": filepath.Join(tmpDir, "testFile0"),
 		"testFile1": filepath.Join(tmpDir, "testFile1"),
 		"testFile2": filepath.Join(tmpDir, "testFile2"),
@@ -480,13 +482,12 @@ func genTarGzWith5Files(t *testing.T, dstDir string) string {
 	})
 
 	gzipFileName := filepath.Join(dstDir, "TarGzWith5Files.tar.gz")
-	createGzipFromFile(gzipFileName, tmpTar)
+	createGzipFromFile(t, gzipFileName, tmpTar)
 	return gzipFileName
 }
 
-// TestTelemetryHook is a test function for the telemetry hook
 func TestTelemetryHook(t *testing.T) {
-	cases := []struct {
+	tests := []struct {
 		name                  string
 		inputGenerator        func(*testing.T, string) string
 		inputName             string
@@ -694,8 +695,7 @@ func TestTelemetryHook(t *testing.T) {
 		},
 	}
 
-	// run cases
-	for i, tc := range cases {
+	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
@@ -703,7 +703,7 @@ func TestTelemetryHook(t *testing.T) {
 			// open file
 			archive, err := os.Open(tc.inputGenerator(t, testDir))
 			if err != nil {
-				panic(err)
+				t.Fatal(err)
 			}
 
 			// prepare config
@@ -756,11 +756,8 @@ func TestTelemetryHook(t *testing.T) {
 	}
 }
 
-// TestUnpackWithTypes is a test function
 func TestUnpackWithTypes(t *testing.T) {
-
-	// test cases
-	cases := []struct {
+	tests := []struct {
 		name          string
 		cfg           *config.Config
 		archiveName   string
@@ -830,18 +827,18 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// create testing directory
 			testDir := t.TempDir()
 
 			// perform actual tests
-			archive := tc.gen(filepath.Join(testDir, tc.archiveName), tc.content)
+			archive := test.gen(filepath.Join(testDir, test.archiveName), test.content)
 			err := extract.Unpack(
 				context.Background(),
 				archive,
 				testDir,
-				tc.cfg,
+				test.cfg,
 			)
 			defer func() {
 				if closer, ok := archive.(io.Closer); ok {
@@ -851,12 +848,12 @@ func TestUnpackWithTypes(t *testing.T) {
 				}
 			}()
 
-			if tc.expectError && err == nil {
+			if test.expectError && err == nil {
 				t.Errorf("\nexpected error\ngot: %s", err)
 			}
 
 			// check for created files
-			for _, file := range tc.expectedFiles {
+			for _, file := range test.expectedFiles {
 				_, err := os.Stat(filepath.Join(testDir, file))
 				if err != nil {
 					t.Errorf("\nexpected file: %s\ngot: %s", file, err)
@@ -864,12 +861,10 @@ func TestUnpackWithTypes(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 // createFile creates a file with the given data and returns a reader for it.
 func createFile(target string, data []byte) io.Reader {
-
 	// Write the compressed data to the file
 	if err := os.WriteFile(target, data, 0640); err != nil {
 		panic(fmt.Errorf("error writing compressed data to file: %w", err))
@@ -884,7 +879,6 @@ func createFile(target string, data []byte) io.Reader {
 	return newFile
 }
 
-// compressGzip compresses data using gzip algorithm
 func compressGzip(data []byte) []byte {
 	buf := &bytes.Buffer{}
 	gzWriter := gzip.NewWriter(buf)
@@ -897,7 +891,6 @@ func compressGzip(data []byte) []byte {
 	return buf.Bytes()
 }
 
-// Compress a byte slice with Brotli
 func compressBrotli(data []byte) []byte {
 	// Create a new Brotli writer
 	brotliBuf := new(bytes.Buffer)
@@ -955,7 +948,6 @@ type tarContent struct {
 
 // packTarWithContent creates a tar file with the given content
 func packTarWithContent(content []tarContent) []byte {
-
 	// create tar writer
 	writeBuffer := bytes.NewBuffer([]byte{})
 	tw := tar.NewWriter(writeBuffer)
@@ -1024,7 +1016,6 @@ func packZipWithContent(content []zipContent) []byte {
 	return writeBuffer.Bytes()
 }
 
-// TestUnsupportedArchiveNames is a test function
 func TestUnsupportedArchiveNames(t *testing.T) {
 	// test cases
 	cases := []struct {
@@ -1037,7 +1028,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "valid archive name (gzip)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, "test.gz"}, string(filepath.Separator))
-				createTestFile(fPath, string(compressGzip([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressGzip([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "test",
@@ -1047,7 +1038,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "invalid reported 1 (..bz2)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, "..bz2"}, string(filepath.Separator))
-				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressBzip2([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "goextract-decompressed-content",
@@ -1057,7 +1048,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "invalid reported 2 (test..bz2)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, "test..bz2"}, string(filepath.Separator))
-				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressBzip2([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "test.",
@@ -1067,7 +1058,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "invalid reported 3 (test.bz2.)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, "test.bz2."}, string(filepath.Separator))
-				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressBzip2([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "test.bz2..decompressed",
@@ -1077,7 +1068,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "invalid reported 4 (....bz2)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, "....bz2"}, string(filepath.Separator))
-				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressBzip2([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "goextract-decompressed-content",
@@ -1087,7 +1078,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			name: "invalid reported 5 (.. ..bz2)",
 			createInput: func(path string) string {
 				fPath := strings.Join([]string{path, ".. ..bz2"}, string(filepath.Separator))
-				createTestFile(fPath, string(compressBzip2([]byte("foobar content"))))
+				createTestFile(t, fPath, string(compressBzip2([]byte("foobar content"))))
 				return fPath
 			},
 			windows: "goextract-decompressed-content",
@@ -1097,12 +1088,12 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 
 	cfg := config.NewConfig(config.WithCreateDestination(true))
 
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
 
 			// prepare file
 			tmpDir := t.TempDir()
-			tmpFile := tc.createInput(tmpDir)
+			tmpFile := test.createInput(tmpDir)
 
 			// run test
 			archive, err := os.Open(tmpFile)
@@ -1121,27 +1112,22 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 
 			// check if error is expected
 			if err != nil {
-				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, false, err)
-				return
+				t.Fatalf("\nexpected error: %v\ngot: %s\n", false, err)
 			}
 
 			// check for created files
-			expectedFile := filepath.Join(tmpDir, "out", tc.other)
+			expectedFile := filepath.Join(tmpDir, "out", test.other)
 			if runtime.GOOS == "windows" {
-				expectedFile = filepath.Join(tmpDir, "out", tc.windows)
+				expectedFile = filepath.Join(tmpDir, "out", test.windows)
 			}
 			if _, err := os.Stat(expectedFile); err != nil {
-				t.Errorf("test case %d failed: %s\nexpected file: %s\ngot: %s", i, tc.name, expectedFile, err)
-				return
+				t.Fatalf("\nexpected file: %s\ngot: %s\n", expectedFile, err)
 			}
-
 		})
 	}
-
 }
 
 func TestWithCustomMode(t *testing.T) {
-
 	umask := sniffUmask(t)
 
 	tests := []struct {
@@ -1239,31 +1225,31 @@ func TestWithCustomMode(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// prepare test
-			buf := bytes.NewBuffer(tt.data)
+			buf := bytes.NewBuffer(test.data)
 			ctx := context.Background()
 
 			// create temp dir
 			tmpDir := t.TempDir()
-			dst := filepath.Join(tmpDir, tt.dst)
+			dst := filepath.Join(tmpDir, test.dst)
 
 			// run test
-			err := extract.Unpack(ctx, buf, dst, tt.cfg)
-			if !tt.expectError && (err != nil) {
-				t.Errorf("[%s] Expected no error, but got: %s", tt.name, err)
+			err := extract.Unpack(ctx, buf, dst, test.cfg)
+			if !test.expectError && (err != nil) {
+				t.Fatal(err)
 			}
 
-			if tt.expectError && (err == nil) {
-				t.Errorf("[%s] Expected error, but got none", tt.name)
+			if test.expectError && (err == nil) {
+				t.Fatal(err)
 			}
 
 			// check results
-			for name, expectedMode := range tt.expected {
+			for name, expectedMode := range test.expected {
 				stat, err := os.Stat(filepath.Join(tmpDir, name))
 				if err != nil {
-					t.Errorf("[%s] Expected file %s to exist, but got: %s", tt.name, name, err)
+					t.Fatal(err)
 				}
 
 				skip := false
@@ -1277,7 +1263,7 @@ func TestWithCustomMode(t *testing.T) {
 				}
 
 				if !skip && stat.Mode().Perm() != expectedMode.Perm() {
-					t.Errorf("[%s] Expected directory/file '%s' to have mode %s, but got: %s", tt.name, name, expectedMode.Perm(), stat.Mode().Perm())
+					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})

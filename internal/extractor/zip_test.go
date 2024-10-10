@@ -178,7 +178,6 @@ var zipTests = []struct {
 	},
 }
 
-// TestUnpackZip_file test with various test cases the implementation of zip.Unpack
 func TestUnpackZip_file(t *testing.T) {
 	// run cases with read from disk
 	for _, test := range zipTests {
@@ -206,12 +205,9 @@ func TestUnpackZip_file(t *testing.T) {
 	}
 }
 
-// TestUnpackZip_mem test with various test cases the implementation of zip.Unpack
 func TestUnpackZip_mem(t *testing.T) {
-	// run cases with read from memory
-	for i, tc := range zipTests {
-		t.Run(tc.name, func(t *testing.T) {
-
+	for _, test := range zipTests {
+		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
 			testingTarget := NewOS()
 
@@ -220,18 +216,23 @@ func TestUnpackZip_mem(t *testing.T) {
 
 			// perform actual tests
 			var buf bytes.Buffer
-			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			input, err := os.Open(test.testFileGenerator(t, testDir))
+			if err != nil {
+				t.Fatal(err)
+			}
 			defer input.Close()
+
 			if _, err := io.Copy(&buf, input); err != nil {
 				t.Error(err.Error())
 			}
-			want := tc.expectError
-			err := UnpackZip(context.Background(), testingTarget, testDir, &buf, config.NewConfig(tc.opts...))
+
+			want := test.expectError
+
+			err = UnpackZip(context.Background(), testingTarget, testDir, &buf, config.NewConfig(test.opts...))
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+				t.Fatal(err)
 			}
-
 		})
 	}
 
@@ -239,18 +240,18 @@ func TestUnpackZip_mem(t *testing.T) {
 
 // TestZipUnpack_seeker test with various test cases the implementation of zip.Unpack
 func TestZipUnpack_seeker(t *testing.T) {
-
-	// run cases with read from memory
-	for i, tc := range zipTests {
-		t.Run(tc.name, func(t *testing.T) {
-
+	for _, test := range zipTests {
+		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
 			testingTarget := NewOS()
 
 			// create testing directory
 			testDir := t.TempDir()
 			var buf bytes.Buffer
-			input, _ := os.Open(tc.testFileGenerator(t, testDir))
+			input, err := os.Open(test.testFileGenerator(t, testDir))
+			if err != nil {
+				t.Fatal(err)
+			}
 			defer input.Close()
 			if _, err := io.Copy(&buf, input); err != nil {
 				t.Error(err.Error())
@@ -259,13 +260,12 @@ func TestZipUnpack_seeker(t *testing.T) {
 			br := bytes.NewReader(buf.Bytes())
 
 			// perform actual tests
-			want := tc.expectError
-			err := UnpackZip(context.Background(), testingTarget, testDir, br, config.NewConfig(tc.opts...))
+			want := test.expectError
+			err = UnpackZip(context.Background(), testingTarget, testDir, br, config.NewConfig(test.opts...))
 			got := err != nil
 			if got != want {
-				t.Errorf("test case %d failed: %s\n%s", i, tc.name, err)
+				t.Error(err)
 			}
-
 		})
 	}
 
@@ -273,7 +273,7 @@ func TestZipUnpack_seeker(t *testing.T) {
 
 func generateRandomFile(t *testing.T, testDir string) string {
 	targetFile := filepath.Join(testDir, "randomFile")
-	f := createTestFile(targetFile, "foobar content")
+	f := createTestFile(t, targetFile, "foobar content")
 	defer f.Close()
 	return targetFile
 }
@@ -299,10 +299,10 @@ func TestIsZip(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isZip(tt.data); got != tt.want {
-				t.Errorf("IsZip() = %v, want %v", got, tt.want)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := isZip(test.data); got != test.want {
+				t.Errorf("IsZip() = %v, want %v", got, test.want)
 			}
 		})
 	}
@@ -310,33 +310,32 @@ func TestIsZip(t *testing.T) {
 
 // createTestZipNormal creates a test zip file in dstDir for testing
 func createTestZipNormal(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "ZipNormal.zip")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	f1 := createTestFile(t, filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	// write file into zip
 	w1, err := zipWriter.Create("test")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// create directory in zip
 	_, err = zipWriter.Create("sub/")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// close zip
@@ -348,17 +347,18 @@ func createTestZipNormal(t *testing.T, dstDir string) string {
 
 // createTestZipWithDirTraversal creates a test zip file with a directory in dstDir for testing
 func createTestZipWithDirTraversal(t *testing.T, dstDir string) string {
+	t.Helper()
 
 	targetFile := filepath.Join(dstDir, "ZipWithDir.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// create directory in zip
 	_, err := zipWriter.Create("sub/../../outside/")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// close zip
@@ -370,6 +370,7 @@ func createTestZipWithDirTraversal(t *testing.T, dstDir string) string {
 
 // createTestZipWindows creates a test zip with windows-style file paths file in dstDir for testing
 func createTestZipWindows(t *testing.T, dstDir string) string {
+	t.Helper()
 
 	targetFile := filepath.Join(dstDir, "ZipWindows.zip")
 
@@ -377,20 +378,20 @@ func createTestZipWindows(t *testing.T, dstDir string) string {
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// prepare test file that will be added to the zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	f1 := createTestFile(t, filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	// write file into zip
 	w1, err := zipWriter.Create(`example-dir\foo\bar\test`)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// close zip
@@ -402,6 +403,8 @@ func createTestZipWindows(t *testing.T, dstDir string) string {
 
 // TestZipUnpackIllegalNames tests, with various cases, the implementation of zip.Unpack
 func TestZipUnpackIllegalNames(t *testing.T) {
+	t.Helper()
+
 	// from: https://go.googlesource.com/go/+/refs/tags/go1.19.1/src/path/filepath/path_windows.go#19
 	// from: https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
 	// removed `/` and `\` from tests, bc/ the zip lib cannot create directories as test file
@@ -436,10 +439,14 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 
 			// perform actual tests
 			tFile := createTestZipWithCompressedFilename(t, testDir, name)
-			input, _ := os.Open(tFile)
+			input, err := os.Open(tFile)
+			if err != nil {
+				t.Fatal(err)
+			}
 			defer input.Close()
+
 			// perform test
-			err := UnpackZip(context.Background(), testingTarget, testDir, input, config.NewConfig())
+			err = UnpackZip(context.Background(), testingTarget, testDir, input, config.NewConfig())
 			if err == nil {
 				t.Error(err)
 			}
@@ -451,25 +458,27 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 // createTestZipWithCompressedFilename creates a test zip with the name 'ZipWithCompressedFilename.zip' in
 // dstDir with filenameInsideTheArchive as name for the file inside the archive.
 func createTestZipWithCompressedFilename(t *testing.T, dstDir, filenameInsideTheArchive string) string {
+	t.Helper()
+
 	targetFile := filepath.Join(dstDir, "ZipWithCompressedFilename.zip")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	f1 := createTestFile(t, filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	w1, err := zipWriter.Create(filenameInsideTheArchive)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// close zip
@@ -481,26 +490,28 @@ func createTestZipWithCompressedFilename(t *testing.T, dstDir, filenameInsideThe
 
 // createTestZipPathTraversal creates a test with a filename path traversal zip file in dstDir for testing
 func createTestZipPathTraversal(t *testing.T, dstDir string) string {
+	t.Helper()
+
 	targetFile := filepath.Join(dstDir, "ZipTraversal.zip")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// prepare test file for be added to zip
-	f1 := createTestFile(filepath.Join(tmpDir, "test"), "foobar content")
+	f1 := createTestFile(t, filepath.Join(tmpDir, "test"), "foobar content")
 	defer f1.Close()
 
 	// write file into zip
 	w1, err := zipWriter.Create("../test")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	if _, err := io.Copy(w1, f1); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// close zip
@@ -512,28 +523,30 @@ func createTestZipPathTraversal(t *testing.T, dstDir string) string {
 
 // createTestZipNormalFiveFiles creates a test zip file with five files in dstDir for testing
 func createTestZipNormalFiveFiles(t *testing.T, dstDir string) string {
+	t.Helper()
+
 	targetFile := filepath.Join(dstDir, "ZipNormalFiveFiles.zip")
 
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	for i := 0; i < 5; i++ {
 		// prepare test file for be added to zip
 		fName := fmt.Sprintf("test%d", i)
-		f1 := createTestFile(filepath.Join(tmpDir, fName), "foobar content")
+		f1 := createTestFile(t, filepath.Join(tmpDir, fName), "foobar content")
 		defer f1.Close()
 
 		// write file into zip
 		w1, err := zipWriter.Create(fName)
 		if err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 		if _, err := io.Copy(w1, f1); err != nil {
-			panic(err)
+			t.Fatal(err)
 		}
 	}
 
@@ -546,11 +559,12 @@ func createTestZipNormalFiveFiles(t *testing.T, dstDir string) string {
 
 // createTestZipWithSymlink creates a test zip file with a legit sym link in dstDir for testing
 func createTestZipWithSymlink(t *testing.T, dstDir string) string {
+	t.Helper()
 
 	targetFile := filepath.Join(dstDir, "ZipNormalWithSymlink.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// add link to archive
@@ -565,11 +579,12 @@ func createTestZipWithSymlink(t *testing.T, dstDir string) string {
 
 // createTestZipWithSymlinkPathTraversalName creates a test zip file, with a symlink, which filename contains a path traversal, in dstDir for testing
 func createTestZipWithSymlinkPathTraversalName(t *testing.T, dstDir string) string {
+	t.Helper()
 
 	targetFile := filepath.Join(dstDir, "createTestZipWithSymlinkPathTraversalName.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// add link to archive
@@ -584,11 +599,10 @@ func createTestZipWithSymlinkPathTraversalName(t *testing.T, dstDir string) stri
 
 // createTestZipWithSymlinkAbsolutePath creates a test zip file, with a symlink to a absolute path, in dstDir for testing
 func createTestZipWithSymlinkAbsolutePath(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetAbsolutePath.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// add link to archive
@@ -603,11 +617,10 @@ func createTestZipWithSymlinkAbsolutePath(t *testing.T, dstDir string) string {
 
 // createTestZipWithSymlinkTargetPathTraversal creates a test zip file, with a path traversal in the link target, in dstDir for testing
 func createTestZipWithSymlinkTargetPathTraversal(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "ZipWithSymlinkTargetPathTraversal.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// add link to archive
@@ -622,26 +635,25 @@ func createTestZipWithSymlinkTargetPathTraversal(t *testing.T, dstDir string) st
 
 // addLinkToZipArchive writes symlink linkName to linkTarget into zipWriter
 func addLinkToZipArchive(t *testing.T, zipWriter *zip.Writer, linkName string, linkTarget string) {
-
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// create dummy link to get data structure
 	dummyLink := filepath.Join(tmpDir, "dummy-link")
 	if err := os.Symlink("nirvana", dummyLink); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// get file stats for testing operating system
 	info, err := os.Lstat(dummyLink)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// get file header
 	header, err := zip.FileInfoHeader(info)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// adjust file headers
@@ -651,22 +663,21 @@ func addLinkToZipArchive(t *testing.T, zipWriter *zip.Writer, linkName string, l
 	// create writer for link
 	writer, err := zipWriter.CreateHeader(header)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// Write symlink's target to writer - file's body for symlinks is the symlink
 	if _, err := writer.Write([]byte(linkTarget)); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 }
 
 // createTestZipWithFifo creates a test zip file with a fifo file in dstDir for testing
 func createTestZipWithFifo(t *testing.T, dstDir string) string {
-
 	targetFile := filepath.Join(dstDir, "ZipWithFifo.zip")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(targetFile)
+	f, zipWriter := createZip(t, targetFile)
 	defer f.Close()
 
 	// add fifo to archive
@@ -681,26 +692,25 @@ func createTestZipWithFifo(t *testing.T, dstDir string) string {
 
 // AddFifoToZipArchive writes fifo into zipWriter
 func addFifoToZipArchive(t *testing.T, zipWriter *zip.Writer) {
-
 	// create a temporary dir for files in zip archive
 	tmpDir := t.TempDir()
 
 	// create dummy fifo to get data structure
 	tmpFile, err := os.CreateTemp(tmpDir, "fifo")
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	defer tmpFile.Close()
 	info, err := os.Lstat(tmpFile.Name())
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// get file header
 	header, err := zip.FileInfoHeader(info)
 	header.SetMode(fs.ModeDevice)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// adjust file headers
@@ -710,46 +720,45 @@ func addFifoToZipArchive(t *testing.T, zipWriter *zip.Writer) {
 	// create writer for fifo
 	writer, err := zipWriter.CreateHeader(header)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 
 	// Write fifo's target to writer - file's body for fifos is the fifo
 	if _, err := writer.Write([]byte("nirvana")); err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 }
 
 // createZip creates a new zip file in filePath
-func createZip(filePath string) (*os.File, *zip.Writer) {
+func createZip(t *testing.T, filePath string) (*os.File, *zip.Writer) {
 	targetFile := filepath.Join(filePath)
 	archive, err := os.Create(targetFile)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	return archive, zip.NewWriter(archive)
 }
 
 // createTestFile creates a file under path containing content
-func createTestFile(path string, content string) *os.File {
+func createTestFile(t *testing.T, path string, content string) *os.File {
 	byteArray := []byte(content)
 	err := os.WriteFile(path, byteArray, 0640)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	newFile, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	return newFile
 }
 
 // createTestTarWithSymlink is a helper function to generate test content
 func createTestZipWithZipSlip(t *testing.T, dstDir string) string {
-
 	zipFile := filepath.Join(dstDir, "ZipWithZipSlip.tar")
 
 	// prepare generated zip+writer
-	f, zipWriter := createZip(zipFile)
+	f, zipWriter := createZip(t, zipFile)
 	defer f.Close()
 
 	// add symlinks

@@ -12,7 +12,6 @@ import (
 )
 
 func Test_isXz(t *testing.T) {
-	// test cases
 	tests := []struct {
 		header []byte
 		want   bool
@@ -21,7 +20,6 @@ func Test_isXz(t *testing.T) {
 		{[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, false},
 	}
 
-	// run tests
 	for _, tt := range tests {
 		if got := isXz(tt.header); got != tt.want {
 			t.Errorf("IsXz(%v) = %v; want %v", tt.header, got, tt.want)
@@ -30,7 +28,6 @@ func Test_isXz(t *testing.T) {
 }
 
 func TestUnpackXz(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		cfg           *config.Config
@@ -70,9 +67,8 @@ func TestUnpackXz(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			tmpDir := t.TempDir()
@@ -82,29 +78,28 @@ func TestUnpackXz(t *testing.T) {
 			testingTarget := NewOS()
 
 			// create a temporary file
-			reader := tt.generator(archivePath, tt.testData)
+			reader := test.generator(archivePath, test.testData)
 			if closer, ok := reader.(io.Closer); ok {
 				defer closer.Close()
 			}
 
 			// cancel the context
-			if tt.cancelContext {
+			if test.cancelContext {
 				cancel()
 			}
 
 			// unpack the file
-			err := UnpackXz(ctx, testingTarget, tmpDir, reader, tt.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnpackXz() error = %v; wantErr %v", err, tt.wantErr)
+			err := UnpackXz(ctx, testingTarget, tmpDir, reader, test.cfg)
+			if (err != nil) != test.wantErr {
+				t.Errorf("UnpackXz() error = %v; wantErr %v", err, test.wantErr)
 			}
 		})
 	}
-
 }
 
-// compressXz compresses the data using the Xz algorithm
 func compressXz(t *testing.T, data []byte) []byte {
-	// Create a new xz writer
+	t.Helper()
+
 	var buf bytes.Buffer
 
 	w, err := xz.NewWriter(&buf)

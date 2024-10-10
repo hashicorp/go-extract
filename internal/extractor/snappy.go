@@ -8,13 +8,13 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
+// FileExtensionSnappy is the file extension for snappy files.
+const FileExtensionSnappy = "sz"
+
 // magicBytesSnappy is the magic bytes for snappy files.
 var magicBytesSnappy = [][]byte{
 	append([]byte{0xff, 0x06, 0x00, 0x00}, []byte("sNaPpY")...),
 }
-
-// FileExtensionSnappy is the file extension for snappy files.
-const FileExtensionSnappy = "sz"
 
 // isSnappy checks if the header matches the snappy magic bytes.
 func isSnappy(header []byte) bool {

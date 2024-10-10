@@ -6,7 +6,6 @@ import (
 )
 
 func TestReadBytes(t *testing.T) {
-
 	tests := []struct {
 		name       string
 		limit      int64
@@ -57,20 +56,20 @@ func TestReadBytes(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := strings.NewReader(tt.input)
-			l := NewLimitErrorReader(r, tt.limit)
-			buf := make([]byte, tt.bufferSize)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			r := strings.NewReader(test.input)
+			l := NewLimitErrorReader(r, test.limit)
+			buf := make([]byte, test.bufferSize)
 			n, err := l.Read(buf)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("Read() error = %v, wantErr %v", err, tt.wantErr)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("Read() error = %v, wantErr %v", err, test.wantErr)
 			}
-			if n != tt.expectN {
-				t.Errorf("Read() = %v, want %v", n, tt.expectN)
+			if n != test.expectN {
+				t.Errorf("Read() = %v, want %v", n, test.expectN)
 			}
-			if l.ReadBytes() != tt.expectN {
-				t.Errorf("ReadBytes() = %v, want %v", l.ReadBytes(), tt.expectN)
+			if l.ReadBytes() != test.expectN {
+				t.Errorf("ReadBytes() = %v, want %v", l.ReadBytes(), test.expectN)
 			}
 		})
 	}
@@ -108,21 +107,21 @@ func TestLimitErrorReader_Read(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := strings.NewReader(tt.input)
-			l := NewLimitErrorReader(r, tt.limit)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			r := strings.NewReader(test.input)
+			l := NewLimitErrorReader(r, test.limit)
 
-			buf := make([]byte, len(tt.input))
+			buf := make([]byte, len(test.input))
 			n, err := l.Read(buf)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("Read() error = %v, wantErr %v", err, tt.wantErr)
+			if (err != nil) != test.wantErr {
+				t.Fatalf("Read() error = %v, wantErr %v", err, test.wantErr)
 			}
-			if n != tt.expectN {
-				t.Errorf("Read() = %v, want %v", n, tt.expectN)
+			if n != test.expectN {
+				t.Errorf("Read() = %v, want %v", n, test.expectN)
 			}
-			if l.ReadBytes() != tt.expectN {
-				t.Errorf("ReadBytes() = %v, want %v", l.ReadBytes(), tt.expectN)
+			if l.ReadBytes() != test.expectN {
+				t.Errorf("ReadBytes() = %v, want %v", l.ReadBytes(), test.expectN)
 			}
 		})
 	}

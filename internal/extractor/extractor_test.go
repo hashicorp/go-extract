@@ -13,7 +13,7 @@ import (
 )
 
 func Test_matchesMagicBytes(t *testing.T) {
-	cases := []struct {
+	tests := []struct {
 		name        string
 		data        []byte
 		magicBytes  [][]byte
@@ -43,17 +43,15 @@ func Test_matchesMagicBytes(t *testing.T) {
 		},
 	}
 
-	// run cases
-	for i, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// create testing directory
-			expected := tc.expectMatch
-			got := matchesMagicBytes(tc.data, tc.offset, tc.magicBytes)
+			expected := test.expectMatch
+			got := matchesMagicBytes(test.data, test.offset, test.magicBytes)
 
 			// success if both are nil and no engine found
 			if got != expected {
-				t.Errorf("test case %d failed: %s!", i, tc.name)
+				t.Errorf("matchesMagicBytes() = %v, want %v", got, expected)
 			}
 		})
 	}
@@ -121,15 +119,15 @@ func Test_checkPatterns(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := checkPatterns(tt.patterns, tt.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("checkPatterns() error = %v, wantErr %v", err, tt.wantErr)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := checkPatterns(test.patterns, test.path)
+			if (err != nil) != test.wantErr {
+				t.Errorf("checkPatterns() error = %v, wantErr %v", err, test.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("checkPatterns() = %v, want %v", got, tt.want)
+			if got != test.want {
+				t.Errorf("checkPatterns() = %v, want %v", got, test.want)
 			}
 		})
 	}

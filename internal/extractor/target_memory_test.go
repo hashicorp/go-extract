@@ -93,7 +93,6 @@ func TestMemoryOpen(t *testing.T) {
 }
 
 func TestMemoryWithFsTest(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -133,9 +132,7 @@ func TestMemoryWithFsTest(t *testing.T) {
 
 }
 
-// TestMemoryOpen
 func TestMemoryOpen2(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -183,9 +180,7 @@ func TestMemoryOpen2(t *testing.T) {
 	}
 }
 
-// TestMemoryLstat tests the Lstat function from Memory
 func TestMemoryLstat(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -215,9 +210,7 @@ func TestMemoryLstat(t *testing.T) {
 	}
 }
 
-// TestMemoryStat tests the Stat function from Memory
 func TestMemoryStat(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -270,9 +263,7 @@ func TestMemoryStat(t *testing.T) {
 	}
 }
 
-// TestMemoryRemove tests the Remove function from Memory
 func TestMemoryRemove(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -334,9 +325,7 @@ func TestMemoryRemove(t *testing.T) {
 
 }
 
-// TestMemoryReadDir tests the ReadDir function from Memory
 func TestMemoryReadDir(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -381,9 +370,7 @@ func TestMemoryReadDir(t *testing.T) {
 	}
 }
 
-// TestMemoryReadFile tests the ReadFile function from Memory
 func TestMemoryReadFile(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -424,9 +411,7 @@ func TestMemoryReadFile(t *testing.T) {
 	}
 }
 
-// TestMemorySub tests the Sub function from Memory
 func TestMemorySub(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -471,9 +456,7 @@ func TestMemorySub(t *testing.T) {
 	}
 }
 
-// TestMemoryGlob tests the Glob function from Memory
 func TestMemoryGlob(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -503,9 +486,7 @@ func TestMemoryGlob(t *testing.T) {
 	}
 }
 
-// TestInvalidPath tests the ValidPath check on every function from Memory
 func TestInvalidPath(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 
@@ -573,9 +554,7 @@ func TestInvalidPath(t *testing.T) {
 	}
 }
 
-// TestMemoryEntry tests the MemoryEntry functions
 func TestMemoryEntry(t *testing.T) {
-
 	// instantiate a new memory
 	mem := NewMemory()
 

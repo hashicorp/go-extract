@@ -13,7 +13,6 @@ import (
 )
 
 func TestIsLZ4(t *testing.T) {
-	// test cases
 	tests := []struct {
 		header []byte
 		want   bool
@@ -22,7 +21,6 @@ func TestIsLZ4(t *testing.T) {
 		{[]byte{0x00, 0x00, 0x00, 0x00}, false},
 	}
 
-	// run tests
 	for _, test := range tests {
 		if got := isLZ4(test.header); got != test.want {
 			t.Errorf("IsLZ4(%v) = %v; want %v", test.header, got, test.want)
@@ -32,7 +30,6 @@ func TestIsLZ4(t *testing.T) {
 }
 
 func TestUnpackLZ4(t *testing.T) {
-	// test cases
 	tests := []struct {
 		name          string
 		cfg           *config.Config
@@ -110,13 +107,12 @@ func TestUnpackLZ4(t *testing.T) {
 	}
 }
 
-// compressLZ4 compresses data using the LZ4 algorithm
 func compressLZ4(t *testing.T, data []byte) []byte {
-	// Create a new lz4 writer
+	t.Helper()
+
 	var buf bytes.Buffer
 	w := lz4.NewWriter(&buf)
 
-	// Write the data to the lz4 writer
 	_, err := w.Write(data)
 	if err != nil {
 		t.Fatalf("error writing data to lz4 writer: %v", err)
@@ -127,6 +123,5 @@ func compressLZ4(t *testing.T, data []byte) []byte {
 		t.Fatalf("error closing lz4 writer: %v", err)
 	}
 
-	// Return the compressed data
 	return buf.Bytes()
 }

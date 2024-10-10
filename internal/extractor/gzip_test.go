@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestIsGzip test with various test cases the implementation of IsGzip
 func TestIsGZip(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -41,7 +40,6 @@ func TestIsGZip(t *testing.T) {
 	}
 }
 
-// TestGzipUnpack test with various test cases the implementation of zip.Unpack
 func TestGzipUnpack(t *testing.T) {
 	testData := []byte("Hello, World!")
 
@@ -115,9 +113,8 @@ func TestGzipUnpack(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
 
 			// Create a new target
@@ -125,10 +122,10 @@ func TestGzipUnpack(t *testing.T) {
 
 			// create testing directory
 			tmpDir := t.TempDir()
-			tmpFile := filepath.Join(tmpDir, tt.archiveName)
+			tmpFile := filepath.Join(tmpDir, test.archiveName)
 
 			// create a temporary file (if necessary)
-			reader := tt.generator(tmpFile, tt.testData)
+			reader := test.generator(tmpFile, test.testData)
 			defer func() {
 				if closer, ok := reader.(io.Closer); ok {
 					closer.Close()
@@ -136,32 +133,32 @@ func TestGzipUnpack(t *testing.T) {
 			}()
 
 			// cancel context if necessary
-			if tt.contextCanceled {
+			if test.contextCanceled {
 				cancelCtx, cancel := context.WithCancel(ctx)
 				cancel()
 				ctx = cancelCtx
 			}
 
 			// Unpack the file
-			err := UnpackGZip(ctx, testingTarget, tmpDir, reader, tt.cfg)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnpackGZip() error = %v, wantErr %v", err, tt.wantErr)
+			err := UnpackGZip(ctx, testingTarget, tmpDir, reader, test.cfg)
+			if (err != nil) != test.wantErr {
+				t.Errorf("UnpackGZip() error = %v, wantErr %v", err, test.wantErr)
 			}
 
-			if !tt.wantErr {
+			if !test.wantErr {
 
 				// check if file was created
-				if _, err := os.Stat(filepath.Join(tmpDir, tt.expectedName)); os.IsNotExist(err) {
+				if _, err := os.Stat(filepath.Join(tmpDir, test.expectedName)); os.IsNotExist(err) {
 					t.Errorf("UnpackGZip() file not created")
 				}
 
 				// check if file has the correct content
-				data, err := os.ReadFile(filepath.Join(tmpDir, tt.expectedName))
+				data, err := os.ReadFile(filepath.Join(tmpDir, test.expectedName))
 				if err != nil {
 					t.Errorf("UnpackGZip() error reading file: %v", err)
 				}
 				if !bytes.Equal(data, testData) {
-					t.Errorf("%v: UnpackGZip() file content is not the expected", tt.name)
+					t.Errorf("%v: UnpackGZip() file content is not the expected", test.name)
 				}
 
 			}
@@ -169,7 +166,6 @@ func TestGzipUnpack(t *testing.T) {
 	}
 }
 
-// compressGzip compresses data using gzip algorithm
 func compressGzip(t *testing.T, data []byte) []byte {
 	t.Helper()
 

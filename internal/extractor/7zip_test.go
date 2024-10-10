@@ -12,10 +12,7 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestIs7zip tests the Is7zip function
 func TestIs7zip(t *testing.T) {
-
-	// test cases
 	tests := []struct {
 		header []byte
 		want   bool
@@ -24,7 +21,6 @@ func TestIs7zip(t *testing.T) {
 		{[]byte{0x00, 0x00, 0x00, 0x00}, false},
 	}
 
-	// run tests
 	for _, tt := range tests {
 		if got := is7zip(tt.header); got != tt.want {
 			t.Errorf("Is7zip(%v) = %v; want %v", tt.header, got, tt.want)
@@ -33,9 +29,7 @@ func TestIs7zip(t *testing.T) {
 
 }
 
-// TestUnpack7zip tests the Unpack7zip function
 func TestUnpack7zip(t *testing.T) {
-
 	archiveName := "test.7z"
 	archiveBytes, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
 	archivedFile := "test/data"

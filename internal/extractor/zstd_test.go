@@ -11,7 +11,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-// TestIsZstd tests the IsZstd function.
 func TestIsZstd(t *testing.T) {
 	// test cases
 	tests := []struct {
@@ -30,7 +29,6 @@ func TestIsZstd(t *testing.T) {
 	}
 }
 
-// TestUnpackZstd tests the UnpackZstd function.
 func TestUnpackZstd(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -74,7 +72,6 @@ func TestUnpackZstd(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Create a context
 			ctx := context.Background()
 
@@ -107,9 +104,7 @@ func TestUnpackZstd(t *testing.T) {
 
 }
 
-// compressZstd compresses the data using the zstandard algorithm
 func compressZstd(t *testing.T, data []byte) []byte {
-	// Create a new zst writer
 	var buf bytes.Buffer
 
 	enc, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedDefault))

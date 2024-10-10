@@ -16,7 +16,6 @@ type LimitErrorWriter struct {
 // Write does not modify the slice data, even temporarily. The limit is enforced by
 // returning io.ErrShortWrite when the limit is reached.
 func (l *LimitErrorWriter) Write(p []byte) (n int, err error) {
-
 	// check if we reached the limit
 	if l.N >= l.L {
 		return 0, io.ErrShortWrite

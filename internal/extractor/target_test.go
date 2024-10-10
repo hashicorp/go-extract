@@ -49,12 +49,9 @@ func testTargets(t *testing.T) []struct {
 	}
 }
 
-// TestCreateSymlink tests the CreateSymlink function from Os
 func TestCreateSymlink(t *testing.T) {
-
 	for _, test := range testTargets(t) {
 		t.Run(test.name, func(t *testing.T) {
-
 			// create a file
 			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err != nil {
 				t.Fatalf("CreateFile() failed with an error, but no error was expected: %s", err)
@@ -88,9 +85,8 @@ func TestCreateSymlink(t *testing.T) {
 	}
 }
 
-// TestCreateFile is a wrapper around the createFile function
 func TestCreateFile(t *testing.T) {
-	tc := []struct {
+	tests := []struct {
 		dst         string
 		name        string
 		src         string
@@ -146,29 +142,26 @@ func TestCreateFile(t *testing.T) {
 		},
 	}
 
-	for i, tt := range tc {
-
+	for _, test := range tests {
 		var testTarget = NewOS()
 		tmpDir := t.TempDir()
 
-		if tt.cfg == nil {
-			tt.cfg = config.NewConfig()
+		if test.cfg == nil {
+			test.cfg = config.NewConfig()
 		}
-		if tt.prep != nil {
-			tt.prep(t, testTarget, tmpDir)
+		if test.prep != nil {
+			test.prep(t, testTarget, tmpDir)
 		}
-		dst := filepath.Join(tmpDir, tt.dst)
-		_, err := createFile(testTarget, dst, tt.name, strings.NewReader(tt.src), tt.mode, tt.maxSize, tt.cfg)
-		if tt.expectError != (err != nil) {
-			t.Errorf("[%v] createFile(%s, %s, %s, %d, %d) = %v; want %v", i, tt.dst, tt.name, tt.src, tt.mode, tt.maxSize, err, tt.expectError)
+		dst := filepath.Join(tmpDir, test.dst)
+		_, err := createFile(testTarget, dst, test.name, strings.NewReader(test.src), test.mode, test.maxSize, test.cfg)
+		if test.expectError != (err != nil) {
+			t.Errorf("createFile(%s, %s, %s, %d, %d) = %v; want %v", test.dst, test.name, test.src, test.mode, test.maxSize, err, test.expectError)
 		}
 	}
 }
 
-// TestCreateDir implements tests for the createDir function
 func TestCreateDir(t *testing.T) {
-
-	tc := []struct {
+	tests := []struct {
 		dst           string
 		name          string
 		mode          fs.FileMode
@@ -234,31 +227,30 @@ func TestCreateDir(t *testing.T) {
 		},
 	}
 
-	for i, tt := range tc {
-
+	for _, test := range tests {
 		testTarget := NewOS()
 		tmpDir := t.TempDir()
 
-		if tt.cfg == nil {
-			tt.cfg = config.NewConfig()
+		if test.cfg == nil {
+			test.cfg = config.NewConfig()
 		}
-		if tt.prep != nil {
-			tt.prep(t, testTarget, tmpDir)
+		if test.prep != nil {
+			test.prep(t, testTarget, tmpDir)
 		}
-		dst := tt.dst
-		if !tt.dontConcatDst {
-			dst = filepath.Join(tmpDir, tt.dst)
+		dst := test.dst
+		if !test.dontConcatDst {
+			dst = filepath.Join(tmpDir, test.dst)
 		}
-		err := createDir(testTarget, dst, tt.name, tt.mode, tt.cfg)
+		err := createDir(testTarget, dst, test.name, test.mode, test.cfg)
 		gotError := (err != nil)
-		if tt.expectError != gotError {
-			t.Errorf("[%v] createDir(dst=%s, name=%s, mode=%o, createDest=%v, defaultDirPerm=%o) = ERROR(%v); want %v", i, tt.dst, tt.name, tt.mode.Perm(), tt.cfg.CreateDestination(), tt.cfg.CustomCreateDirMode(), err, tt.expectError)
+		if test.expectError != gotError {
+			t.Errorf("reateDir(dst=%s, name=%s, mode=%o, createDest=%v, defaultDirPerm=%o) = ERROR(%v); want %v", test.dst, test.name, test.mode.Perm(), test.cfg.CreateDestination(), test.cfg.CustomCreateDirMode(), err, test.expectError)
 		}
 	}
 }
 
 func TestSecurityCheck(t *testing.T) {
-	tc := []struct {
+	tests := []struct {
 		dst         string
 		name        string
 		cfg         *config.Config
@@ -302,20 +294,20 @@ func TestSecurityCheck(t *testing.T) {
 		},
 	}
 
-	for i, tt := range tc {
+	for _, test := range tests {
 		testTarget := NewOS()
 		tmp := t.TempDir()
-		if tt.cfg == nil {
-			tt.cfg = config.NewConfig()
+		if test.cfg == nil {
+			test.cfg = config.NewConfig()
 		}
-		if tt.prep != nil {
-			tt.prep(t, testTarget, tmp)
+		if test.prep != nil {
+			test.prep(t, testTarget, tmp)
 		}
-		dst := filepath.Join(tmp, tt.dst)
-		err := SecurityCheck(testTarget, dst, tt.name, tt.cfg)
+		dst := filepath.Join(tmp, test.dst)
+		err := SecurityCheck(testTarget, dst, test.name, test.cfg)
 		gotError := (err != nil)
-		if tt.expectError != gotError {
-			t.Errorf("[%v] securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", i, tt.dst, tt.name, err, tt.expectError)
+		if test.expectError != gotError {
+			t.Errorf("securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", test.dst, test.name, err, test.expectError)
 		}
 	}
 }

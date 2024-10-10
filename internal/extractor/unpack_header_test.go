@@ -25,19 +25,17 @@ func Test_getHeader(t *testing.T) {
 		// Add more test cases as needed
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := GetHeader(tt.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getHeader() error = %v, wantErr %v", err, tt.wantErr)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, _, err := GetHeader(test.src)
+			if (err != nil) != test.wantErr {
+				t.Errorf("getHeader() error = %v, wantErr %v", err, test.wantErr)
 			}
 		})
 	}
 }
 
-// TestMemoryReadlink tests the Readlink function from Memory
 func TestMemoryReadlink(t *testing.T) {
-
 	// instantiate a new memory target
 	mem := NewMemory()
 

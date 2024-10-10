@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/go-extract/config"
 )
 
-// TestIsBzip2 tests the IsBzip2 function.
 func TestIsBzip2(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -45,9 +44,7 @@ func TestIsBzip2(t *testing.T) {
 	}
 }
 
-// TestUnpackBzip2 tests the UnpackBzip2 function.
 func TestUnpackBzip2(t *testing.T) {
-
 	testData := []byte("Hello, World!")
 
 	tests := []struct {
@@ -120,9 +117,7 @@ func TestUnpackBzip2(t *testing.T) {
 
 }
 
-// compressBzip2 compresses data with bzip2 algorithm.
 func compressBzip2(t *testing.T, data []byte) []byte {
-	// Create a new Bzip2 writer
 	var buf bytes.Buffer
 	w, err := bzip2.NewWriter(&buf, &bzip2.WriterConfig{
 		Level: bzip2.DefaultCompression,
@@ -131,13 +126,11 @@ func compressBzip2(t *testing.T, data []byte) []byte {
 		t.Fatalf("error creating bzip2 writer: %v", err)
 	}
 
-	// Write the data to the Bzip2 writer
 	_, err = w.Write(data)
 	if err != nil {
 		t.Fatalf("error writing data to bzip2 writer: %v", err)
 	}
 
-	// Close the Bzip2 writer
 	err = w.Close()
 	if err != nil {
 		t.Fatalf("error closing bzip2 writer: %v", err)
