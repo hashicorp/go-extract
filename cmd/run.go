@@ -16,7 +16,6 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
 	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/extractor"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -39,7 +38,7 @@ type CLI struct {
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
-	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
+	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
 	Version                    kong.VersionFlag `short:"V" optional:"" help:"Print release version information."`
 }
@@ -53,7 +52,6 @@ func Run(version, commit, date string) {
 		kong.UsageOnError(),
 		kong.Vars{
 			"version":      fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":  extractor.ValidTypes(),
 			"default_type": "", // default is empty, but needs to be set to avoid kong error
 		},
 	)
