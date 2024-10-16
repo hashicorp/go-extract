@@ -29,3 +29,7 @@ test/test-dir-*
 # the binary
 goextract
 go.work.sum
+
+*.pprof
+*.tar.gz
+*.zip
