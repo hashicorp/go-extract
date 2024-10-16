@@ -366,10 +366,7 @@ func extract(ctx context.Context, t target.Target, dst string, src archiveWalker
 	}
 }
 
-// readerToReaderAtSeeker converts an [io.Reader] to an [io.ReaderAt] and [io.Seeker].
-// It first checks if the provided reader already implements the interfaces.
-// If it does, the reader is used directly. If not, the function reads the entire content
-// of the reader into memory or a temporary file to provide the required interfaces.
+// readerToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
 func readerToReaderAtSeeker(c *config.Config, r io.Reader) (seekerReaderAt, error) {
 
 	if s, ok := r.(seekerReaderAt); ok {
