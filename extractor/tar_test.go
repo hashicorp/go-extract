@@ -268,8 +268,8 @@ func TestIsTar(t *testing.T) {
 		t.Run(c.Name, func(t *testing.T) {
 
 			// Create a byte slice with the magic bytes at the correct offset
-			data := make([]byte, OffsetTar+len(MagicBytesTar[0]))
-			copy(data[OffsetTar:], c.Content)
+			data := make([]byte, offsetTar+len(magicBytesTar[0]))
+			copy(data[offsetTar:], c.Content)
 
 			// Check if IsTar correctly identifies it as a tar file
 			if IsTar(data) != true {

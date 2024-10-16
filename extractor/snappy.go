@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// MagicBytesSnappy is the magic bytes for snappy files.
-var MagicBytesSnappy = [][]byte{
+// magicBytesSnappy is the magic bytes for snappy files.
+var magicBytesSnappy = [][]byte{
 	append([]byte{0xff, 0x06, 0x00, 0x00}, []byte("sNaPpY")...),
 }
 
@@ -19,7 +19,7 @@ const FileExtensionSnappy = "sz"
 
 // IsSnappy checks if the header matches the snappy magic bytes.
 func IsSnappy(header []byte) bool {
-	return matchesMagicBytes(header, 0, MagicBytesSnappy)
+	return matchesMagicBytes(header, 0, magicBytesSnappy)
 }
 
 // Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.

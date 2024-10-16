@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// MagicBytesZlib is the magic bytes for Zlib files.
+// magicBytesZlib is the magic bytes for Zlib files.
 // reference https://www.ietf.org/rfc/rfc1950.txt
-var MagicBytesZlib = [][]byte{
+var magicBytesZlib = [][]byte{
 	{0x78, 0x01},
 	{0x78, 0x5e},
 	{0x78, 0x9c},
@@ -27,7 +27,7 @@ const FileExtensionZlib = "zz"
 
 // IsZlib checks if the header matches the Zlib magic bytes.
 func IsZlib(header []byte) bool {
-	return matchesMagicBytes(header, 0, MagicBytesZlib)
+	return matchesMagicBytes(header, 0, magicBytesZlib)
 }
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.

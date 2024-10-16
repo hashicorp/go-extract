@@ -15,15 +15,15 @@ import (
 // FileExtensionRar is the file extension for Rar files
 const FileExtensionRar = "rar"
 
-// MagicBytesRar are the magic bytes for Rar files
-var MagicBytesRar = [][]byte{
+// magicBytesRar are the magic bytes for Rar files
+var magicBytesRar = [][]byte{
 	{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00},       // Rar 1.5
 	{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00}, // Rar 5.0
 }
 
 // IsRar checks if the header matches the magic bytes for Rar files
 func IsRar(data []byte) bool {
-	return matchesMagicBytes(data, 0, MagicBytesRar)
+	return matchesMagicBytes(data, 0, magicBytesRar)
 }
 
 // UnpackRar sets a timeout for the ctx and starts the Rar extraction from src to dst.

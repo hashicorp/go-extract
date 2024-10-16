@@ -9,9 +9,9 @@ import (
 	"github.com/pierrec/lz4/v4"
 )
 
-// MagicBytesLZ4 is the magic bytes for LZ4 files.
+// magicBytesLZ4 is the magic bytes for LZ4 files.
 // reference https://android.googlesource.com/platform/external/lz4/+/HEAD/doc/lz4_Frame_format.md
-var MagicBytesLZ4 = [][]byte{
+var magicBytesLZ4 = [][]byte{
 	{0x04, 0x22, 0x4D, 0x18},
 }
 
@@ -20,7 +20,7 @@ const FileExtensionLZ4 = "lz4"
 
 // IsLZ4 checks if the header matches the LZ4 magic bytes.
 func IsLZ4(header []byte) bool {
-	return matchesMagicBytes(header, 0, MagicBytesLZ4)
+	return matchesMagicBytes(header, 0, magicBytesLZ4)
 }
 
 // Unpack sets a timeout for the ctx and starts the lz4 decompression from src to dst.

@@ -28,7 +28,7 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 
 	// check if type is set
 	if et := cfg.ExtractType(); len(et) > 0 {
-		if ae, found := availableExtractors[et]; found {
+		if ae, found := extractor.AvailableExtractors[et]; found {
 			if et == extractor.FileExtensionTarGZip {
 				cfg.SetNoUntarAfterDecompression(false)
 			}
@@ -44,7 +44,7 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 
 	// check if source offers seek and preserve type of source, if not create a header reader
 	if s, ok := src.(io.Seeker); ok {
-		p := make([]byte, maxHeaderLength)
+		p := make([]byte, extractor.MaxHeaderLength)
 		if n, err := src.Read(p); err != nil {
 			return fmt.Errorf("failed to read header: n=%v, err=%w", n, err)
 		}
@@ -54,7 +54,7 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 		header = p
 		reader = src
 	} else {
-		headerReader, err := extractor.NewHeaderReader(src, maxHeaderLength)
+		headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
 		if err != nil {
 			return fmt.Errorf("failed to create header reader: %w", err)
 		}
@@ -79,9 +79,9 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 }
 
 // GetUnpackFunction identifies the correct extractor based on magic bytes.
-func GetUnpackFunction(data []byte) unpackFunc {
+func GetUnpackFunction(data []byte) extractor.UnpackFunc {
 	// find extractor with longest suffix match
-	for _, ex := range availableExtractors {
+	for _, ex := range extractor.AvailableExtractors {
 		if ex.HeaderCheck(data) {
 			return ex.Unpacker
 		}
@@ -92,7 +92,7 @@ func GetUnpackFunction(data []byte) unpackFunc {
 }
 
 // GetUnpackFunctionByFileName identifies the correct extractor based on file extension.
-func GetUnpackFunctionByFileName(src string) unpackFunc {
+func GetUnpackFunctionByFileName(src string) extractor.UnpackFunc {
 	// get file extension from file name
 	src = strings.ToLower(src)
 	if strings.Contains(src, ".") {
@@ -100,10 +100,26 @@ func GetUnpackFunctionByFileName(src string) unpackFunc {
 		src = strings.Replace(src, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
 	}
 
-	if ae, found := availableExtractors[src]; found {
+	if ae, found := extractor.AvailableExtractors[src]; found {
 		return ae.Unpacker
 	}
 
 	// no matching reader found
 	return nil
 }
+
+// Available file types
+const (
+	FileType7zip    = extractor.FileExtension7zip
+	FileTypeBrotli  = extractor.FileExtensionBrotli
+	FileTypeBzip2   = extractor.FileExtensionBzip2
+	FileTypeGZip    = extractor.FileExtensionGZip
+	FileTypeLZ4     = extractor.FileExtensionLZ4
+	FileTypeSnappy  = extractor.FileExtensionSnappy
+	FileTypeTar     = extractor.FileExtensionTar
+	FileTypeTarGZip = extractor.FileExtensionTarGZip
+	FileTypeXz      = extractor.FileExtensionXz
+	FileTypeZIP     = extractor.FileExtensionZIP
+	FileTypeZlib    = extractor.FileExtensionZlib
+	FileTypeZstd    = extractor.FileExtensionZstd
+)

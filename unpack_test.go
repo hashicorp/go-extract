@@ -29,7 +29,7 @@ func TestGetUnpackFunction(t *testing.T) {
 	cases := []struct {
 		name           string
 		createTestFile func(*testing.T, string) string
-		expected       unpackFunc
+		expected       extractor.UnpackFunc
 	}{
 		{
 			name:           "get zip extractor from file",
@@ -702,7 +702,7 @@ func TestUnpackWithTypes(t *testing.T) {
 	}{
 		{
 			name:          "get zip extractor from file",
-			cfg:           config.NewConfig(config.WithExtractType(extractor.FileExtensionGZip)),
+			cfg:           config.NewConfig(config.WithExtractType(FileTypeGZip)),
 			archiveName:   "TestZip.gz",
 			content:       compressGzip([]byte("foobar content")),
 			gen:           createFile,
@@ -728,7 +728,7 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to tar.gz",
-			cfg:         config.NewConfig(config.WithExtractType(extractor.FileExtensionTarGZip)),
+			cfg:         config.NewConfig(config.WithExtractType(FileTypeTarGZip)),
 			archiveName: "example.json.zip.tar.gz",
 			content: compressGzip(packTarWithContent([]tarContent{
 				{
@@ -745,7 +745,7 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to zip, so that it fails",
-			cfg:         config.NewConfig(config.WithExtractType(extractor.FileExtensionZIP)),
+			cfg:         config.NewConfig(config.WithExtractType(FileTypeZIP)),
 			archiveName: "example.json.zip.tar.gz",
 			content: compressGzip(packTarWithContent([]tarContent{
 				{
