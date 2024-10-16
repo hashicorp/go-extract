@@ -20,6 +20,7 @@ import (
 	"github.com/dsnet/compress/bzip2"
 	"github.com/hashicorp/go-extract/config"
 	"github.com/hashicorp/go-extract/extractor"
+	"github.com/hashicorp/go-extract/target"
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
@@ -359,6 +360,71 @@ func TestUnpack(t *testing.T) {
 				context.Background(),
 				archive,
 				testDir,
+				config.NewConfig(
+					config.WithOverwrite(true),
+				),
+			)
+			got := err != nil
+
+			// success if both are nil and no engine found
+			if want != got {
+				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, want, err)
+			}
+		})
+	}
+}
+
+// TestUnpack is a test function
+func TestUnpackToMemory(t *testing.T) {
+
+	// test cases
+	cases := []struct {
+		name        string
+		fn          func(*testing.T, string) string
+		expectError bool
+	}{
+		{
+			name:        "get zip extractor from file",
+			fn:          createTestZip,
+			expectError: false,
+		},
+		{
+			name:        "get tar extractor from file",
+			fn:          createTestTar,
+			expectError: false,
+		},
+		{
+			name:        "get gzip extractor from file",
+			fn:          createTestGzipWithFile,
+			expectError: false,
+		},
+		{
+			name:        "get nil extractor fot textfile",
+			fn:          createTestNonArchive,
+			expectError: true,
+		},
+	}
+
+	// run cases
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// create testing directory
+			testDir := t.TempDir()
+
+			// prepare vars
+			want := tc.expectError
+
+			// perform actual tests
+			archive, err := os.Open(tc.fn(t, testDir))
+			if err != nil {
+				panic(err)
+			}
+			defer archive.Close()
+			err = UnpackTo(
+				context.Background(),
+				target.NewMemory(),
+				"",
+				archive,
 				config.NewConfig(
 					config.WithOverwrite(true),
 				),
