@@ -9,9 +9,9 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-// magicBytesZstd is the magic bytes for zstandard files.
+// MagicBytesZstd is the magic bytes for zstandard files.
 // reference: https://www.rfc-editor.org/rfc/rfc8878.html
-var magicBytesZstd = [][]byte{
+var MagicBytesZstd = [][]byte{
 	{0x28, 0xb5, 0x2f, 0xfd},
 }
 
@@ -20,7 +20,7 @@ const FileExtensionZstd = "zst"
 
 // IsZstd checks if the header matches the zstandard magic bytes.
 func IsZstd(header []byte) bool {
-	return matchesMagicBytes(header, 0, magicBytesZstd)
+	return matchesMagicBytes(header, 0, MagicBytesZstd)
 }
 
 // Unpack sets a timeout for the ctx and starts the zstandard decompression from src to dst.

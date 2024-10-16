@@ -16,14 +16,14 @@ import (
 // FileExtension7zip is the file extension for 7zip files
 const FileExtension7zip = "7z"
 
-// magicBytes7zip are the magic bytes for 7zip files
-var magicBytes7zip = [][]byte{
+// MagicBytes7zip are the magic bytes for 7zip files
+var MagicBytes7zip = [][]byte{
 	{0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C},
 }
 
 // Is7zip checks if the header matches the magic bytes for 7zip files
 func Is7zip(data []byte) bool {
-	return matchesMagicBytes(data, 0, magicBytes7zip)
+	return matchesMagicBytes(data, 0, MagicBytes7zip)
 }
 
 // Unpack7Zip sets a timeout for the ctx and starts the 7zip extraction from src to dst.

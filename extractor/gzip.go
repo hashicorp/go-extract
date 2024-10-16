@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/go-extract/target"
 )
 
-// magicBytesGZip are the magic bytes for gzip compressed files
+// MagicBytesGZip are the magic bytes for gzip compressed files
 // reference https://socketloop.com/tutorials/golang-gunzip-file
-var magicBytesGZip = [][]byte{
+var MagicBytesGZip = [][]byte{
 	{0x1f, 0x8b},
 }
 
@@ -23,7 +23,7 @@ const FileExtensionTarGZip = "tgz"
 
 // IsGZip checks if the header matches the magic bytes for gzip compressed files
 func IsGZip(header []byte) bool {
-	return matchesMagicBytes(header, 0, magicBytesGZip)
+	return matchesMagicBytes(header, 0, MagicBytesGZip)
 }
 
 // Unpack sets a timeout for the ctx and starts the gzip decompression from src to dst.

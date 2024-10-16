@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
-// magicBytesZIP contains the magic bytes for a zip archive.
+// MagicBytesZIP contains the magic bytes for a zip archive.
 // reference: https://golang.org/pkg/archive/zip/
-var magicBytesZIP = [][]byte{
+var MagicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
@@ -24,7 +24,7 @@ const FileExtensionZIP = "zip"
 
 // IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func IsZip(data []byte) bool {
-	return matchesMagicBytes(data, 0, magicBytesZIP)
+	return matchesMagicBytes(data, 0, MagicBytesZIP)
 }
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.

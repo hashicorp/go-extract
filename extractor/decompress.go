@@ -48,7 +48,7 @@ func decompress(ctx context.Context, t target.Target, dst string, src io.Reader,
 	}
 
 	// convert to peek header
-	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
+	headerReader, err := NewHeaderReader(decompressedStream, headerSizeTar)
 	if err != nil {
 		return handleError(cfg, m, "cannot read uncompressed header", err)
 	}

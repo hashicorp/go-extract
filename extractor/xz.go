@@ -9,9 +9,9 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
-// magicBytesXz is the magic bytes for xz files.
+// MagicBytesXz is the magic bytes for xz files.
 // reference https://tukaani.org/xz/xz-file-format-1.0.4.txt
-var magicBytesXz = [][]byte{
+var MagicBytesXz = [][]byte{
 	{0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00},
 }
 
@@ -20,7 +20,7 @@ const FileExtensionXz = "xz"
 
 // IsXz checks if the header matches the xz magic bytes.
 func IsXz(header []byte) bool {
-	return matchesMagicBytes(header, 0, magicBytesXz)
+	return matchesMagicBytes(header, 0, MagicBytesXz)
 }
 
 // Unpack sets a timeout for the ctx and starts the xz decompression from src to dst.

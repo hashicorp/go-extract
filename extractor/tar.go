@@ -12,22 +12,26 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
-// offsetTar is the offset where the magic bytes are located in the file
-const offsetTar = 257
+// OffsetTar is the offset where the magic bytes are located in the file
+const OffsetTar = 257
 
 // FileExtensionTar is the file extension for tar files
 const FileExtensionTar = "tar"
 
-// magicBytesTar are the magic bytes for tar files
-var magicBytesTar = [][]byte{
+// MagicBytesTar are the magic bytes for tar files
+var MagicBytesTar = [][]byte{
 	[]byte("ustar\x00tar\x00"),
 	[]byte("ustar\x00"),
 	[]byte("ustar  \x00"),
 }
 
+// HeaderSizeTar is the size of the header for tar files
+// I know it is ugly, but I am trying to keep the code as clean as possible
+var headerSizeTar = OffsetTar + len(MagicBytesTar[0])
+
 // IsTar checks if the header matches the magic bytes for tar files
 func IsTar(data []byte) bool {
-	return matchesMagicBytes(data, offsetTar, magicBytesTar)
+	return matchesMagicBytes(data, OffsetTar, MagicBytesTar)
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
