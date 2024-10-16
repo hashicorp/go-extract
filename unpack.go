@@ -39,9 +39,27 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 	}
 
 	// read headerReader to identify archive type
-	header, reader, err := GetHeader(src)
-	if err != nil {
-		return fmt.Errorf("failed to read header: %w", err)
+	var header []byte
+	var reader io.Reader
+
+	// check if source offers seek and preserve type of source, if not create a header reader
+	if s, ok := src.(io.Seeker); ok {
+		p := make([]byte, extractor.MaxHeaderLength)
+		if n, err := src.Read(p); err != nil {
+			return fmt.Errorf("failed to read header: n=%v, err=%w", n, err)
+		}
+		if n, err := s.Seek(0, io.SeekStart); err != nil {
+			return fmt.Errorf("failed to reset reader: n=%v, err=%w", n, err)
+		}
+		header = p
+		reader = src
+	} else {
+		headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
+		if err != nil {
+			return fmt.Errorf("failed to create header reader: %w", err)
+		}
+		header = headerReader.PeekHeader()
+		reader = headerReader
 	}
 
 	// find extractor by header
@@ -58,38 +76,6 @@ func UnpackTo(ctx context.Context, t target.Target, dst string, src io.Reader, c
 
 	// perform extraction with identified reader
 	return fmt.Errorf("no supported archive type ether not detected")
-}
-
-// GetHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
-// directly from the reader and the reader gets reset. If src is not a io.Seeker, the header is read
-// and transformed into a HeaderReader, which is returned as the second return value. If an error
-// occurs, the header is nil and the error is returned as the third return value
-func GetHeader(src io.Reader) ([]byte, io.Reader, error) {
-
-	// check if source offers seek and preserve type of source
-	if s, ok := src.(io.Seeker); ok {
-
-		// allocate buffer for header
-		header := make([]byte, extractor.MaxHeaderLength)
-
-		// read header from source
-		_, err := src.Read(header)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to read header: %w", err)
-		}
-		// reset reader
-		_, err = s.Seek(0, io.SeekStart)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to reset reader: %w", err)
-		}
-		return header, src, nil
-	}
-
-	headerReader, err := extractor.NewHeaderReader(src, extractor.MaxHeaderLength)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create header reader: %w", err)
-	}
-	return headerReader.PeekHeader(), headerReader, nil
 }
 
 // GetUnpackFunction identifies the correct extractor based on magic bytes.

@@ -373,35 +373,6 @@ func TestUnpack(t *testing.T) {
 	}
 }
 
-func TestGetHeader(t *testing.T) {
-	tests := []struct {
-		name    string
-		src     io.Reader
-		wantErr bool
-	}{
-		{
-			name:    "Read header from bytes.Buffer (implements io.Seeker)",
-			src:     bytes.NewBuffer([]byte("test data")),
-			wantErr: false,
-		},
-		{
-			name:    "Read header from bytes.Reader (implements io.Seeker)",
-			src:     bytes.NewReader([]byte("test data")),
-			wantErr: false,
-		},
-		// Add more test cases as needed
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := GetHeader(tt.src)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getHeader() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func gen1024ByteGzip(t *testing.T, dstDir string) string {
 	testFile := filepath.Join(dstDir, "GzipWithFile.gz")
 	createGzip(testFile, strings.NewReader(strings.Repeat("A", 1024)))
