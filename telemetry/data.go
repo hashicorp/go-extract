@@ -8,7 +8,6 @@ import (
 
 // Data is a struct type that holds all telemetry data of an extraction
 type Data struct {
-
 	// ExtractedDirs is the number of extracted directories
 	ExtractedDirs int64
 
@@ -70,4 +69,6 @@ func (m Data) MarshalJSON() ([]byte, error) {
 }
 
 // TelemetryHook is a function type that performs operations on telemetry data
+// after an extraction has finished which can be used to submit the data
+// to a telemetry service, for example.
 type TelemetryHook func(context.Context, *Data)
