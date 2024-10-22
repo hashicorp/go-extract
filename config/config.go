@@ -44,7 +44,7 @@ type Config struct {
 	followSymlinks bool
 
 	// logger stream for extraction
-	logger Logger
+	logger logger
 
 	// maxExtractionSize is the maximum size of a file after decompression.
 	// Set value to -1 to disable the check.
@@ -58,7 +58,7 @@ type Config struct {
 	// Set value to -1 to disable the check.
 	maxInputSize int64
 
-	// telemetryHook is a function pointer to consume telemetry data after finished extraction
+	// telemetryHook is a function to consume telemetry data after finished extraction
 	// Important: do not adjust this value after extraction started
 	telemetryHook telemetry.TelemetryHook
 
@@ -154,7 +154,7 @@ func (c *Config) FollowSymlinks() bool {
 }
 
 // Logger returns the logger
-func (c *Config) Logger() Logger {
+func (c *Config) Logger() logger {
 	return c.logger
 }
 
@@ -334,7 +334,7 @@ func WithFollowSymlinks(follow bool) ConfigOption {
 }
 
 // WithLogger options pattern function to set a custom logger
-func WithLogger(logger Logger) ConfigOption {
+func WithLogger(logger logger) ConfigOption {
 	return func(c *Config) {
 		c.logger = logger
 	}
