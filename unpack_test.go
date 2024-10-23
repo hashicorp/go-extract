@@ -25,6 +25,104 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
+func ExampleUnpack() {
+	// open file
+	archive, err := os.Open("test.zip")
+	if err != nil {
+		// handle error
+	}
+	defer archive.Close()
+
+	// prepare context, config and destination
+	ctx := context.Background()
+	dst := "output"
+	cfg := config.NewConfig()
+
+	// unpack
+	if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+		// handle error
+	}
+}
+
+func ExampleUnpackTo() {
+	// open file
+	archive, err := os.Open("test.zip")
+	if err != nil {
+		// handle error
+	}
+	defer archive.Close()
+
+	// prepare context, config and destination
+	ctx := context.Background()
+	m := extractor.NewMemory()
+	dst := "" // extract to root of memory filesystem
+	cfg := config.NewConfig()
+
+	// unpack
+	if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+		// handle error
+	}
+}
+
+func ExampleNewMemoryTarget() {
+	// open file
+	archive, err := os.Open("test.zip")
+	if err != nil {
+		// handle error
+	}
+	defer archive.Close()
+
+	// prepare context, config and destination
+	ctx := context.Background()
+	m := extract.NewMemoryTarget()
+	dst := "" // extract to root of memory filesystem
+	cfg := config.NewConfig()
+
+	// unpack
+	if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+		// handle error
+	}
+
+	// Walk the memory filesystem
+	memFs := m.(fs.FS)
+	if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+		fmt.Println(path)
+		return nil
+	}); err != nil {
+		fmt.Printf("failed to walk memory filesystem: %s", err)
+		return
+	}
+}
+
+func ExampleNewOSTarget() {
+	// open file
+	archive, err := os.Open("test.zip")
+	if err != nil {
+		// handle error
+	}
+	defer archive.Close()
+
+	// prepare context, config and destination
+	ctx := context.Background()
+	o := extract.NewOSTarget()
+	dst := "output"
+	cfg := config.NewConfig()
+
+	// unpack
+	if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
+		// handle error
+	}
+
+	// Walk the local filesystem
+	localFs := os.DirFS(dst)
+	if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
+		// process path, d and err
+		return nil
+	}); err != nil {
+		// handle error
+	}
+}
+
 func TestGetUnpackFunction(t *testing.T) {
 	tests := []struct {
 		name           string
