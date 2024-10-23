@@ -265,7 +265,7 @@ We welcome feature suggestions! Please open an [issue](https://github.com/hashic
 
 ### Coding Standards
 
-- Follow the Go Code Review Comments.
+- Follow the [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments).
 - Use `gofmt` to format your code.
 
 ### Commit Messages
