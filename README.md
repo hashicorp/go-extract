@@ -291,8 +291,3 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 This project is licensed under [MPL-2.0 and Copyright (c) 2023 HashiCorp, Inc](https://github.com/hashicorp/go-extract?tab=MPL-2.0-1-ov-file#readme).
 
-## References
-
-- [SecureZip](https://pypi.org/project/SecureZip/)
-- [42zip](https://www.unforgettable.dk/)
-- [google/safearchive](https://github.com/google/safearchive)
