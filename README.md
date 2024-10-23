@@ -84,7 +84,7 @@ Flags:
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
   -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
-      --max-files=1000                     Maximum files that are extracted before stop. (disable check: -1)
+      --max-files=1000                     Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
@@ -92,7 +92,7 @@ Flags:
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
   -T, --telemetry                          Print telemetry data to log after extraction.
-  -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, sz, tar, tgz, xz, zip, zst, zz)
+  -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
   -V, --version                            Print release version information.
 ```
