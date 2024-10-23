@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -121,6 +122,36 @@ func ExampleNewOSTarget() {
 	}); err != nil {
 		// handle error
 	}
+}
+
+func Example() {
+
+	archive, err := os.Open("test.zip")
+	if err != nil {
+		// handle error
+	}
+
+	// prepare context, config and destination
+	ctx := context.Background()
+	dst := "output"
+	cfg := config.NewConfig()
+
+	// unpack
+	if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+		switch {
+		case errors.Is(err, extract.ErrNoExtractorFound):
+		// handle no extractor found
+		case errors.Is(err, extract.ErrUnsupportedFileType):
+			// handle unsupported file type
+		case errors.Is(err, extract.ErrFailedToReadHeader):
+			// handle failed to read header
+		case errors.Is(err, extract.ErrFailedToUnpack):
+			// handle failed to unpack
+		default:
+			// handle other error
+		}
+	}
+
 }
 
 func TestGetUnpackFunction(t *testing.T) {
