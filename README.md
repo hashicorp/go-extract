@@ -4,73 +4,37 @@
 
 Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
 
+## Overview
+
+Foo
+
 ## Code Example
 
 Add to `go.mod`:
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go get github.com/hashicorp/go-extract
+go get github.com/hashicorp/go-extract
 ```
 
 Usage in code:
 
 ```go
+// open file
+archive, err := os.Open("test.zip")
+if err != nil {
+    // handle error
+}
+defer archive.Close()
 
-import (
-    ...
-    "github.com/hashicorp/go-extract"
-    "github.com/hashicorp/go-extract/config"
-    "github.com/hashicorp/go-extract/telemetry"
-    ...
-)
+// prepare context, config and destination
+ctx := context.Background()
+dst := "output"
+cfg := config.NewConfig()
 
-...
-
-
-    // open archive
-    archive, _ := os.Open(...)
-
-    // prepare context with timeout
-    ctx, cancel := context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
-    defer cancel()
-
-    // prepare logger
-    logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-      Level: slog.LevelInfo,
-    }))
-
-    // setup telemetry hook
-    telemetryToLog := func(ctx context.Context, td telemetry.Data) {
-      logger.Info("extraction finished", "telemetryData", td)
-    }
-
-    // prepare config (these are the default values)
-    config := config.NewConfig(
-        config.WithCacheInMemory(false),              // cache to disk if input is a zip in a stream
-        config.WithContinueOnError(false),            // fail on error
-        config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
-        config.WithCreateDestination(false),          // do not try to create specified destination
-        config.WithCustomCreateDirMode(0750),         // for not in-archive listed folders (respecting umask), default: drwxr-x--- 
-        config.WithCustomDecompressFileMode(0640),    // for decompressed files (respecting umask), default: -rw-r----- 
-        config.WithDenySymlinkExtraction(false),      // allow symlink creation
-        config.WithExtractType("<ext>")               // specify explicitly a file extension to determine extractor
-        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
-        config.WithLogger(logger),                    // adjust logger (default: io.Discard)
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
-        config.WithMaxFiles(1000),                    // only 1k files (including folders and symlinks) maximum (disable check: -1)
-        config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
-        config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
-        config.WithOverwrite(false),                  // don't replace existing files
-        config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
-        config.WithTelemetryHook(telemetryToLog),     // adjust hook to receive telemetry from extraction
-    )
-
-    // extract archive
-    if err := extract.Unpack(ctx, archive, destinationPath, config); err != nil {
-      // handle error
-    }
-
-...
+// unpack
+if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+    // handle error
+}
 
 ```
 
@@ -80,7 +44,7 @@ import (
 > Example:
 >
 > ```shell
-> $ export GOMEMLIMIT=1GiB
+> export GOMEMLIMIT=1GiB
 > ```
 
 ## CLI Tool
@@ -90,7 +54,7 @@ You can use this library on the command line with the `goextract` command.
 ### Installation
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/goextract@latest
+go install github.com/hashicorp/go-extract/cmd/goextract@latest
 ```
 
 ### Manual Build and Installation
@@ -139,15 +103,38 @@ Flags:
 
 ## Extraction targets
 
-### Operating System (Os)
+### Operating System (OS)
 
 Interact with the local operating system to, to create files, directories and symlinks.
 Extracted entries can be accessed afterwards by `os.*` API calls.
 
 ```golang
-// create a target
-osTarget := target.NewOS()
-extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg) 
+// open file
+archive, err := os.Open("test.zip")
+if err != nil {
+    // handle error
+}
+defer archive.Close()
+
+// prepare context, config and destination
+ctx := context.Background()
+o := extract.NewOSTarget()
+dst := "output"
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
+    // handle error
+}
+
+// Walk the local filesystem
+localFs := os.DirFS(dst)
+if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
+    // process path, d and err
+    return nil
+}); err != nil {
+    // handle error
+}
 ```
 
 ### Memory
@@ -157,51 +144,33 @@ are supported. File permissions are not validated. Extracted entries are accesse
 or via a map key. Symlink semantically not processed by the implementation.
 
 ```golang
-// use target to unpack archive
-memTarget := target.NewMemory()
-extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg)
-
-// manual usage
-memTarget.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
-memTarget.CreateDir("dir", 0755)
-memTarget.CreateSymlink("file.txt", "link.txt", true)
-
-// interact with the filesystem
-f, err := memTarget.Open("file.txt") // contains "hello world"
+// open file
+archive, err := os.Open("test.zip")
 if err != nil {
-  // handle error
+    // handle error
 }
-defer f.Close()
+defer archive.Close()
 
-// open symlink
-f, err = memTarget.Open("link.txt") // contains "hello world"
-if err != nil {
-  // handle error
+// prepare context, config and destination
+ctx := context.Background()
+m := extract.NewMemoryTarget()
+dst := "" // extract to root of memory filesystem
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+    // handle error
 }
-defer f.Close()
 
-// Stat the file
-s, err := memTarget.Stat("file.txt")
-if err != nil {
-  // handle error
+// Walk the memory filesystem
+memFs := m.(fs.FS)
+if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+    fmt.Println(path)
+    return nil
+}); err != nil {
+    fmt.Printf("failed to walk memory filesystem: %s", err)
+    return
 }
-fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
-
-// Lstat the symlink
-l, err := memTarget.Lstat("link.txt")
-if err != nil {
-  // handle error
-}
-fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
-
-// Readlink the symlink
-t, err := memTarget.Readlink("link.txt")
-if err != nil {
-  // handle error
-}
-fmt.Println(t)
-
-
 ```
 
 ## Telemetry data
@@ -227,50 +196,8 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 }
 ```
 
-## Feature collection
-
-- Filetypes
-  - [x] zip (/jar)
-  - [x] tar
-  - [x] gzip
-  - [x] tar.gz
-  - [x] brotli
-  - [x] bzip2
-  - [x] flate
-  - [x] xz
-  - [x] snappy
-  - [x] rar
-  - [x] 7zip
-  - [x] zstandard
-  - [x] zlib
-  - [x] lz4
-- [x] extraction size check
-- [x] max num of extracted files
-- [x] extraction time exhaustion
-- [x] input file size limitations
-- [x] context based cancelation
-- [x] option pattern for configuration
-- [x] `io.Reader` as source
-- [x] symlink inside archive
-- [x] symlink to outside is detected
-- [x] symlink with absolute path is detected
-- [x] file with path traversal is detected
-- [x] file with absolute path is detected
-- [x] filetype detection based on magic bytes
-- [x] windows support
-- [x] tests for gzip
-- [x] function documentation
-- [x] check for windows
-- [x] Allow/deny symlinks in general
-- [x] Telemetry call back function
-- [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
-- [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
-- [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
-- [x] in-memory extraction
-- [ ] Handle passwords
-- [ ] recursive extraction
-
 ## References
 
 - [SecureZip](https://pypi.org/project/SecureZip/)
 - [42zip](https://www.unforgettable.dk/)
+- [google/safearchive](https://github.com/google/safearchive)
