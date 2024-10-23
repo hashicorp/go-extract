@@ -1,54 +1,36 @@
 # go-extract
 
 [![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml)
+[![GoDoc](https://godoc.org/github.com/hashicorp/go-extract?status.svg)](https://godoc.org/github.com/hashicorp/go-extract)
+[![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-Secure  decompression and extraction for 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
+This library provides secure decompression and extraction for formats like 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (excluding symlinks), Snappy, Tar, Xz, Zip, Zlib, and Zstandard. It safeguards against resource exhaustion, path traversal, and symlink attacks. Additionally, it offers various configuration options and collects telemetry data during extraction.
 
-Go-extract prevents against exhaustion, path traversal and symlink attacks. The extraction offers various configuration options and collects telemetry data.
+## Table of Contents
 
-## Code Example
+- [Installation Instructions](#installation-instructions)
+- [Usage Examples](#usage-examples)
+  - [Command-line Utility](#command-line-utility)
+  - [Library](#library)
+- [Configuration](#configuration)
+- [Telemetry](#telemetry)
+- [Extraction Targets](#extraction-targets)
+  - [Operating System (OS)](#operating-system-os)
+  - [Memory](#memory)
+- [Errors](#errors)
+- [Contribute](#contribute)
+- [License](#license)
+- [References](#references)
 
-Add to `go.mod`:
+## Installation Instructions
+
+Add [hashicorp/go-extract](https://github.com/hashicorp/go-extract) as a dependency to your project:
 
 ```cli
 go get github.com/hashicorp/go-extract
 ```
 
-Usage in code:
-
-```go
-// prepare context, config and destination
-ctx := context.Background()
-dst := "output/"
-cfg := config.NewConfig()
-
-// unpack
-if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
-    // handle error
-}
-
-```
-
-> [!TIP]
-> If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that [`GOMEMLIMIT`](https://pkg.go.dev/runtime) is set in the execution environment to avoid `OOM` error.
->
-> Example:
->
-> ```shell
-> export GOMEMLIMIT=1GiB
-> ```
-
-## CLI Tool
-
-You can use this library on the command line with the `goextract` command.
-
-### Installation
-
-```cli
-go install github.com/hashicorp/go-extract/cmd/goextract@latest
-```
-
-### Manual Build and Installation
+Build [hashicorp/go-extract](https://github.com/hashicorp/go-extract) from source and install it to the system as a command-line utility:
 
 ```cli
 git clone git@github.com:hashicorp/go-extract.git
@@ -58,9 +40,21 @@ make test
 make install
 ```
 
-### Usage
+Install [hashicorp/go-extract](https://github.com/hashicorp/go-extract) directly from GitHub:
 
 ```cli
+go install github.com/hashicorp/go-extract/cmd/goextract@latest
+```
+
+## Usage Examples
+
+These examples demonstrate how to use [hashicorp/go-extract](https://github.com/hashicorp/go-extract) both as a library and as a command-line utility.
+
+### Command-line Utility
+
+The `goextract` command-line utility offers all available configuration options via dedicated flags.
+
+```shell
 $ goextract -h
 Usage: goextract <archive> [<destination>] [flags]
 
@@ -92,65 +86,54 @@ Flags:
   -V, --version                            Print release version information.
 ```
 
-## Extraction targets
+### Library
 
-### Operating System (OS)
+The simplest way to use the library is to call the `extract.Unpack` function with the default configuration. This function extracts the contents from an `io.Reader` to the specified destination on the local filesystem.
 
-Interact with the local operating system to, to create files, directories and symlinks.
-Extracted entries can be accessed afterwards by `os.*` API calls.
-
-```golang
-// prepare destination and config
-o := extract.NewOSTarget()
-dst := "output/"
-cfg := config.NewConfig()
-
-// unpack
-if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
-    // handle error
-}
-
-// Walk the local filesystem
-localFs := os.DirFS(dst)
-if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
-    // process path, d and err
-    return nil
-}); err != nil {
-    // handle error
+```go
+// Unpack the archive
+if err := extract.Unpack(ctx, archive, dst, config.NewConfig()); err != nil {
+    // Handle error
+    log.Fatalf("Failed to unpack archive: %v", err)
 }
 ```
 
-### Memory
+## Configuration
 
-Extract archives to memory by using the `target.Memory` implementation. Files, directories and symlinks
-are supported. File permissions are not validated. Extracted entries are accessed ether via the call of `m.Open(..)`
-or via a map key. Symlink semantically not processed by the implementation.
+When calling the `extract.Unpack(..)` function, we need to provide `config` object that contains all available configuration.
 
 ```golang
-// prepare destination and config
-m := extract.NewMemoryTarget()
-dst := "" // extract to root of memory filesystem
-cfg := config.NewConfig()
+  // process cli params
+  cfg := config.NewConfig(
+    config.WithContinueOnError(..),
+    config.WithContinueOnUnsupportedFiles(..),
+    config.WithCreateDestination(..),
+    config.WithCustomCreateDirMode(..),
+    config.WithCustomDecompressFileMode(..),
+    config.WithDenySymlinkExtraction(..),
+    config.WithExtractType(..),
+    config.WithFollowSymlinks(..),
+    config.WithLogger(..),
+    config.WithMaxExtractionSize(..),
+    config.WithMaxFiles(..),
+    config.WithMaxInputSize(..),
+    config.WithNoUntarAfterDecompression(..),
+    config.WithOverwrite(..),
+    config.WithPatterns(..),
+    config.WithTelemetryHook(..),
+  )
 
-// unpack
-if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
-    // handle error
-}
+[..]
 
-// Walk the memory filesystem
-memFs := m.(fs.FS)
-if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
-    fmt.Println(path)
-    return nil
-}); err != nil {
-    fmt.Printf("failed to walk memory filesystem: %s", err)
-    return
-}
+  if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+    log.Println(fmt.Errorf("error during extraction: %w", err))
+    os.Exit(-1)
+  }
 ```
 
-## Telemetry data
+## Telemetry
 
-It is possible to collect telemetry data ether by specifying a telemetry hook via the config option or as a cli parameter.
+Telemetry data can be collected by specifying a telemetry hook in the configuration. This hook receives the collected telemetry data at the end of each extraction.
 
 ```golang
 // create new config
@@ -179,6 +162,134 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
   "LastUnsupportedFile": ""
 }
 ```
+
+## Extraction targets
+
+### Operating System (OS)
+
+Interact with the local operating system to create files, directories, and symlinks. Extracted entries can be accessed later using the `os.*` API calls.
+
+```golang
+// prepare destination and config
+o := extract.NewOSTarget()
+dst := "output/"
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
+    // handle error
+}
+
+// Walk the local filesystem
+localFs := os.DirFS(dst)
+if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
+    // process path, d and err
+    return nil
+}); err != nil {
+    // handle error
+}
+```
+
+### Memory
+
+Extract archives directly into memory, supporting files, directories, and symlinks. Note that file permissions are not validated. Access the extracted entries by converting the target to [io/fs.FS](https://pkg.go.dev/io/fs#FS).
+
+```golang
+// prepare destination and config
+m := extract.NewMemoryTarget()
+dst := "" // extract to root of memory filesystem
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+    // handle error
+}
+
+// Walk the memory filesystem
+memFs := m.(fs.FS)
+if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+    fmt.Println(path)
+    return nil
+}); err != nil {
+    fmt.Printf("failed to walk memory filesystem: %s", err)
+    return
+}
+```
+
+## Errors
+
+The extraction process eventually fails, depending on the provided archive and input stream. If the extraction fails, at exist a set of default errors that might be thrown by the `extract.Unpack()` function.
+
+```golang
+if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+  switch {
+  case errors.Is(err, extract.ErrNoExtractorFound):
+  // handle no extractor found
+  case errors.Is(err, extract.ErrUnsupportedFileType):
+    // handle unsupported file type
+  case errors.Is(err, extract.ErrFailedToReadHeader):
+    // handle failed to read header
+  case errors.Is(err, extract.ErrFailedToUnpack):
+    // handle failed to unpack
+  default:
+    // handle other error
+  }
+}
+```
+
+## Contribute
+
+First off, thanks for taking the time to contribute! 🎉
+
+### Code of Conduct
+
+This project and everyone participating in it is governed by the [Code of Conduct](https://github.com/hashicorp/go-extract?tab=coc-ov-file). By participating, you are expected to uphold this code. Please report unacceptable behavior to [security@hashicorp.com](mailto:security@hashicorp.com).
+
+### How to Contribute
+
+#### Reporting Bugs
+
+If you find a bug, please open an issue [here](https://github.com/hashicorp/go-extract/issues) with detailed information on how to reproduce it.
+
+#### Suggesting Features
+
+We welcome feature suggestions! Please open an [issue](https://github.com/hashicorp/go-extract/issues) here to discuss your idea.
+
+#### Submitting Pull Requests
+
+1. Create a new branch: `git checkout -b feature/your-feature-name`
+2. Make your changes.
+3. Commit your changes with a descriptive commit message: `git commit -m "Add feature: your feature description"`
+4. Push to your forked repository: `git push origin feature/your-feature-name`
+5. Open a pull request [here](https://github.com/hashicorp/go-extract/pulls).
+
+### Coding Standards
+
+- Follow the Go Code Review Comments.
+- Use `gofmt` to format your code.
+
+### Commit Messages
+
+- Use the present tense ("Add feature" not "Added feature").
+- Use the imperative mood ("Move cursor to..." not "Moves cursor to...").
+- Limit the first line to 72 characters or less.
+
+### Testing
+
+- Run tests: `make test`
+- Add new tests to cover your changes (by re-running [coverage](https://github.com/hashicorp/go-extract/actions/workflows/coverage.yml) in your PR or `make test_coverage`).
+
+### Documentation
+
+Please update the `README.md` and any other relevant documentation to reflect your changes.
+
+### License Agreement
+
+By contributing, you agree that your contributions will be licensed under the same license as the project.
+
+## License
+
+This project is licensed under [MPL-2.0 and Copyright (c) 2023 HashiCorp, Inc](https://github.com/hashicorp/go-extract?tab=MPL-2.0-1-ov-file#readme).
 
 ## References
 
