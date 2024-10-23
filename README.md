@@ -4,10 +4,6 @@
 
 Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
 
-## Overview
-
-Foo
-
 ## Code Example
 
 Add to `go.mod`:
@@ -175,7 +171,16 @@ if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) err
 
 ## Telemetry data
 
-It is possible to collect telemetry data ether by specifying a telemetry hook via the config option `config.WithTelemetryHook(telemetryToLog)` or as a cli parameter `-T, --telemetry`.
+It is possible to collect telemetry data ether by specifying a telemetry hook via the config option or as a cli parameter.
+
+```golang
+// create new config
+cfg := NewConfig(
+  WithTelemetryHook(func(ctx context.Context, m *telemetry.Data) {
+    // handle telemetry data
+  }),
+)
+```
 
 Here is an example collected telemetry data for the extraction of [`terraform-aws-iam-5.34.0.tar.gz`](https://github.com/terraform-aws-modules/terraform-aws-iam/releases/tag/v5.34.0):
 
