@@ -26,3 +26,28 @@ func TestDataString(t *testing.T) {
 		t.Errorf("Expected '%s', but got '%s'", expected, m.String())
 	}
 }
+
+func ExampleTelemetryHook() {
+
+	// in, err := os.Open("archive.tar.gz")
+	// if err != nil {
+	// 	// handle error
+	// }
+	// defer in.Close()
+
+	// hook := func(ctx context.Context, td *Data) {
+	// 	// send td to a telemetry service, e.g., DataDog/SumoLogic
+	// }
+
+	// // setup the context and configuration
+	// cfg := config.NewConfig(
+	// 	config.WithTelemetryHook(hook),
+	// )
+
+	// // perform the extraction with the given configuration
+	// ctx := context.Background()
+	// dst := "destination"
+	// if err := extract.Unpack(context.Background(), in, dst, cfg); err != nil {
+	// 	// handle error
+	// }
+}

@@ -1,3 +1,6 @@
+// Package telemetry provides a way to capture telemetry data during the extraction process.
+//
+// The package provides a struct type Data that holds all telemetry data of an extraction.
 package telemetry
 
 import (
@@ -45,13 +48,13 @@ type Data struct {
 	LastUnsupportedFile string
 }
 
-// String returns a string representation of the telemetry data
+// String returns a string representation of [Data].
 func (m Data) String() string {
 	b, _ := json.Marshal(m)
 	return string(b)
 }
 
-// MarshalJSON implements the json.Marshaler interface
+// MarshalJSON implements the [encoding/json.Marshaler] interface.
 func (m Data) MarshalJSON() ([]byte, error) {
 	var lastError string
 	if m.LastExtractionError != nil {
@@ -68,7 +71,7 @@ func (m Data) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// TelemetryHook is a function type that performs operations on telemetry data
-// after an extraction has finished which can be used to submit the data
+// TelemetryHook is a function type that performs operations on [Data]
+// after an extraction has finished which can be used to submit the [Data]
 // to a telemetry service, for example.
 type TelemetryHook func(context.Context, *Data)
