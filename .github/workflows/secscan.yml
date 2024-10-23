@@ -1,4 +1,4 @@
-name: Security Scanner
+name: Security scan
 
 on:
   push:
