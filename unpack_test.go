@@ -55,7 +55,7 @@ func ExampleUnpackTo() {
 
 	// prepare context, config and destination
 	ctx := context.Background()
-	m := extractor.NewMemory()
+	m := extract.NewMemoryTarget()
 	dst := "" // extract to root of memory filesystem
 	cfg := config.NewConfig()
 
