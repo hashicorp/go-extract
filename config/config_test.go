@@ -63,6 +63,32 @@ func TestWithMaxInputSize(t *testing.T) {
 	}
 }
 
+func ExampleNewConfig() {
+
+	// create new config
+	cfg := NewConfig(
+		WithContinueOnError(DefaultContinueOnError),
+		WithContinueOnUnsupportedFiles(DefaultContinueOnUnsupportedFiles),
+		WithCreateDestination(DefaultCreateDestination),
+		WithCustomCreateDirMode(DefaultCustomCreateDirMode),
+		WithCustomDecompressFileMode(DefaultCustomDecompressFileMode),
+		WithDenySymlinkExtraction(DefaultDenySymlinkExtraction),
+		WithExtractType(DefaultExtractionType),
+		WithFollowSymlinks(DefaultFollowSymlinks),
+		WithLogger(DefaultLogger),
+		WithMaxExtractionSize(DefaultMaxExtractionSize),
+		WithMaxFiles(DefaultMaxFiles),
+		WithMaxInputSize(DefaultMaxInputSize),
+		WithNoUntarAfterDecompression(DefaultNoUntarAfterDecompression),
+		WithOverwrite(DefaultOverwrite),
+		// WithPatterns(pattern...),
+		WithTelemetryHook(DefaultTelemetryHook),
+	)
+
+	// print config
+	fmt.Println(cfg)
+}
+
 func TestContinueOnUnsupportedFiles(t *testing.T) {
 	tests := []struct {
 		name string

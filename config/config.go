@@ -1,3 +1,7 @@
+// Package config provides a configuration struct and options to adjust the configuration.
+//
+// The configuration struct holds all configuration options for the extraction process.
+// The configuration options can be adjusted using the option pattern style.
 package config
 
 import (
@@ -13,7 +17,8 @@ import (
 // ConfigOption is a function pointer to implement the option pattern
 type ConfigOption func(*Config)
 
-// Config is a struct type that holds all config options
+// Config is a struct type that holds all config options for the extraction process,
+// including the log stream.
 type Config struct {
 	// cacheInMemory offers the option to enable/disable caching in memory. This applies only
 	// to the extraction of zip archives, which are provided as a stream.
@@ -70,58 +75,64 @@ type Config struct {
 
 	// patterns is a list of file patterns to match files to extract
 	patterns []string
-
-	// verbose log extraction to stderr
-	verbose bool
 }
 
-// ContinueOnError returns true if the extraction should continue on error
+// ContinueOnError returns true if the extraction should continue on error.
 func (c *Config) ContinueOnError() bool {
 	return c.continueOnError
 }
 
-// CacheInMemory returns true if caching in memory is enabled
+// CacheInMemory returns true if caching in memory is enabled. This applies only to
+// the extraction of zip archives, which are provided as a stream.
+//
+// If set to false, the cache is stored on disk to avoid memory exhaustion.
 func (c *Config) CacheInMemory() bool {
 	return c.cacheInMemory
 }
 
-// checkMaxFiles checks if counter exceeds the MaxFiles of the Extractor e
-func (e *Config) CheckMaxFiles(counter int64) error {
+// CheckMaxFiles checks if counter exceeds the configured maximum. If the maximum is exceeded,
+// a [ErrMaxFilesExceeded] error is returned.
+func (c *Config) CheckMaxFiles(counter int64) error {
 
 	// check if disabled
-	if e.MaxFiles() == -1 {
+	if c.MaxFiles() == -1 {
 		return nil
 	}
 
 	// check value
-	if counter > e.MaxFiles() {
-		return fmt.Errorf("to many files in archive")
+	if counter > c.MaxFiles() {
+		return ErrMaxFilesExceeded
 	}
 	return nil
 }
 
-// checkFileSize checks if fileSize exceeds the MaxFileSize of the Extractor e
-func (e *Config) CheckExtractionSize(fileSize int64) error {
+// CheckExtractionSize checks if fileSize exceeds configured maximum. If the maximum is exceeded,
+// a [ErrorMaxSizeExceeded] error is returned.
+func (c *Config) CheckExtractionSize(fileSize int64) error {
 
 	// check if disabled
-	if e.MaxExtractionSize() == -1 {
+	if c.MaxExtractionSize() == -1 {
 		return nil
 	}
 
 	// check value
-	if fileSize > e.MaxExtractionSize() {
-		return fmt.Errorf("maximum extraction size exceeded")
+	if fileSize > c.MaxExtractionSize() {
+		return ErrorMaxSizeExceeded
 	}
 	return nil
 }
 
-// ContinueOnUnsupportedFiles returns true if unsupported files should be skipped
+// ContinueOnUnsupportedFiles returns true if unsupported files, e.g., FIFO, block or
+// character devices, should be skipped.
+//
+// If symlinks are not allowed and a symlink is found, it is considered an unsupported
+// file.
 func (c *Config) ContinueOnUnsupportedFiles() bool {
 	return c.continueOnUnsupportedFiles
 }
 
 // CreateDestination returns true if the destination directory should be
-// created if it does not exist
+// created if it does not exist.
 func (c *Config) CreateDestination() bool {
 	return c.createDestination
 }
@@ -132,33 +143,33 @@ func (c *Config) CustomCreateDirMode() fs.FileMode {
 	return c.customCreateDirMode
 }
 
-// CustomDecompressFileMode returns the file mode for a decompressed file
+// CustomDecompressFileMode returns the file mode for a decompressed file.
 // (respecting umask)
 func (c *Config) CustomDecompressFileMode() fs.FileMode {
 	return c.customDecompressFileMode
 }
 
-// DenySymlinkExtraction returns true if symlinks are NOT allowed
+// DenySymlinkExtraction returns true if symlinks are NOT allowed.
 func (c *Config) DenySymlinkExtraction() bool {
 	return c.denySymlinkExtraction
 }
 
-// ExtractType returns the type of extraction algorithm
+// ExtractType returns the specified extraction type.
 func (c *Config) ExtractType() string {
 	return c.extractionType
 }
 
-// FollowSymlinks returns true if symlinks should be followed
+// FollowSymlinks returns true if symlinks should be traversed during extraction.
 func (c *Config) FollowSymlinks() bool {
 	return c.followSymlinks
 }
 
-// Logger returns the logger
+// Logger returns the logger.
 func (c *Config) Logger() logger {
 	return c.logger
 }
 
-// MaxExtractionSize returns the maximum size of a file after decompression
+// MaxExtractionSize returns the maximum size over all decompressed and extracted files.
 func (c *Config) MaxExtractionSize() int64 {
 	return c.maxExtractionSize
 }
@@ -168,17 +179,17 @@ func (c *Config) MaxFiles() int64 {
 	return c.maxFiles
 }
 
-// MaxInputSize returns the maximum size of the input
+// MaxInputSize returns the maximum size of the input.
 func (c *Config) MaxInputSize() int64 {
 	return c.maxInputSize
 }
 
-// NoUntarAfterDecompression returns true if tar.gz should NOT be untared after decompression
+// NoUntarAfterDecompression returns true if tar.gz should NOT be untared after decompression.
 func (c *Config) NoUntarAfterDecompression() bool {
 	return c.noUntarAfterDecompression
 }
 
-// Overwrite returns true if files should be overwritten in the destination
+// Overwrite returns true if files should be overwritten in the destination.
 func (c *Config) Overwrite() bool {
 	return c.overwrite
 }
@@ -189,12 +200,13 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
-// SetNoUntarAfterDecompression sets the noUntarAfterDecompression option
+// SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
+// are not untared after decompression.
 func (c *Config) SetNoUntarAfterDecompression(b bool) {
 	c.noUntarAfterDecompression = b
 }
 
-// TelemetryHook returns the  telemetry hook
+// TelemetryHook returns the  telemetry hook.
 func (c *Config) TelemetryHook() telemetry.TelemetryHook {
 	if c.telemetryHook == nil {
 		return NoopTelemetryHook
@@ -202,49 +214,53 @@ func (c *Config) TelemetryHook() telemetry.TelemetryHook {
 	return c.telemetryHook
 }
 
-// NewConfig is a generator option that takes opts as adjustments of the
-// default configuration in an option pattern style
-func NewConfig(opts ...ConfigOption) *Config {
-	const (
-		cacheInMemory              = false
-		continueOnError            = false
-		continueOnUnsupportedFiles = false
-		createDestination          = false
-		customCreateDirMode        = 0750
-		customDecompressFileMode   = 0640
-		denySymlinkExtraction      = false
-		extractionType             = ""
-		followSymlinks             = false
-		maxFiles                   = 1000          // 1k files
-		maxExtractionSize          = 1 << (10 * 3) // 1 Gb
-		maxExtractionTime          = 60            // 1 minute
-		maxInputSize               = 1 << (10 * 3) // 1 Gb
-		noUntarAfterDecompression  = false
-		overwrite                  = false
-		verbose                    = false
-	)
+const (
+	DefaultCacheInMemory              = false         // cache on disk
+	DefaultContinueOnError            = false         // stop on error and return error
+	DefaultContinueOnUnsupportedFiles = false         // stop on unsupported files and return error
+	DefaultCreateDestination          = false         // do not create destination directory
+	DefaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
+	DefaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
+	DefaultDenySymlinkExtraction      = false         // allow symlink extraction
+	DefaultExtractionType             = ""            // do not limit extraction type
+	DefaultFollowSymlinks             = false         // do not traverse symlinks
+	DefaultMaxFiles                   = 1000          // 1k files
+	DefaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
+	DefaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
+	DefaultNoUntarAfterDecompression  = false         // untar after decompression
+	DefaultOverwrite                  = false         // do not overwrite existing files
+)
 
-	// disable logging by default
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+var (
+	DefaultLogger        = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})) // slog to discard
+	DefaultTelemetryHook = NoopTelemetryHook                                                 // no operation telemetry hook
+
+	ErrMaxFilesExceeded  = fmt.Errorf("counter exceeds maximum files")    // error message for max files exceeded
+	ErrorMaxSizeExceeded = fmt.Errorf("maximum extraction size exceeded") // error message for max extraction size exceeded
+)
+
+// NewConfig is a generator option that takes opts as adjustments of the
+// default configuration in an option pattern style.
+func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default values
 	config := &Config{
-		cacheInMemory:              cacheInMemory,
-		continueOnError:            continueOnError,
-		createDestination:          createDestination,
-		customCreateDirMode:        customCreateDirMode,
-		customDecompressFileMode:   customDecompressFileMode,
-		denySymlinkExtraction:      denySymlinkExtraction,
-		extractionType:             extractionType,
-		followSymlinks:             followSymlinks,
-		logger:                     logger,
-		maxFiles:                   maxFiles,
-		maxExtractionSize:          maxExtractionSize,
-		maxInputSize:               maxInputSize,
-		overwrite:                  overwrite,
-		noUntarAfterDecompression:  noUntarAfterDecompression,
-		continueOnUnsupportedFiles: continueOnUnsupportedFiles,
-		verbose:                    verbose,
+		cacheInMemory:              DefaultCacheInMemory,
+		continueOnError:            DefaultContinueOnError,
+		createDestination:          DefaultCreateDestination,
+		customCreateDirMode:        DefaultCustomCreateDirMode,
+		customDecompressFileMode:   DefaultCustomDecompressFileMode,
+		denySymlinkExtraction:      DefaultDenySymlinkExtraction,
+		extractionType:             DefaultExtractionType,
+		followSymlinks:             DefaultFollowSymlinks,
+		logger:                     DefaultLogger,
+		maxFiles:                   DefaultMaxFiles,
+		maxExtractionSize:          DefaultMaxExtractionSize,
+		maxInputSize:               DefaultMaxInputSize,
+		overwrite:                  DefaultOverwrite,
+		telemetryHook:              DefaultTelemetryHook,
+		noUntarAfterDecompression:  DefaultNoUntarAfterDecompression,
+		continueOnUnsupportedFiles: DefaultContinueOnUnsupportedFiles,
 	}
 
 	// Loop through each option
@@ -256,20 +272,23 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
-// NoopTelemetryHook is a no operation telemetry hook
+// NoopTelemetryHook is a no operation telemetry hook.
 func NoopTelemetryHook(ctx context.Context, d *telemetry.Data) {
 	// noop
 }
 
 // WithCacheInMemory options pattern function to enable/disable caching in memory.
 // This applies only to the extraction of zip archives, which are provided as a stream.
+//
+// If set to false, the cache is stored on disk to avoid memory exhaustion.
 func WithCacheInMemory(cache bool) ConfigOption {
 	return func(c *Config) {
 		c.cacheInMemory = cache
 	}
 }
 
-// WithContinueOnError options pattern function to continue on error during extraction
+// WithContinueOnError options pattern function to continue on error during extraction. If set to true,
+// the error is logged and the extraction continues. If set to false, the extraction stops and returns the error.
 func WithContinueOnError(yes bool) ConfigOption {
 	return func(c *Config) {
 		c.continueOnError = yes
@@ -287,7 +306,7 @@ func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 }
 
 // WithCreateDestination options pattern function to create
-// destination directory if it does not exist
+// destination directory if it does not exist.
 func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
 		c.createDestination = create
@@ -310,14 +329,14 @@ func WithCustomDecompressFileMode(mode fs.FileMode) ConfigOption {
 	}
 }
 
-// WithDenySymlinkExtraction options pattern function to deny symlink extraction
+// WithDenySymlinkExtraction options pattern function to deny symlink extraction.
 func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	return func(c *Config) {
 		c.denySymlinkExtraction = deny
 	}
 }
 
-// WithExtractType options pattern function to set the extraction type in the config
+// WithExtractType options pattern function to set the extraction type in the [Config].
 func WithExtractType(extractionType string) ConfigOption {
 	return func(c *Config) {
 		if len(extractionType) > 0 {
@@ -326,65 +345,67 @@ func WithExtractType(extractionType string) ConfigOption {
 	}
 }
 
-// WithFollowSymlinks options pattern function to follow symlinks to  directories during extraction
+// WithFollowSymlinks options pattern function to traverse symlinks during extraction.
 func WithFollowSymlinks(follow bool) ConfigOption {
 	return func(c *Config) {
 		c.followSymlinks = follow
 	}
 }
 
-// WithLogger options pattern function to set a custom logger
+// WithLogger options pattern function to set a custom logger.
 func WithLogger(logger logger) ConfigOption {
 	return func(c *Config) {
 		c.logger = logger
 	}
 }
 
-// WithMaxExtractionSize options pattern function to set WithMaxExtractionSize in the
-// config (-1 to disable check)
+// WithMaxExtractionSize options pattern function to set maximum size over all decompressed
+//
+//	and extracted files. (-1 to disable check)
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.maxExtractionSize = maxExtractionSize
 	}
 }
 
-// WithMaxFiles options pattern function to set maxFiles in the config (-1 to disable check)
+// WithMaxFiles options pattern function to set maximum number of extracted, files, directories
+// and symlinks during the extraction. (-1 to disable check)
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.maxFiles = maxFiles
 	}
 }
 
-// WithMaxInputSize options pattern function to set MaxInputSize in the
-// config (-1 to disable check)
+// WithMaxInputSize options pattern function to set MaxInputSize for extraction input file. (-1 to disable check)
 func WithMaxInputSize(maxInputSize int64) ConfigOption {
 	return func(c *Config) {
 		c.maxInputSize = maxInputSize
 	}
 }
 
-// WithNoUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction
+// WithNoUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction.
 func WithNoUntarAfterDecompression(disable bool) ConfigOption {
 	return func(c *Config) {
 		c.noUntarAfterDecompression = disable
 	}
 }
 
-// WithOverwrite options pattern function to set overwrite in the config
+// WithOverwrite options pattern function specify if files should be overwritten in the destination.
 func WithOverwrite(enable bool) ConfigOption {
 	return func(c *Config) {
 		c.overwrite = enable
 	}
 }
 
-// WithPatterns options pattern function to set filepath pattern
+// WithPatterns options pattern function to set filepath pattern, that files need to match to be extracted.
+// Patterns are matched using [pkg/path/filepath.Match].
 func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
 		c.patterns = append(c.patterns, pattern...)
 	}
 }
 
-// WithTelemetryHook options pattern function to set a telemetry hook
+// WithTelemetryHook options pattern function to set a [telemetry.TelemetryHook], which is called after extraction.
 func WithTelemetryHook(hook telemetry.TelemetryHook) ConfigOption {
 	return func(c *Config) {
 		c.telemetryHook = hook
