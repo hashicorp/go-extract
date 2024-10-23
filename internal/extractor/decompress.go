@@ -1,3 +1,4 @@
+// Package: extractor (internal)
 package extractor
 
 import (

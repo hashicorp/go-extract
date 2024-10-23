@@ -125,7 +125,6 @@ func ExampleNewOSTarget() {
 }
 
 func Example() {
-
 	archive, err := os.Open("test.zip")
 	if err != nil {
 		// handle error
@@ -133,7 +132,7 @@ func Example() {
 
 	// prepare context, config and destination
 	ctx := context.Background()
-	dst := "output"
+	dst := "output/"
 	cfg := config.NewConfig()
 
 	// unpack
@@ -151,7 +150,6 @@ func Example() {
 			// handle other error
 		}
 	}
-
 }
 
 func TestGetUnpackFunction(t *testing.T) {
