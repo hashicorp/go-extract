@@ -10,6 +10,19 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
+func ExampleWithTelemetryHook() {
+
+	// create new config
+	cfg := NewConfig(
+		WithTelemetryHook(func(ctx context.Context, m *telemetry.Data) {
+			// handle telemetry data
+		}),
+	)
+
+	// print config
+	fmt.Println(cfg)
+}
+
 // TestCheckMaxFiles implements test cases
 func TestCheckMaxFiles(t *testing.T) {
 	// prepare test cases
