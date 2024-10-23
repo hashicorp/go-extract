@@ -1,3 +1,14 @@
+// Package extract provides a function to extract files from a reader to a destination.
+//
+// The extraction is done according to the file type, and the package provides a default extraction target OS.
+// Available extractors are defined in the internal/extractor package. The package also provides an interface
+// for the target that must be implemented to perform the unpacking process. This packages provides as well a
+// memory target that provides an in-memory filesystem. The package also provides errors that can be returned
+// during the unpacking process.
+//
+// Configuration is done using the [config] package, which provides a configuration struct that can be used to
+// set the extraction type, the logger, the telemetry hook, and the maximum input size. Telemetry data is captured
+// during the extraction process. The collection of telemetry data is done using the [telemetry] package.
 package extract
 
 import (
@@ -29,7 +40,7 @@ var (
 // so that the unpacking process can be done.
 type Target extractor.Target
 
-// NewMemoryTarget returns a new memory target that provides an in-memory filesystem.
+// NewMemoryTarget returns a new memory target that provides an in-memory filesystem (that implements [io/fs.FS]).
 func NewMemoryTarget() Target {
 	return extractor.NewMemory()
 }
@@ -46,7 +57,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) 
 }
 
 // UnpackTo unpacks the given source to the destination, according to the given configuration,
-// using the given extractor.Target. If an error occurs, it is returned.
+// using the given [extractor.Target]. If an error occurs, it is returned.
 func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *config.Config) error {
 	if et := cfg.ExtractType(); len(et) > 0 {
 		if ae, found := extractor.AvailableExtractors[et]; found {
