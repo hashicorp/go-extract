@@ -10,6 +10,31 @@ import (
 	"github.com/hashicorp/go-extract/telemetry"
 )
 
+func Example() {
+	// create new config with all possible settings
+	cfg := NewConfig(
+		WithContinueOnError(DefaultContinueOnError),
+		WithContinueOnUnsupportedFiles(DefaultContinueOnUnsupportedFiles),
+		WithCreateDestination(DefaultCreateDestination),
+		WithCustomCreateDirMode(DefaultCustomCreateDirMode),
+		WithCustomDecompressFileMode(DefaultCustomDecompressFileMode),
+		WithDenySymlinkExtraction(DefaultDenySymlinkExtraction),
+		WithExtractType(DefaultExtractionType),
+		WithFollowSymlinks(DefaultFollowSymlinks),
+		WithLogger(DefaultLogger),
+		WithMaxExtractionSize(DefaultMaxExtractionSize),
+		WithMaxFiles(DefaultMaxFiles),
+		WithMaxInputSize(DefaultMaxInputSize),
+		WithNoUntarAfterDecompression(DefaultNoUntarAfterDecompression),
+		WithOverwrite(DefaultOverwrite),
+		// WithPatterns(pattern...),
+		WithTelemetryHook(DefaultTelemetryHook),
+	)
+
+	// print config
+	fmt.Println(cfg)
+}
+
 func ExampleWithTelemetryHook() {
 
 	// create new config
@@ -80,22 +105,9 @@ func ExampleNewConfig() {
 
 	// create new config
 	cfg := NewConfig(
-		WithContinueOnError(DefaultContinueOnError),
-		WithContinueOnUnsupportedFiles(DefaultContinueOnUnsupportedFiles),
-		WithCreateDestination(DefaultCreateDestination),
-		WithCustomCreateDirMode(DefaultCustomCreateDirMode),
-		WithCustomDecompressFileMode(DefaultCustomDecompressFileMode),
-		WithDenySymlinkExtraction(DefaultDenySymlinkExtraction),
-		WithExtractType(DefaultExtractionType),
-		WithFollowSymlinks(DefaultFollowSymlinks),
-		WithLogger(DefaultLogger),
-		WithMaxExtractionSize(DefaultMaxExtractionSize),
-		WithMaxFiles(DefaultMaxFiles),
-		WithMaxInputSize(DefaultMaxInputSize),
-		WithNoUntarAfterDecompression(DefaultNoUntarAfterDecompression),
-		WithOverwrite(DefaultOverwrite),
-		// WithPatterns(pattern...),
-		WithTelemetryHook(DefaultTelemetryHook),
+		WithContinueOnError(true),
+		WithContinueOnUnsupportedFiles(false),
+		WithCreateDestination(true),
 	)
 
 	// print config
