@@ -235,8 +235,8 @@ var (
 	DefaultLogger        = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})) // slog to discard
 	DefaultTelemetryHook = NoopTelemetryHook                                                 // no operation telemetry hook
 
-	ErrMaxFilesExceeded  = fmt.Errorf("counter exceeds maximum files")    // error message for max files exceeded
-	ErrorMaxSizeExceeded = fmt.Errorf("maximum extraction size exceeded") // error message for max extraction size exceeded
+	ErrMaxFilesExceeded  = fmt.Errorf("extract/config: maximum files exceeded")           // error message for max files exceeded
+	ErrorMaxSizeExceeded = fmt.Errorf("extract/config: maximum extraction size exceeded") // error message for max extraction size exceeded
 )
 
 // NewConfig is a generator option that takes opts as adjustments of the
