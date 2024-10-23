@@ -132,7 +132,7 @@ func Example() {
 
 	// prepare context, config and destination
 	ctx := context.Background()
-	dst := "output/"
+	dst := "output"
 	cfg := config.NewConfig()
 
 	// unpack
