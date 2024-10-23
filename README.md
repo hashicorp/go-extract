@@ -17,16 +17,9 @@ go get github.com/hashicorp/go-extract
 Usage in code:
 
 ```go
-// open file
-archive, err := os.Open("test.zip")
-if err != nil {
-    // handle error
-}
-defer archive.Close()
-
 // prepare context, config and destination
 ctx := context.Background()
-dst := "output"
+dst := "output/"
 cfg := config.NewConfig()
 
 // unpack
@@ -107,17 +100,9 @@ Interact with the local operating system to, to create files, directories and sy
 Extracted entries can be accessed afterwards by `os.*` API calls.
 
 ```golang
-// open file
-archive, err := os.Open("test.zip")
-if err != nil {
-    // handle error
-}
-defer archive.Close()
-
-// prepare context, config and destination
-ctx := context.Background()
+// prepare destination and config
 o := extract.NewOSTarget()
-dst := "output"
+dst := "output/"
 cfg := config.NewConfig()
 
 // unpack
@@ -142,15 +127,7 @@ are supported. File permissions are not validated. Extracted entries are accesse
 or via a map key. Symlink semantically not processed by the implementation.
 
 ```golang
-// open file
-archive, err := os.Open("test.zip")
-if err != nil {
-    // handle error
-}
-defer archive.Close()
-
-// prepare context, config and destination
-ctx := context.Background()
+// prepare destination and config
 m := extract.NewMemoryTarget()
 dst := "" // extract to root of memory filesystem
 cfg := config.NewConfig()
