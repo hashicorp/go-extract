@@ -241,10 +241,6 @@ if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
 
 First off, thanks for taking the time to contribute! 🎉
 
-### Code of Conduct
-
-This project and everyone participating in it is governed by the [Code of Conduct](https://github.com/hashicorp/go-extract?tab=coc-ov-file). By participating, you are expected to uphold this code. Please report unacceptable behavior to [security@hashicorp.com](mailto:security@hashicorp.com).
-
 ### How to Contribute
 
 #### Reporting Bugs
@@ -286,8 +282,3 @@ Please update the `README.md` and any other relevant documentation to reflect yo
 ### License Agreement
 
 By contributing, you agree that your contributions will be licensed under the same license as the project.
-
-## License
-
-This project is licensed under [MPL-2.0 and Copyright (c) 2023 HashiCorp, Inc](https://github.com/hashicorp/go-extract?tab=MPL-2.0-1-ov-file#readme).
-
