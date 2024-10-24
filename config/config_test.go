@@ -101,19 +101,6 @@ func TestWithMaxInputSize(t *testing.T) {
 	}
 }
 
-func ExampleNewConfig() {
-
-	// create new config
-	cfg := NewConfig(
-		WithContinueOnError(true),
-		WithContinueOnUnsupportedFiles(false),
-		WithCreateDestination(true),
-	)
-
-	// print config
-	fmt.Println(cfg)
-}
-
 func TestContinueOnUnsupportedFiles(t *testing.T) {
 	tests := []struct {
 		name string
