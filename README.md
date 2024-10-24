@@ -6,19 +6,6 @@
 
 This library provides secure decompression and extraction for formats like 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (excluding symlinks), Snappy, Tar, Xz, Zip, Zlib, and Zstandard. It safeguards against resource exhaustion, path traversal, and symlink attacks. Additionally, it offers various configuration options and collects telemetry data during extraction.
 
-## Table of Contents
-
-- [Installation Instructions](#installation-instructions)
-- [Usage Examples](#usage-examples)
-  - [Command-line Utility](#command-line-utility)
-  - [Library](#library)
-- [Configuration](#configuration)
-- [Telemetry](#telemetry)
-- [Extraction Targets](#extraction-targets)
-  - [Operating System (OS)](#operating-system-os)
-  - [Memory](#memory)
-- [Errors](#errors)
-
 ## Installation Instructions
 
 Add [hashicorp/go-extract](https://github.com/hashicorp/go-extract) as a dependency to your project:
