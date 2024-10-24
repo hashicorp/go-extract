@@ -5,5 +5,5 @@
 //
 // Configuration is done using the [config] package, which provides a configuration struct that can be used to
 // set the extraction type, the logger, the telemetry hook, and the maximum input size. Telemetry data is captured
-// during the extraction process. The collection of telemetry data is done using the [telemetry] package.
+// during the extraction process. The collection of telemetry data is done using the telemetry package.
 package extract
