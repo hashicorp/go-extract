@@ -8,7 +8,6 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -212,7 +211,7 @@ func (c *Config) SetNoUntarAfterDecompression(b bool) {
 // TelemetryHook returns the  telemetry hook.
 func (c *Config) TelemetryHook() telemetry.TelemetryHook {
 	if c.telemetryHook == nil {
-		return NoopTelemetryHook
+		return telemetry.NoopTelemetryHook
 	}
 	return c.telemetryHook
 }
@@ -235,11 +234,15 @@ const (
 )
 
 var (
-	DefaultLogger        = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})) // slog to discard
-	DefaultTelemetryHook = NoopTelemetryHook                                                 // no operation telemetry hook
+	// slog to discard
+	DefaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	// no operation telemetry hook
+	DefaultTelemetryHook = telemetry.NoopTelemetryHook
 
-	ErrMaxFilesExceeded  = fmt.Errorf("extract/config: maximum files exceeded")           // error message for max files exceeded
-	ErrorMaxSizeExceeded = fmt.Errorf("extract/config: maximum extraction size exceeded") // error message for max extraction size exceeded
+	// error message for max files exceeded
+	ErrMaxFilesExceeded = fmt.Errorf("extract/config: maximum files exceeded")
+	// error message for max extraction size exceeded
+	ErrorMaxSizeExceeded = fmt.Errorf("extract/config: maximum extraction size exceeded")
 )
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -273,11 +276,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// return the modified house instance
 	return config
-}
-
-// NoopTelemetryHook is a no operation telemetry hook.
-func NoopTelemetryHook(ctx context.Context, d *telemetry.Data) {
-	// noop
 }
 
 // WithCacheInMemory options pattern function to enable/disable caching in memory.
