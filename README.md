@@ -18,9 +18,6 @@ This library provides secure decompression and extraction for formats like 7-Zip
   - [Operating System (OS)](#operating-system-os)
   - [Memory](#memory)
 - [Errors](#errors)
-- [Contribute](#contribute)
-- [License](#license)
-- [References](#references)
 
 ## Installation Instructions
 
@@ -236,49 +233,3 @@ if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
   }
 }
 ```
-
-## Contribute
-
-First off, thanks for taking the time to contribute! 🎉
-
-### How to Contribute
-
-#### Reporting Bugs
-
-If you find a bug, please open an issue [here](https://github.com/hashicorp/go-extract/issues) with detailed information on how to reproduce it.
-
-#### Suggesting Features
-
-We welcome feature suggestions! Please open an [issue](https://github.com/hashicorp/go-extract/issues) here to discuss your idea.
-
-#### Submitting Pull Requests
-
-1. Create a new branch: `git checkout -b feature/your-feature-name`
-2. Make your changes.
-3. Commit your changes with a descriptive commit message: `git commit -m "Add feature: your feature description"`
-4. Push to your forked repository: `git push origin feature/your-feature-name`
-5. Open a pull request [here](https://github.com/hashicorp/go-extract/pulls).
-
-### Coding Standards
-
-- Follow the [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments).
-- Use `gofmt` to format your code.
-
-### Commit Messages
-
-- Use the present tense ("Add feature" not "Added feature").
-- Use the imperative mood ("Move cursor to..." not "Moves cursor to...").
-- Limit the first line to 72 characters or less.
-
-### Testing
-
-- Run tests: `make test`
-- Add new tests to cover your changes (by re-running [coverage](https://github.com/hashicorp/go-extract/actions/workflows/coverage.yml) in your PR or `make test_coverage`).
-
-### Documentation
-
-Please update the `README.md` and any other relevant documentation to reflect your changes.
-
-### License Agreement
-
-By contributing, you agree that your contributions will be licensed under the same license as the project.
