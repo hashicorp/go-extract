@@ -1,6 +1,7 @@
 package extractor
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -248,14 +249,8 @@ func SecurityCheck(t Target, dst string, path string, config *config.Config) err
 
 		// perform check if its a proper dir
 		if _, err := t.Lstat(checkDir); err != nil {
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, fs.ErrNotExist) {
 				return fmt.Errorf("invalid path: %w", err)
-			}
-
-			// get out of the loop, bc/ don't check paths
-			// for symlinks that does not exist
-			if os.IsNotExist(err) {
-				break
 			}
 		}
 
