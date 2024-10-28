@@ -27,72 +27,83 @@ import (
 )
 
 func ExampleUnpack() {
-	// open file
-	archive, err := os.Open("test.zip")
+	var (
+		ctx = context.Background()      // context for cancellation
+		dst = createDirectory("output") // destination directory
+		src = openFile("example.zip")   // source reader
+		cfg = config.NewConfig()        // custom config for extraction
+	)
+
+	// unpack
+	if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+		// handle error
+	}
+
+	// read extracted file
+	content, err := os.ReadFile(filepath.Join(dst, "example.txt"))
 	if err != nil {
 		// handle error
 	}
-	defer archive.Close()
+	fmt.Println(string(content))
 
-	// prepare context, config and destination
-	ctx := context.Background()
-	dst := "output"
-	cfg := config.NewConfig()
-
-	// unpack
-	if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
-		// handle error
-	}
+	// Output:
+	// example content
 }
 
 func ExampleUnpackTo() {
-	// open file
-	archive, err := os.Open("test.zip")
+	var (
+		ctx = context.Background()      // context for cancellation
+		m   = extract.NewMemoryTarget() // in-memory filesystem
+		dst = ""                        // root of in-memory filesystem
+		src = openFile("example.zip")   // source reader
+		cfg = config.NewConfig()        // custom config for extraction
+	)
+
+	// unpack
+	if err := extract.UnpackTo(ctx, m, dst, src, cfg); err != nil {
+		// handle error
+	}
+
+	// read extracted file
+	content, err := m.(*extractor.Memory).ReadFile("example.txt")
 	if err != nil {
 		// handle error
 	}
-	defer archive.Close()
+	fmt.Println(string(content))
 
-	// prepare context, config and destination
-	ctx := context.Background()
-	m := extract.NewMemoryTarget()
-	dst := "" // extract to root of memory filesystem
-	cfg := config.NewConfig()
-
-	// unpack
-	if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
-		// handle error
-	}
+	// Output:
+	// example content
 }
 
 func ExampleNewMemoryTarget() {
-	// open file
-	archive, err := os.Open("test.zip")
-	if err != nil {
-		// handle error
-	}
-	defer archive.Close()
-
-	// prepare context, config and destination
-	ctx := context.Background()
-	m := extract.NewMemoryTarget()
-	dst := "" // extract to root of memory filesystem
-	cfg := config.NewConfig()
+	var (
+		ctx = context.Background()      // context for cancellation
+		m   = extract.NewMemoryTarget() // in-memory filesystem
+		dst = ""                        // root of in-memory filesystem
+		src = openFile("example.zip")   // source reader
+		cfg = config.NewConfig()        // custom config for extraction
+	)
 
 	// unpack
-	if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+	if err := extract.UnpackTo(ctx, m, dst, src, cfg); err != nil {
 		// handle error
 	}
 
 	// Walk the memory filesystem
 	memFs := m.(fs.FS)
 	if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+		if path == "." {
+			return nil
+		}
 		fmt.Println(path)
 		return nil
 	}); err != nil {
 		fmt.Printf("failed to walk memory filesystem: %s", err)
 		return
 	}
+
+	// Output:
+	// example.txt
 }
 
 func ExampleNewOSTarget() {
@@ -124,22 +135,21 @@ func ExampleNewOSTarget() {
 	}
 }
 
+// Demonstrates how to extract an "example.zip" source archive to an "output" directory on
+// disk with the default configuration options.
 func Example() {
-	archive, err := os.Open("test.zip")
+	var (
+		ctx = context.Background()      // context for cancellation
+		src = openFile("example.zip")   // source reader
+		dst = createDirectory("output") // destination directory
+		cfg = config.NewConfig()        // custom config for extraction
+	)
+
+	err := extract.Unpack(ctx, src, dst, cfg)
 	if err != nil {
-		// handle error
-	}
-
-	// prepare context, config and destination
-	ctx := context.Background()
-	dst := "output"
-	cfg := config.NewConfig()
-
-	// unpack
-	if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
 		switch {
 		case errors.Is(err, extract.ErrNoExtractorFound):
-		// handle no extractor found
+			// handle no extractor found
 		case errors.Is(err, extract.ErrUnsupportedFileType):
 			// handle unsupported file type
 		case errors.Is(err, extract.ErrFailedToReadHeader):
@@ -150,6 +160,47 @@ func Example() {
 			// handle other error
 		}
 	}
+
+	content, err := os.ReadFile(filepath.Join(dst, "example.txt"))
+	if err != nil {
+		// handle error
+	}
+
+	fmt.Println(string(content))
+	// Output: example content
+}
+
+// openFile is a helper function to "open" a file,
+// but it returns an in-memory reader for example purposes.
+func openFile(_ string) io.ReadCloser {
+	b := bytes.NewBuffer(nil)
+
+	zw := zip.NewWriter(b)
+
+	f, err := zw.Create("example.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = f.Write([]byte("example content"))
+	if err != nil {
+		panic(err)
+	}
+
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
+
+	return io.NopCloser(b)
+}
+
+func createDirectory(name string) string {
+	path, err := os.MkdirTemp(os.TempDir(), name)
+	if err != nil {
+		panic(err)
+	}
+
+	return path
 }
 
 func TestGetUnpackFunction(t *testing.T) {
@@ -388,12 +439,27 @@ func createTestTar(t *testing.T, dstDir string) string {
 
 	// Add file to tar
 	addFileToTarArchive(tarWriter, filepath.Base(f1.Name()), f1)
+	if err := addDirToTarArchive(tarWriter, "dir"); err != nil {
+		t.Fatal(err)
+	}
 
 	// close tar
 	tarWriter.Close()
 
 	// return path to tar
 	return targetFile
+}
+
+func addDirToTarArchive(tarWriter *tar.Writer, dirName string) error {
+	header := &tar.Header{
+		Name:     dirName,
+		Mode:     0755,
+		Typeflag: tar.TypeDir,
+	}
+	if err := tarWriter.WriteHeader(header); err != nil {
+		return err
+	}
+	return nil
 }
 
 func createTestTarWithFiles(t *testing.T, dst string, files map[string]string) {
