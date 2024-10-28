@@ -107,32 +107,28 @@ func ExampleNewMemoryTarget() {
 }
 
 func ExampleNewOSTarget() {
-	// open file
-	archive, err := os.Open("test.zip")
+	var (
+		ctx = context.Background()    // context for cancellation
+		o   = extract.NewOSTarget()   // local filesystem
+		dst = createDirectory("out")  // root of in-memory filesystem
+		src = openFile("example.zip") // source reader
+		cfg = config.NewConfig()      // custom config for extraction
+	)
+
+	// unpack
+	if err := extract.UnpackTo(ctx, o, dst, src, cfg); err != nil {
+		// handle error
+	}
+
+	// read extracted file
+	content, err := os.ReadFile(filepath.Join(dst, "example.txt"))
 	if err != nil {
 		// handle error
 	}
-	defer archive.Close()
+	fmt.Println(string(content))
 
-	// prepare context, config and destination
-	ctx := context.Background()
-	o := extract.NewOSTarget()
-	dst := "output"
-	cfg := config.NewConfig()
-
-	// unpack
-	if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
-		// handle error
-	}
-
-	// Walk the local filesystem
-	localFs := os.DirFS(dst)
-	if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
-		// process path, d and err
-		return nil
-	}); err != nil {
-		// handle error
-	}
+	// Output:
+	// example content
 }
 
 // Demonstrates how to extract an "example.zip" source archive to an "output" directory on
