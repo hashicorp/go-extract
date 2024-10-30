@@ -29,7 +29,7 @@ import (
 func ExampleUnpack() {
 	var (
 		ctx = context.Background()      // context for cancellation
-		dst = createDirectory("output") // destination directory
+		dst = createDirectory("output") // create destination directory
 		src = openFile("example.zip")   // source reader
 		cfg = config.NewConfig()        // custom config for extraction
 	)
@@ -53,7 +53,7 @@ func ExampleUnpack() {
 func ExampleUnpackTo() {
 	var (
 		ctx = context.Background()      // context for cancellation
-		m   = extract.NewMemoryTarget() // in-memory filesystem
+		m   = extract.NewMemoryTarget() // create a new in-memory filesystem
 		dst = ""                        // root of in-memory filesystem
 		src = openFile("example.zip")   // source reader
 		cfg = config.NewConfig()        // custom config for extraction
@@ -78,7 +78,7 @@ func ExampleUnpackTo() {
 func ExampleNewMemoryTarget() {
 	var (
 		ctx = context.Background()      // context for cancellation
-		m   = extract.NewMemoryTarget() // in-memory filesystem
+		m   = extract.NewMemoryTarget() // create a new in-memory filesystem
 		dst = ""                        // root of in-memory filesystem
 		src = openFile("example.zip")   // source reader
 		cfg = config.NewConfig()        // custom config for extraction
@@ -110,7 +110,7 @@ func ExampleNewOSTarget() {
 	var (
 		ctx = context.Background()    // context for cancellation
 		o   = extract.NewOSTarget()   // local filesystem
-		dst = createDirectory("out")  // root of in-memory filesystem
+		dst = createDirectory("out")  // create destination directory
 		src = openFile("example.zip") // source reader
 		cfg = config.NewConfig()      // custom config for extraction
 	)
@@ -137,7 +137,7 @@ func Example() {
 	var (
 		ctx = context.Background()      // context for cancellation
 		src = openFile("example.zip")   // source reader
-		dst = createDirectory("output") // destination directory
+		dst = createDirectory("output") // create destination directory
 		cfg = config.NewConfig()        // custom config for extraction
 	)
 
