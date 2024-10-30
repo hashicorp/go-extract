@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -204,7 +205,9 @@ func (c *Config) SetNoUntarAfterDecompression(b bool) {
 // TelemetryHook returns the  telemetry hook.
 func (c *Config) TelemetryHook() telemetry.TelemetryHook {
 	if c.telemetryHook == nil {
-		return telemetry.NoopTelemetryHook
+		return func(ctx context.Context, d *telemetry.Data) {
+			// noop
+		}
 	}
 	return c.telemetryHook
 }
@@ -230,7 +233,9 @@ var (
 	// slog to discard
 	DefaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 	// no operation telemetry hook
-	DefaultTelemetryHook = telemetry.NoopTelemetryHook
+	DefaultTelemetryHook = func(ctx context.Context, d *telemetry.Data) {
+		// noop
+	}
 
 	// error message for max files exceeded
 	ErrMaxFilesExceeded = fmt.Errorf("extract/config: maximum files exceeded")
