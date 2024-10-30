@@ -213,27 +213,27 @@ func (c *Config) TelemetryHook() telemetry.TelemetryHook {
 }
 
 const (
-	DefaultCacheInMemory              = false         // cache on disk
-	DefaultContinueOnError            = false         // stop on error and return error
-	DefaultContinueOnUnsupportedFiles = false         // stop on unsupported files and return error
-	DefaultCreateDestination          = false         // do not create destination directory
-	DefaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
-	DefaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
-	DefaultDenySymlinkExtraction      = false         // allow symlink extraction
-	DefaultExtractionType             = ""            // do not limit extraction type
-	DefaultFollowSymlinks             = false         // do not traverse symlinks
-	DefaultMaxFiles                   = 1000          // 1k files
-	DefaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
-	DefaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
-	DefaultNoUntarAfterDecompression  = false         // untar after decompression
-	DefaultOverwrite                  = false         // do not overwrite existing files
+	defaultCacheInMemory              = false         // cache on disk
+	defaultContinueOnError            = false         // stop on error and return error
+	defaultContinueOnUnsupportedFiles = false         // stop on unsupported files and return error
+	defaultCreateDestination          = false         // do not create destination directory
+	defaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
+	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
+	defaultDenySymlinkExtraction      = false         // allow symlink extraction
+	defaultExtractionType             = ""            // do not limit extraction type
+	defaultFollowSymlinks             = false         // do not traverse symlinks
+	defaultMaxFiles                   = 1000          // 1k files
+	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
+	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
+	defaultNoUntarAfterDecompression  = false         // untar after decompression
+	defaultOverwrite                  = false         // do not overwrite existing files
 )
 
 var (
 	// slog to discard
-	DefaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	defaultLogger = slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 	// no operation telemetry hook
-	DefaultTelemetryHook = func(ctx context.Context, d *telemetry.Data) {
+	defaultTelemetryHook = func(ctx context.Context, d *telemetry.Data) {
 		// noop
 	}
 
@@ -249,22 +249,22 @@ func NewConfig(opts ...ConfigOption) *Config {
 
 	// setup default values
 	config := &Config{
-		cacheInMemory:              DefaultCacheInMemory,
-		continueOnError:            DefaultContinueOnError,
-		createDestination:          DefaultCreateDestination,
-		customCreateDirMode:        DefaultCustomCreateDirMode,
-		customDecompressFileMode:   DefaultCustomDecompressFileMode,
-		denySymlinkExtraction:      DefaultDenySymlinkExtraction,
-		extractionType:             DefaultExtractionType,
-		followSymlinks:             DefaultFollowSymlinks,
-		logger:                     DefaultLogger,
-		maxFiles:                   DefaultMaxFiles,
-		maxExtractionSize:          DefaultMaxExtractionSize,
-		maxInputSize:               DefaultMaxInputSize,
-		overwrite:                  DefaultOverwrite,
-		telemetryHook:              DefaultTelemetryHook,
-		noUntarAfterDecompression:  DefaultNoUntarAfterDecompression,
-		continueOnUnsupportedFiles: DefaultContinueOnUnsupportedFiles,
+		cacheInMemory:              defaultCacheInMemory,
+		continueOnError:            defaultContinueOnError,
+		createDestination:          defaultCreateDestination,
+		customCreateDirMode:        defaultCustomCreateDirMode,
+		customDecompressFileMode:   defaultCustomDecompressFileMode,
+		denySymlinkExtraction:      defaultDenySymlinkExtraction,
+		extractionType:             defaultExtractionType,
+		followSymlinks:             defaultFollowSymlinks,
+		logger:                     defaultLogger,
+		maxFiles:                   defaultMaxFiles,
+		maxExtractionSize:          defaultMaxExtractionSize,
+		maxInputSize:               defaultMaxInputSize,
+		overwrite:                  defaultOverwrite,
+		telemetryHook:              defaultTelemetryHook,
+		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
+		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
 	}
 
 	// Loop through each option
