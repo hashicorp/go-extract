@@ -208,7 +208,7 @@ The extraction process eventually fails, depending on the provided archive and i
 if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
   switch {
   case errors.Is(err, extract.ErrNoExtractorFound):
-  // handle no extractor found
+    // handle no extractor found
   case errors.Is(err, extract.ErrUnsupportedFileType):
     // handle unsupported file type
   case errors.Is(err, extract.ErrFailedToReadHeader):
