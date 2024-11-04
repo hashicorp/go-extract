@@ -65,7 +65,8 @@ func ExampleUnpackTo() {
 	}
 
 	// read extracted file
-	content, err := m.(*extractor.Memory).ReadFile("example.txt")
+	memFS := m.(fs.FS)
+	content, err := fs.ReadFile(memFS, "example.txt")
 	if err != nil {
 		// handle error
 	}
