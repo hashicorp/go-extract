@@ -202,7 +202,7 @@ if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) err
 
 ## Errors
 
-The extraction process eventually fails, depending on the provided archive and input stream. If the extraction fails, at exist a set of default errors that might be thrown by the `extract.Unpack()` function.
+If the extraction fails, you can check for specific errors returned by the `extract.Unpack` function:
 
 ```golang
 if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
