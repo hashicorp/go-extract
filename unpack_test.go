@@ -107,17 +107,17 @@ func ExampleNewMemoryTarget() {
 	// example.txt
 }
 
-func ExampleNewOSTarget() {
+func ExampleNewDiskTarget() {
 	var (
 		ctx = context.Background()    // context for cancellation
-		o   = extract.NewOSTarget()   // local filesystem
+		d   = extract.NewDiskTarget() // local filesystem
 		dst = createDirectory("out")  // create destination directory
 		src = openFile("example.zip") // source reader
 		cfg = config.NewConfig()      // custom config for extraction
 	)
 
 	// unpack
-	if err := extract.UnpackTo(ctx, o, dst, src, cfg); err != nil {
+	if err := extract.UnpackTo(ctx, d, dst, src, cfg); err != nil {
 		// handle error
 	}
 

@@ -75,7 +75,7 @@ func TestUnpackXz(t *testing.T) {
 			archivePath := filepath.Join(tmpDir, "test.xz")
 
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create a temporary file
 			reader := test.generator(archivePath, test.testData)

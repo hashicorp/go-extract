@@ -91,7 +91,7 @@ func TestUnpack7zip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			// create a target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// check content
 			if len(tt.content) == 0 {

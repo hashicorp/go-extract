@@ -39,7 +39,7 @@ func TestUnpackRar(t *testing.T) {
 
 	// Create a temporary directory and unpack the Rar archive
 	ctx := context.Background()
-	target := NewOS()
+	target := NewDisk()
 	tmpDir := t.TempDir()
 	cfg := config.NewConfig(config.WithContinueOnUnsupportedFiles(true))
 	err = UnpackRar(ctx, target, tmpDir, archiveReader, cfg)

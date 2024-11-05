@@ -183,7 +183,7 @@ func TestUnpackZip_file(t *testing.T) {
 	for _, test := range zipTests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			testDir := t.TempDir()
@@ -209,7 +209,7 @@ func TestUnpackZip_mem(t *testing.T) {
 	for _, test := range zipTests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			testDir := t.TempDir()
@@ -243,7 +243,7 @@ func TestZipUnpack_seeker(t *testing.T) {
 	for _, test := range zipTests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			testDir := t.TempDir()
@@ -432,7 +432,7 @@ func TestZipUnpackIllegalNames(t *testing.T) {
 	for _, name := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			testDir := t.TempDir()
