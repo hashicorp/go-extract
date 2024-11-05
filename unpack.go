@@ -40,14 +40,19 @@ func NewOSTarget() Target {
 }
 
 // Unpack unpacks the given source to the destination, according to the given configuration,
-// using the default OS extractor. If an error occurs, it is returned.
+// using the default OS extractor. If cfg is nil, the default configuration
+// is used for extraction. If an error occurs, it is returned.
 func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
 	return UnpackTo(ctx, extractor.NewOS(), dst, src, cfg)
 }
 
 // UnpackTo unpacks the given source to the destination, according to the given configuration,
-// using the given [Target]. If an error occurs, it is returned.
+// using the given [Target]. If cfg is nil, the default configuration is used for extraction.
+// If an error occurs, it is returned.
 func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *config.Config) error {
+	if cfg == nil {
+		cfg = config.NewConfig()
+	}
 	if et := cfg.ExtractType(); len(et) > 0 {
 		if ae, found := extractor.AvailableExtractors[et]; found {
 			if et == extractor.FileExtensionTarGZip {
