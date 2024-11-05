@@ -118,7 +118,7 @@ func TestGzipUnpack(t *testing.T) {
 			ctx := context.Background()
 
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			tmpDir := t.TempDir()

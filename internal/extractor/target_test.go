@@ -36,7 +36,7 @@ func testTargets(t *testing.T) []struct {
 			link:   filepath.Join(tmpDir, "symlink"),
 			file:   filepath.Join(tmpDir, "file"),
 			data:   testData,
-			target: NewOS(),
+			target: NewDisk(),
 		},
 		{
 			name:   "Memory",
@@ -143,7 +143,7 @@ func TestCreateFile(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var testTarget = NewOS()
+		var testTarget = NewDisk()
 		tmpDir := t.TempDir()
 
 		if test.cfg == nil {
@@ -228,7 +228,7 @@ func TestCreateDir(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		testTarget := NewOS()
+		testTarget := NewDisk()
 		tmpDir := t.TempDir()
 
 		if test.cfg == nil {
@@ -295,7 +295,7 @@ func TestSecurityCheck(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		testTarget := NewOS()
+		testTarget := NewDisk()
 		tmp := t.TempDir()
 		if test.cfg == nil {
 			test.cfg = config.NewConfig()
@@ -312,12 +312,12 @@ func TestSecurityCheck(t *testing.T) {
 	}
 }
 
-// FuzzSecurityCheckOs is a fuzzer for the SecurityCheck function
-func FuzzSecurityCheckOs(f *testing.F) {
+// FuzzSecurityCheckDisk is a fuzzer for the SecurityCheck function
+func FuzzSecurityCheckDisk(f *testing.F) {
 	f.Add("dst", "name")
-	o := NewOS()
+	d := NewDisk()
 	f.Fuzz(func(t *testing.T, dst, name string) {
 		tmp := t.TempDir()
-		_ = SecurityCheck(o, tmp, name, config.NewConfig())
+		_ = SecurityCheck(d, tmp, name, config.NewConfig())
 	})
 }

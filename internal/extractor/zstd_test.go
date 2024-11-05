@@ -76,7 +76,7 @@ func TestUnpackZstd(t *testing.T) {
 			ctx := context.Background()
 
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// Create a temporary directory
 			tmpDir := t.TempDir()

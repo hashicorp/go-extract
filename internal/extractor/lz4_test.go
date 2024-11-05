@@ -73,7 +73,7 @@ func TestUnpackLZ4(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// prepare context
 			ctx, cancel := context.WithCancel(context.Background())

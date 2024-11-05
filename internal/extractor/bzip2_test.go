@@ -84,7 +84,7 @@ func TestUnpackBzip2(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create a temporary file
 			tmpDir := t.TempDir()

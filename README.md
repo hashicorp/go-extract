@@ -149,18 +149,18 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 
 ## Extraction targets
 
-### Operating System (OS)
+### Disk
 
 Interact with the local operating system to create files, directories, and symlinks. Extracted entries can be accessed later using the `os.*` API calls.
 
 ```golang
 // prepare destination and config
-o := extract.NewOSTarget()
+d := extract.NewDiskTarget()
 dst := "output/"
 cfg := config.NewConfig()
 
 // unpack
-if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
+if err := extract.UnpackTo(ctx, d, dst, archive, cfg); err != nil {
     // handle error
 }
 

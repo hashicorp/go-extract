@@ -215,7 +215,7 @@ func TestTarUnpackNew(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create testing directory
 			testDir := t.TempDir()

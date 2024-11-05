@@ -91,7 +91,7 @@ func TestDecompressTarCompress(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			tmpDir := t.TempDir()
 			testFile := filepath.Join(tmpDir, fmt.Sprintf("test.tar.%s", test.extension))
@@ -226,7 +226,7 @@ func TestDecompressCompressedFile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			tmpDir := t.TempDir()
 			if test.prep != nil {
@@ -275,7 +275,7 @@ func FuzzDetermineOutputName(f *testing.F) {
 	// perform fuzzing test and ignore errors, looking for panics!
 	f.Fuzz(func(t *testing.T, fName string) {
 		// Create a new target
-		testingTarget := NewOS()
+		testingTarget := NewDisk()
 
 		// prepare tmp
 		dest := t.TempDir()

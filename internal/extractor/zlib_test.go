@@ -79,7 +79,7 @@ func TestUnpackZlib(t *testing.T) {
 			defer cancel()
 
 			// Create a new target
-			testingTarget := NewOS()
+			testingTarget := NewDisk()
 
 			// create a temporary file
 			tmpDir := t.TempDir()

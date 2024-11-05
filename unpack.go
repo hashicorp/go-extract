@@ -34,16 +34,16 @@ func NewMemoryTarget() Target {
 	return extractor.NewMemory()
 }
 
-// NewOSTarget returns a new OS target that uses the filesystem of the operating system.
-func NewOSTarget() Target {
-	return extractor.NewOS()
+// NewDiskTarget returns a new OS target that uses the filesystem of the operating system.
+func NewDiskTarget() Target {
+	return extractor.NewDisk()
 }
 
 // Unpack unpacks the given source to the destination, according to the given configuration,
 // using the default OS extractor. If cfg is nil, the default configuration
 // is used for extraction. If an error occurs, it is returned.
 func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
-	return UnpackTo(ctx, extractor.NewOS(), dst, src, cfg)
+	return UnpackTo(ctx, extractor.NewDisk(), dst, src, cfg)
 }
 
 // UnpackTo unpacks the given source to the destination, according to the given configuration,

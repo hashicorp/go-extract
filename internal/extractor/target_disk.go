@@ -7,19 +7,19 @@ import (
 	"os"
 )
 
-// OS is the struct type that holds all information for interacting with the filesystem
-type OS struct{}
+// Disk is the struct type that holds all information for interacting with the filesystem
+type Disk struct{}
 
-// NewOS creates a new Os and applies provided options from opts
-func NewOS() *OS {
+// NewDisk creates a new Os and applies provided options from opts
+func NewDisk() *Disk {
 	// create object
-	os := &OS{}
-	return os
+	disk := &Disk{}
+	return disk
 }
 
 // CreateDir creates a directory at the specified path with the specified mode. If the directory already
 // exists, nothing is done.
-func (o *OS) CreateDir(path string, mode fs.FileMode) error {
+func (d *Disk) CreateDir(path string, mode fs.FileMode) error {
 
 	// create dirs
 	if err := os.MkdirAll(path, mode.Perm()); err != nil {
@@ -35,7 +35,7 @@ func (o *OS) CreateDir(path string, mode fs.FileMode) error {
 // The size of the file should not exceed maxSize. If the file is created successfully, the number of bytes written
 // should be returned. If an error occurs, the number of bytes written should be returned along with the error.
 // If maxSize < 0, the file size is not limited.
-func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
+func (d *Disk) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	// Check for path validity and if file existence+overwrite
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 
@@ -71,7 +71,7 @@ func (o *OS) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite 
 
 // CreateSymlink creates a symbolic link from newname to oldname. If
 // newname already exists and overwrite is false, an error should be returned.
-func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error {
+func (d *Disk) CreateSymlink(oldname string, newname string, overwrite bool) error {
 
 	// Check for file existence and if it should be overwritten
 	if _, err := os.Lstat(newname); !os.IsNotExist(err) {
@@ -96,12 +96,12 @@ func (o *OS) CreateSymlink(oldname string, newname string, overwrite bool) error
 
 // Lstat returns the FileInfo structure describing the named file.
 // If there is an error, it will be of type *PathError.
-func (o *OS) Lstat(name string) (fs.FileInfo, error) {
+func (d *Disk) Lstat(name string) (fs.FileInfo, error) {
 	return os.Lstat(name)
 }
 
 // Stat returns the FileInfo structure describing the named file.
 // If there is an error, it will be of type *PathError.
-func (o *OS) Stat(name string) (os.FileInfo, error) {
+func (d *Disk) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
 }
