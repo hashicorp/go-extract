@@ -31,10 +31,10 @@ type CLI struct {
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
 	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
-	MaxFiles                   int64            `optional:"" default:"1000" help:"Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)"`
-	MaxExtractionSize          int64            `optional:"" default:"1073741824" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
-	MaxExtractionTime          int64            `optional:"" default:"60" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
-	MaxInputSize               int64            `optional:"" default:"1073741824" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
+	MaxFiles                   int64            `optional:"" default:"${default_max_files}" help:"Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)"`
+	MaxExtractionSize          int64            `optional:"" default:"${default_max_extraction_size}" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
+	MaxExtractionTime          int64            `optional:"" default:"${default_max_extraction_time}" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
+	MaxInputSize               int64            `optional:"" default:"${default_max_input_size}" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
@@ -52,9 +52,13 @@ func Run(version, commit, date string) {
 		kong.Description("A secure extraction utility"),
 		kong.UsageOnError(),
 		kong.Vars{
-			"version":      fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":  extractor.AvailableExtractors.Extensions(),
-			"default_type": "", // default is empty, but needs to be set to avoid kong error
+			"version":                     fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
+			"valid_types":                 extractor.AvailableExtractors.Extensions(),
+			"default_type":                "",                          // default is empty, but needs to be set to avoid kong error
+			"default_max_extraction_size": strconv.Itoa(1 << (10 * 3)), // 1GB
+			"default_max_files":           strconv.Itoa(1000),          // 1000 files
+			"default_max_input_size":      strconv.Itoa(1 << (10 * 3)), // 1GB
+			"default_max_extraction_time": strconv.Itoa(60),            // 60 seconds
 		},
 	)
 

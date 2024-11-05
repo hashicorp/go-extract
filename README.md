@@ -1,99 +1,20 @@
 # go-extract
 
-[![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml) [![Security Scanner](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/secscan.yml) [![Heimdall](https://heimdall.hashicorp.services/api/v1/assets/go-extract/badge.svg?key=ad16a37b0882cb2e792c11a031b139227b23eabe137ddf2b19d10028bcdb79a8)](https://heimdall.hashicorp.services/site/assets/go-extract)
+[![Perform tests on unix and windows](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml/badge.svg)](https://github.com/hashicorp/go-extract/actions/workflows/testing.yml)
+[![GoDoc](https://godoc.org/github.com/hashicorp/go-extract?status.svg)](https://godoc.org/github.com/hashicorp/go-extract)
+[![License: MPL-2.0](https://img.shields.io/badge/License-MPL--2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-Secure file decompression and extraction of following types: 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (without symlinks), Snappy, Tar, Xz, Zip, Zlib and Zstandard.
+This library provides secure decompression and extraction for formats like 7-Zip, Brotli, Bzip2, GZip, LZ4, Rar (excluding symlinks), Snappy, Tar, Xz, Zip, Zlib, and Zstandard. It safeguards against resource exhaustion, path traversal, and symlink attacks. Additionally, it offers various configuration options and collects telemetry data during extraction.
 
-## Code Example
+## Installation Instructions
 
-Add to `go.mod`:
-
-```cli
-GOPRIVATE=github.com/hashicorp/go-extract go get github.com/hashicorp/go-extract
-```
-
-Usage in code:
-
-```go
-
-import (
-    ...
-    "github.com/hashicorp/go-extract"
-    "github.com/hashicorp/go-extract/config"
-    "github.com/hashicorp/go-extract/telemetry"
-    ...
-)
-
-...
-
-
-    // open archive
-    archive, _ := os.Open(...)
-
-    // prepare context with timeout
-    ctx, cancel := context.WithTimeout(context.Background(), (time.Second * time.Duration(MaxExtractionTime)))
-    defer cancel()
-
-    // prepare logger
-    logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-      Level: slog.LevelInfo,
-    }))
-
-    // setup telemetry hook
-    telemetryToLog := func(ctx context.Context, td telemetry.Data) {
-      logger.Info("extraction finished", "telemetryData", td)
-    }
-
-    // prepare config (these are the default values)
-    config := config.NewConfig(
-        config.WithCacheInMemory(false),              // cache to disk if input is a zip in a stream
-        config.WithContinueOnError(false),            // fail on error
-        config.WithContinueOnUnsupportedFiles(false), // don't on unsupported files
-        config.WithCreateDestination(false),          // do not try to create specified destination
-        config.WithCustomCreateDirMode(0750),         // for not in-archive listed folders (respecting umask), default: drwxr-x--- 
-        config.WithCustomDecompressFileMode(0640),    // for decompressed files (respecting umask), default: -rw-r----- 
-        config.WithDenySymlinkExtraction(false),      // allow symlink creation
-        config.WithExtractType("<ext>")               // specify explicitly a file extension to determine extractor
-        config.WithFollowSymlinks(false),             // do not follow symlinks during creation
-        config.WithLogger(logger),                    // adjust logger (default: io.Discard)
-        config.WithMaxExtractionSize(1 << (10 * 3)),  // limit to 1 Gb (disable check: -1)
-        config.WithMaxFiles(1000),                    // only 1k files (including folders and symlinks) maximum (disable check: -1)
-        config.WithMaxInputSize(1 << (10 * 3)),       // limit to 1 Gb (disable check: -1)
-        config.WithNoUntarAfterDecompression(false),  // extract tar.gz combined
-        config.WithOverwrite(false),                  // don't replace existing files
-        config.WithPatterns("*.tf","modules/*.tf"),   // normally, no patterns predefined
-        config.WithTelemetryHook(telemetryToLog),     // adjust hook to receive telemetry from extraction
-    )
-
-    // extract archive
-    if err := extract.Unpack(ctx, archive, destinationPath, config); err != nil {
-      // handle error
-    }
-
-...
-
-```
-
-> [!TIP]
-> If the library is used in a cgroup memory limited execution environment to extract Zip archives that are cached in memory (`config.WithCacheInMemory(true)`), make sure that [`GOMEMLIMIT`](https://pkg.go.dev/runtime) is set in the execution environment to avoid `OOM` error.
->
-> Example:
->
-> ```shell
-> $ export GOMEMLIMIT=1GiB
-> ```
-
-## CLI Tool
-
-You can use this library on the command line with the `goextract` command.
-
-### Installation
+Add [hashicorp/go-extract](https://github.com/hashicorp/go-extract) as a dependency to your project:
 
 ```cli
-GOPRIVATE=github.com/hashicorp/go-extract go install github.com/hashicorp/go-extract/cmd/goextract@latest
+go get github.com/hashicorp/go-extract
 ```
 
-### Manual Build and Installation
+Build [hashicorp/go-extract](https://github.com/hashicorp/go-extract) from source and install it to the system as a command-line utility:
 
 ```cli
 git clone git@github.com:hashicorp/go-extract.git
@@ -103,9 +24,21 @@ make test
 make install
 ```
 
-### Usage
+Install [hashicorp/go-extract](https://github.com/hashicorp/go-extract) directly from GitHub:
 
 ```cli
+go install github.com/hashicorp/go-extract/cmd/goextract@latest
+```
+
+## Usage Examples
+
+These examples demonstrate how to use [hashicorp/go-extract](https://github.com/hashicorp/go-extract) both as a library and as a command-line utility.
+
+### Command-line Utility
+
+The `goextract` command-line utility offers all available configuration options via dedicated flags.
+
+```shell
 $ goextract -h
 Usage: goextract <archive> [<destination>] [flags]
 
@@ -124,7 +57,7 @@ Flags:
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
   -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
-      --max-files=1000                     Maximum files that are extracted before stop. (disable check: -1)
+      --max-files=1000                     Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
@@ -132,81 +65,68 @@ Flags:
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
   -T, --telemetry                          Print telemetry data to log after extraction.
-  -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, sz, tar, tgz, xz, zip, zst, zz)
+  -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
   -V, --version                            Print release version information.
 ```
 
-## Extraction targets
+### Library
 
-### Operating System (Os)
+The simplest way to use the library is to call the `extract.Unpack` function with the default configuration. This function extracts the contents from an `io.Reader` to the specified destination on the local filesystem.
 
-Interact with the local operating system to, to create files, directories and symlinks.
-Extracted entries can be accessed afterwards by `os.*` API calls.
-
-```golang
-// create a target
-osTarget := target.NewOS()
-extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg) 
+```go
+// Unpack the archive
+if err := extract.Unpack(ctx, archive, dst, config.NewConfig()); err != nil {
+    // Handle error
+    log.Fatalf("Failed to unpack archive: %v", err)
+}
 ```
 
-### Memory
+## Configuration
 
-Extract archives to memory by using the `target.Memory` implementation. Files, directories and symlinks
-are supported. File permissions are not validated. Extracted entries are accessed ether via the call of `m.Open(..)`
-or via a map key. Symlink semantically not processed by the implementation.
+When calling the `extract.Unpack(..)` function, we need to provide `config` object that contains all available configuration.
 
 ```golang
-// use target to unpack archive
-memTarget := target.NewMemory()
-extract.UnpackTo(ctx, memTarget, "", archiveReader, cfg)
+  // process cli params
+  cfg := config.NewConfig(
+    config.WithContinueOnError(..),
+    config.WithContinueOnUnsupportedFiles(..),
+    config.WithCreateDestination(..),
+    config.WithCustomCreateDirMode(..),
+    config.WithCustomDecompressFileMode(..),
+    config.WithDenySymlinkExtraction(..),
+    config.WithExtractType(..),
+    config.WithFollowSymlinks(..),
+    config.WithLogger(..),
+    config.WithMaxExtractionSize(..),
+    config.WithMaxFiles(..),
+    config.WithMaxInputSize(..),
+    config.WithNoUntarAfterDecompression(..),
+    config.WithOverwrite(..),
+    config.WithPatterns(..),
+    config.WithTelemetryHook(..),
+  )
 
-// manual usage
-memTarget.CreateFile("file.txt", bytes.NewReader([]byte("hello world")), 0644, true, 100)
-memTarget.CreateDir("dir", 0755)
-memTarget.CreateSymlink("file.txt", "link.txt", true)
+[..]
 
-// interact with the filesystem
-f, err := memTarget.Open("file.txt") // contains "hello world"
-if err != nil {
-  // handle error
-}
-defer f.Close()
-
-// open symlink
-f, err = memTarget.Open("link.txt") // contains "hello world"
-if err != nil {
-  // handle error
-}
-defer f.Close()
-
-// Stat the file
-s, err := memTarget.Stat("file.txt")
-if err != nil {
-  // handle error
-}
-fmt.Println(s.Name(), s.Size(), s.Mode(), s.ModTime())
-
-// Lstat the symlink
-l, err := memTarget.Lstat("link.txt")
-if err != nil {
-  // handle error
-}
-fmt.Println(l.Name(), l.Size(), l.Mode(), l.ModTime())
-
-// Readlink the symlink
-t, err := memTarget.Readlink("link.txt")
-if err != nil {
-  // handle error
-}
-fmt.Println(t)
-
-
+  if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+    log.Println(fmt.Errorf("error during extraction: %w", err))
+    os.Exit(-1)
+  }
 ```
 
-## Telemetry data
+## Telemetry
 
-It is possible to collect telemetry data ether by specifying a telemetry hook via the config option `config.WithTelemetryHook(telemetryToLog)` or as a cli parameter `-T, --telemetry`.
+Telemetry data can be collected by specifying a telemetry hook in the configuration. This hook receives the collected telemetry data at the end of each extraction.
+
+```golang
+// create new config
+cfg := NewConfig(
+  WithTelemetryHook(func(ctx context.Context, m *telemetry.Data) {
+    // handle telemetry data
+  }),
+)
+```
 
 Here is an example collected telemetry data for the extraction of [`terraform-aws-iam-5.34.0.tar.gz`](https://github.com/terraform-aws-modules/terraform-aws-iam/releases/tag/v5.34.0):
 
@@ -227,50 +147,76 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 }
 ```
 
-## Feature collection
+## Extraction targets
 
-- Filetypes
-  - [x] zip (/jar)
-  - [x] tar
-  - [x] gzip
-  - [x] tar.gz
-  - [x] brotli
-  - [x] bzip2
-  - [x] flate
-  - [x] xz
-  - [x] snappy
-  - [x] rar
-  - [x] 7zip
-  - [x] zstandard
-  - [x] zlib
-  - [x] lz4
-- [x] extraction size check
-- [x] max num of extracted files
-- [x] extraction time exhaustion
-- [x] input file size limitations
-- [x] context based cancelation
-- [x] option pattern for configuration
-- [x] `io.Reader` as source
-- [x] symlink inside archive
-- [x] symlink to outside is detected
-- [x] symlink with absolute path is detected
-- [x] file with path traversal is detected
-- [x] file with absolute path is detected
-- [x] filetype detection based on magic bytes
-- [x] windows support
-- [x] tests for gzip
-- [x] function documentation
-- [x] check for windows
-- [x] Allow/deny symlinks in general
-- [x] Telemetry call back function
-- [x] Extraction filter with [unix file name patterns](https://pkg.go.dev/path/filepath#Match)
-- [x] Cache input on disk (only relevant if `<archive>` is a zip archive, which read from a stream)
-- [x] Cache alternatively optional input in memory (similar to caching on disk, only relevant for zip archives that are consumed from a stream)
-- [x] in-memory extraction
-- [ ] Handle passwords
-- [ ] recursive extraction
+### Operating System (OS)
 
-## References
+Interact with the local operating system to create files, directories, and symlinks. Extracted entries can be accessed later using the `os.*` API calls.
 
-- [SecureZip](https://pypi.org/project/SecureZip/)
-- [42zip](https://www.unforgettable.dk/)
+```golang
+// prepare destination and config
+o := extract.NewOSTarget()
+dst := "output/"
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, o, dst, archive, cfg); err != nil {
+    // handle error
+}
+
+// Walk the local filesystem
+localFs := os.DirFS(dst)
+if err := fs.WalkDir(localFs, ".", func(path string, d fs.DirEntry, err error) error {
+    // process path, d and err
+    return nil
+}); err != nil {
+    // handle error
+}
+```
+
+### Memory
+
+Extract archives directly into memory, supporting files, directories, and symlinks. Note that file permissions are not validated. Access the extracted entries by converting the target to [io/fs.FS](https://pkg.go.dev/io/fs#FS).
+
+```golang
+// prepare destination and config
+m := extract.NewMemoryTarget()
+dst := "" // extract to root of memory filesystem
+cfg := config.NewConfig()
+
+// unpack
+if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
+    // handle error
+}
+
+// Walk the memory filesystem
+memFs := m.(fs.FS)
+if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+    fmt.Println(path)
+    return nil
+}); err != nil {
+    fmt.Printf("failed to walk memory filesystem: %s", err)
+    return
+}
+```
+
+## Errors
+
+If the extraction fails, you can check for specific errors returned by the `extract.Unpack` function:
+
+```golang
+if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+  switch {
+  case errors.Is(err, extract.ErrNoExtractorFound):
+    // handle no extractor found
+  case errors.Is(err, extract.ErrUnsupportedFileType):
+    // handle unsupported file type
+  case errors.Is(err, extract.ErrFailedToReadHeader):
+    // handle failed to read header
+  case errors.Is(err, extract.ErrFailedToUnpack):
+    // handle failed to unpack
+  default:
+    // handle other error
+  }
+}
+```

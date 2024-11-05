@@ -29,7 +29,7 @@ var (
 // so that the unpacking process can be done.
 type Target extractor.Target
 
-// NewMemoryTarget returns a new memory target that provides an in-memory filesystem.
+// NewMemoryTarget returns a new memory target that provides an in-memory filesystem (that implements [io/fs.FS]).
 func NewMemoryTarget() Target {
 	return extractor.NewMemory()
 }
@@ -46,7 +46,7 @@ func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) 
 }
 
 // UnpackTo unpacks the given source to the destination, according to the given configuration,
-// using the given extractor.Target. If an error occurs, it is returned.
+// using the given [Target]. If an error occurs, it is returned.
 func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *config.Config) error {
 	if et := cfg.ExtractType(); len(et) > 0 {
 		if ae, found := extractor.AvailableExtractors[et]; found {

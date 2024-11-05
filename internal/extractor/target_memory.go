@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -159,6 +160,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 
 	// get real path
 	dir, name := p.Split(newName)
+	dir = p.Clean(dir)
 	realDir, err := m.resolvePath(dir)
 	if err != nil {
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: err}
@@ -327,6 +329,9 @@ func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
 	name := p.Base(path)
 	dir := p.Dir(path)
 	existingEntry, err := m.resolvePath(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, fs.ErrNotExist
+	}
 	if err != nil {
 		return nil, &fs.PathError{Op: "resolveEntry", Path: path, Err: err}
 	}
@@ -343,7 +348,7 @@ func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
 	// get entry
 	e, ok := m.files.Load(realPath)
 	if !ok {
-		return nil, &fs.PathError{Op: "resolveEntry", Path: path, Err: fs.ErrNotExist}
+		return nil, fs.ErrNotExist
 	}
 
 	// return entry
@@ -390,7 +395,7 @@ func (m *Memory) resolvePath(path string) (string, error) {
 			// check if resulting path does exist
 			e, ok := m.files.Load(resultingPath)
 			if !ok {
-				return "", &fs.PathError{Op: "resolvePath", Path: path, Err: fs.ErrNotExist}
+				return "", fs.ErrNotExist
 			}
 			me := e.(*memoryEntry)
 
