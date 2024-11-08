@@ -6,9 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/internal/extractor"
 )
 
 var (
@@ -25,37 +22,37 @@ var (
 	ErrFailedToUnpack = fmt.Errorf("extract: failed to unpack")
 )
 
-// Target is an interface that defines the methods that a target must implement
-// so that the unpacking process can be done.
-type Target extractor.Target
+// // Target is an interface that defines the methods that a target must implement
+// // so that the unpacking process can be done.
+// type Target Target
 
 // NewMemoryTarget returns a new memory target that provides an in-memory filesystem (that implements [io/fs.FS]).
 func NewMemoryTarget() Target {
-	return extractor.NewMemory()
+	return NewMemory()
 }
 
 // NewDiskTarget returns a new OS target that uses the filesystem of the operating system.
 func NewDiskTarget() Target {
-	return extractor.NewDisk()
+	return NewDisk()
 }
 
 // Unpack unpacks the given source to the destination, according to the given configuration,
-// using the default OS extractor. If cfg is nil, the default configuration
+// using the default OS  If cfg is nil, the default configuration
 // is used for extraction. If an error occurs, it is returned.
-func Unpack(ctx context.Context, src io.Reader, dst string, cfg *config.Config) error {
-	return UnpackTo(ctx, extractor.NewDisk(), dst, src, cfg)
+func Unpack(ctx context.Context, src io.Reader, dst string, cfg *Config) error {
+	return UnpackTo(ctx, NewDisk(), dst, src, cfg)
 }
 
 // UnpackTo unpacks the given source to the destination, according to the given configuration,
 // using the given [Target]. If cfg is nil, the default configuration is used for extraction.
 // If an error occurs, it is returned.
-func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *config.Config) error {
+func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
 	if cfg == nil {
-		cfg = config.NewConfig()
+		cfg = NewConfig()
 	}
 	if et := cfg.ExtractType(); len(et) > 0 {
-		if ae, found := extractor.AvailableExtractors[et]; found {
-			if et == extractor.FileExtensionTarGZip {
+		if ae, found := AvailableExtractors[et]; found {
+			if et == FileExtensionTarGZip {
 				cfg.SetNoUntarAfterDecompression(false)
 			}
 
@@ -66,10 +63,10 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *con
 			return nil
 		}
 
-		return fmt.Errorf("%w: %q not in %q", ErrUnsupportedFileType, et, extractor.AvailableExtractors.Extensions())
+		return fmt.Errorf("%w: %q not in %q", ErrUnsupportedFileType, et, AvailableExtractors.Extensions())
 	}
 
-	header, reader, err := extractor.GetHeader(src)
+	header, reader, err := GetHeader(src)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFailedToReadHeader, err)
 	}
@@ -79,7 +76,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *con
 		ext = filepath.Ext(f.Name())
 	}
 
-	unpacker := extractor.AvailableExtractors.GetUnpackFunction(header, ext)
+	unpacker := AvailableExtractors.GetUnpackFunction(header, ext)
 	if unpacker != nil {
 		err := unpacker(ctx, t, dst, reader, cfg)
 		if err != nil {

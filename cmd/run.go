@@ -15,9 +15,6 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/hashicorp/go-extract"
-	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/internal/extractor"
-	"github.com/hashicorp/go-extract/telemetry"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -53,7 +50,7 @@ func Run(version, commit, date string) {
 		kong.UsageOnError(),
 		kong.Vars{
 			"version":                     fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":                 extractor.AvailableExtractors.Extensions(),
+			"valid_types":                 extract.AvailableExtractors.Extensions(),
 			"default_type":                "",                          // default is empty, but needs to be set to avoid kong error
 			"default_max_extraction_size": strconv.Itoa(1 << (10 * 3)), // 1GB
 			"default_max_files":           strconv.Itoa(1000),          // 1000 files
@@ -74,30 +71,30 @@ func Run(version, commit, date string) {
 	}))
 
 	// setup telemetry hook
-	telemetryDataToLog := func(ctx context.Context, td *telemetry.Data) {
+	telemetryDataToLog := func(ctx context.Context, td *extract.TelemetryData) {
 		if cli.Telemetry {
 			logger.Info("extraction finished", "telemetryData", td)
 		}
 	}
 
 	// process cli params
-	config := config.NewConfig(
-		config.WithContinueOnError(cli.ContinueOnError),
-		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
-		config.WithCreateDestination(cli.CreateDestination),
-		config.WithCustomCreateDirMode(toFileMode(cli.CustomCreateDirMode)),
-		config.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
-		config.WithDenySymlinkExtraction(cli.DenySymlinks),
-		config.WithExtractType(cli.Type),
-		config.WithFollowSymlinks(cli.FollowSymlinks),
-		config.WithLogger(logger),
-		config.WithMaxExtractionSize(cli.MaxExtractionSize),
-		config.WithMaxFiles(cli.MaxFiles),
-		config.WithMaxInputSize(cli.MaxInputSize),
-		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
-		config.WithOverwrite(cli.Overwrite),
-		config.WithPatterns(cli.Pattern...),
-		config.WithTelemetryHook(telemetryDataToLog),
+	config := extract.NewConfig(
+		extract.WithContinueOnError(cli.ContinueOnError),
+		extract.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
+		extract.WithCreateDestination(cli.CreateDestination),
+		extract.WithCustomCreateDirMode(toFileMode(cli.CustomCreateDirMode)),
+		extract.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
+		extract.WithDenySymlinkExtraction(cli.DenySymlinks),
+		extract.WithExtractType(cli.Type),
+		extract.WithFollowSymlinks(cli.FollowSymlinks),
+		extract.WithLogger(logger),
+		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
+		extract.WithMaxFiles(cli.MaxFiles),
+		extract.WithMaxInputSize(cli.MaxInputSize),
+		extract.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
+		extract.WithOverwrite(cli.Overwrite),
+		extract.WithPatterns(cli.Pattern...),
+		extract.WithTelemetryHook(telemetryDataToLog),
 	)
 
 	// open archive
