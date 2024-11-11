@@ -201,6 +201,327 @@ func createDirectory(name string) string {
 	return path
 }
 
+func compressBrotli(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w := brotli.NewWriter(b)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to brotli writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing brotli writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func compressGzip(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w := gzip.NewWriter(b)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to gzip writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing gzip writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+// compressBzip2 compresses data with bzip2 algorithm.
+func compressBzip2(t *testing.T, data []byte) []byte {
+	t.Helper()
+	buf := new(bytes.Buffer)
+	w, err := bzip2.NewWriter(buf, &bzip2.WriterConfig{
+		Level: bzip2.DefaultCompression,
+	})
+	if err != nil {
+		t.Fatalf("error creating bzip2 writer: %v", err)
+	}
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to bzip2 writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing bzip2 writer: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func compressLZ4(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w := lz4.NewWriter(b)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to lz4 writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing lz4 writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func compressSnappy(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w := snappy.NewBufferedWriter(b)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to snappy writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing snappy writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func compressXz(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w, err := xz.NewWriter(b)
+	if err != nil {
+		t.Fatalf("error creating xz writer: %v", err)
+	}
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to xz writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing xz writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func compressZlib(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w := zlib.NewWriter(b)
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to zlib writer: %v", err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing zlib writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func compressZstd(t *testing.T, data []byte) []byte {
+	t.Helper()
+	b := new(bytes.Buffer)
+	w, err := zstd.NewWriter(b, zstd.WithEncoderLevel(zstd.SpeedDefault))
+	if err != nil {
+		t.Fatalf("error creating zstd writer: %v", err)
+	}
+
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("error writing data to zstd writer: %v", err)
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing zstd writer: %v", err)
+	}
+
+	return b.Bytes()
+}
+
+// archiveContent is a struct to store the content of a file inside an archive
+type archiveContent struct {
+	Content    []byte
+	Linktarget string
+	Mode       fs.FileMode
+	Name       string
+	Filetype   uint32
+}
+
+// packTar creates a tar file with the given content
+func packTar(t *testing.T, content []archiveContent) []byte {
+	t.Helper()
+	b := bytes.NewBuffer([]byte{})
+	w := tar.NewWriter(b)
+	for _, c := range content {
+		if err := w.WriteHeader(
+			&tar.Header{
+				Name:     c.Name,
+				Mode:     int64(c.Mode),
+				Size:     int64(len(c.Content)),
+				Linkname: c.Linktarget,
+				Typeflag: byte(c.Filetype & 0xFF),
+			}); err != nil {
+			t.Fatalf("error writing tar header: %v", err)
+		}
+		if _, err := w.Write(c.Content); err != nil {
+			t.Fatalf("error writing tar data: %v", err)
+		}
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing tar writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+func packZip(t *testing.T, content []archiveContent) []byte {
+	b := new(bytes.Buffer)
+	w := zip.NewWriter(b)
+	for _, c := range content {
+		h := &zip.FileHeader{
+			Name: c.Name,
+		}
+		h.SetMode(fs.FileMode(c.Filetype) | c.Mode)
+		f, err := w.CreateHeader(h)
+		if err != nil {
+			t.Fatalf("error creating zip header: %v", err)
+		}
+		if h.Mode()&fs.ModeSymlink != 0 {
+			if _, err := f.Write([]byte(c.Linktarget)); err != nil {
+				t.Fatalf("error writing zip data: %v", err)
+			}
+		} else {
+			if _, err := f.Write(c.Content); err != nil {
+				t.Fatalf("error writing zip data: %v", err)
+			}
+		}
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("error closing zip writer: %v", err)
+	}
+	return b.Bytes()
+}
+
+// pack7z creates always the same a 7z archive with 'test/data' as a
+// file and 'Hello World!' as content.
+func pack7z(t *testing.T, _ []archiveContent) []byte {
+	t.Helper()
+	b, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
+	if err != nil {
+		t.Fatalf("error decoding 7z data: %v", err)
+	}
+	return b
+}
+
+// packRar creates always the same a rar archive with 'dir/foo' as a
+// file and 'Mi  4 Sep 2024 08:03:44 CEST' as content.
+func packRar(t *testing.T, _ []archiveContent) []byte {
+	t.Helper()
+	b, err := hex.DecodeString("526172211a0701003392b5e50a01050600050101808000039356282502030b9d00049d00a48302940800f4800001076469722f666f6f0a031340f8d766c8c149084d692020342053657020323032342030383a30333a343420434553540a941dbbea2202030b9d00049d00a483023ecfbbaa8000010466696c650a0313c40dd766c47b100e44692020332053657020323032342031353a32333a313620434553540a7b5c6f282c020317000407edc30200000000800001046c696e6b0a03134cf8d766482647180b050100076469722f666f6f4036861d1b02030b000100ed8301800001036469720a031340f8d76679df79071d77565103050400")
+	if err != nil {
+		t.Fatalf("error decoding rar data: %v", err)
+	}
+	return b
+}
+
+func TestDecompress(t *testing.T) {
+
+	tests := []struct {
+		name       string
+		compressor func(*testing.T, []byte) []byte
+		ext        string
+	}{
+		{
+			name:       "brotli",
+			compressor: compressBrotli,
+			ext:        "br",
+		},
+		{
+			name:       "gzip",
+			compressor: compressGzip,
+			ext:        "gz",
+		},
+		{
+			name:       "bzip2",
+			compressor: compressBzip2,
+			ext:        "bz2",
+		},
+		{
+			name:       "lz4",
+			compressor: compressLZ4,
+			ext:        "lz4",
+		},
+		{
+			name:       "snappy",
+			compressor: compressSnappy,
+			ext:        "sz",
+		},
+		{
+			name:       "xz",
+			compressor: compressXz,
+			ext:        "xz",
+		},
+		{
+			name:       "zlib",
+			compressor: compressZlib,
+			ext:        "zlib",
+		},
+		{
+			name:       "zstd",
+			compressor: compressZstd,
+			ext:        "zst",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			var (
+				tmp  = t.TempDir()
+				data = []byte("test data")
+				ctx  = context.Background()
+				dst  = fmt.Sprintf("%v/decompressed", tmp)
+				src  = openReader(t, tmp, test.compressor(t, data), test.ext)
+				cfg  = extract.NewConfig()
+			)
+
+			if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+				t.Fatalf("[%s] error decompressing data: %v", test.name, err)
+			}
+			content, err := os.ReadFile(dst)
+			if err != nil {
+				t.Fatalf("[%s] error reading decompressed file: %v", test.name, err)
+			}
+			if string(content) != string(data) {
+				t.Fatalf("[%s] expected %s, got %s", test.name, data, content)
+			}
+
+		})
+	}
+}
+
+func openReader(t *testing.T, tmp string, b []byte, ext string) io.Reader {
+	t.Helper()
+	f, err := os.Create(filepath.Join(tmp, fmt.Sprintf("test.%s", ext)))
+	if err != nil {
+		t.Fatalf("error creating file: %v", err)
+	}
+	defer f.Close()
+	if _, err := f.Write(b); err != nil {
+		t.Fatalf("error writing data: %v", err)
+	}
+	r, err := os.Open(f.Name())
+	if err != nil {
+		t.Fatalf("error opening file: %v", err)
+	}
+	return r
+}
+
+func TestExtract(t *testing.T) {
+
+	// create test data
+	content := []archiveContent{
+		{
+			Name:     "test",
+			Content:  []byte("test data"),
+			Mode:     0644,
+			Filetype: '0',
+		},
+		{
+			Name:     "sub",
+			Mode:     0755,
+			Filetype: uint32(fs.ModeDir),
+		},
+	}
+
+	tests := []struct {
+		name   string
+		packer func(*testing.T, []archiveContent) []byte
+	}{}
+
+}
+
 // func TestGetUnpackFunction(t *testing.T) {
 // 	tests := []struct {
 // 		name           string
@@ -296,25 +617,11 @@ func createGzip(t *testing.T, dstFile string, input io.Reader) {
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
 func createTestGzipWithFile(t *testing.T, dstDir string) string {
-	// define target
+	p := compressGzip(t, []byte("foobar content"))
 	targetFile := filepath.Join(dstDir, "GzipWithFile.gz")
-
-	// create a temporary dir for files in zip archive
-	tmpDir := t.TempDir()
-
-	// prepare test file for be added to zip
-	testFilePath := filepath.Join(tmpDir, "test")
-	createTestFile(t, testFilePath, "foobar content")
-	f1, err := os.Open(testFilePath)
-	if err != nil {
+	if err := os.WriteFile(targetFile, p, 0644); err != nil {
 		t.Fatal(err)
 	}
-	defer f1.Close()
-
-	// create Gzip file
-	createGzip(t, targetFile, f1)
-
-	// return path to zip
 	return targetFile
 }
 
@@ -1054,215 +1361,6 @@ func createFile(target string, data []byte) io.Reader {
 	}
 
 	return newFile
-}
-
-func compressBrotli(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w := brotli.NewWriter(b)
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to brotli writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing brotli writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func compressGzip(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w := gzip.NewWriter(b)
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to gzip writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing gzip writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-// compressBzip2 compresses data with bzip2 algorithm.
-func compressBzip2(t *testing.T, data []byte) []byte {
-	t.Helper()
-	buf := new(bytes.Buffer)
-	w, err := bzip2.NewWriter(buf, &bzip2.WriterConfig{
-		Level: bzip2.DefaultCompression,
-	})
-	if err != nil {
-		t.Fatalf("error creating bzip2 writer: %v", err)
-	}
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to bzip2 writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing bzip2 writer: %v", err)
-	}
-	return buf.Bytes()
-}
-
-func compressLZ4(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w := lz4.NewWriter(b)
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to lz4 writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing lz4 writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func compressSnappy(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w := snappy.NewBufferedWriter(b)
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to snappy writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing snappy writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func compressXz(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w, err := xz.NewWriter(b)
-	if err != nil {
-		t.Fatalf("error creating xz writer: %v", err)
-	}
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to xz writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing xz writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func compressZlib(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w := zlib.NewWriter(b)
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to zlib writer: %v", err)
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing zlib writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func compressZstd(t *testing.T, data []byte) []byte {
-	t.Helper()
-	b := new(bytes.Buffer)
-	w, err := zstd.NewWriter(b, zstd.WithEncoderLevel(zstd.SpeedDefault))
-	if err != nil {
-		t.Fatalf("error creating zstd writer: %v", err)
-	}
-
-	if _, err := w.Write(data); err != nil {
-		t.Fatalf("error writing data to zstd writer: %v", err)
-	}
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing zstd writer: %v", err)
-	}
-
-	return b.Bytes()
-}
-
-type zipContent struct {
-	Name    string
-	Content []byte
-}
-
-// archiveContent is a struct to store the content of a file inside an archive
-type archiveContent struct {
-	Content    []byte
-	Linktarget string
-	Mode       fs.FileMode
-	Name       string
-	Filetype   uint32
-}
-
-// packTar creates a tar file with the given content
-func packTar(t *testing.T, content []archiveContent) []byte {
-	t.Helper()
-	b := bytes.NewBuffer([]byte{})
-	w := tar.NewWriter(b)
-	for _, c := range content {
-		if err := w.WriteHeader(
-			&tar.Header{
-				Name:     c.Name,
-				Mode:     int64(c.Mode),
-				Size:     int64(len(c.Content)),
-				Linkname: c.Linktarget,
-				Typeflag: byte(c.Filetype & 0xFF),
-			}); err != nil {
-			t.Fatalf("error writing tar header: %v", err)
-		}
-		if _, err := w.Write(c.Content); err != nil {
-			t.Fatalf("error writing tar data: %v", err)
-		}
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing tar writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-func packZip(t *testing.T, content []archiveContent) []byte {
-	b := new(bytes.Buffer)
-	w := zip.NewWriter(b)
-	for _, c := range content {
-		h := &zip.FileHeader{
-			Name: c.Name,
-		}
-		h.SetMode(fs.FileMode(c.Filetype) | c.Mode)
-		f, err := w.CreateHeader(h)
-		if err != nil {
-			t.Fatalf("error creating zip header: %v", err)
-		}
-		if h.Mode()&fs.ModeSymlink != 0 {
-			if _, err := f.Write([]byte(c.Linktarget)); err != nil {
-				t.Fatalf("error writing zip data: %v", err)
-			}
-		} else {
-			if _, err := f.Write(c.Content); err != nil {
-				t.Fatalf("error writing zip data: %v", err)
-			}
-		}
-	}
-	if err := w.Close(); err != nil {
-		t.Fatalf("error closing zip writer: %v", err)
-	}
-	return b.Bytes()
-}
-
-// pack7z creates always the same a 7z archive with 'test/data' as a
-// file and 'Hello World!' as content.
-func pack7z(t *testing.T, _ []archiveContent) []byte {
-	t.Helper()
-	b, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
-	if err != nil {
-		t.Fatalf("error decoding 7z data: %v", err)
-	}
-	return b
-}
-
-// packRar creates always the same a rar archive with 'dir/foo' as a
-// file and 'Mi  4 Sep 2024 08:03:44 CEST' as content.
-func packRar(t *testing.T, _ []archiveContent) []byte {
-	t.Helper()
-	b, err := hex.DecodeString("526172211a0701003392b5e50a01050600050101808000039356282502030b9d00049d00a48302940800f4800001076469722f666f6f0a031340f8d766c8c149084d692020342053657020323032342030383a30333a343420434553540a941dbbea2202030b9d00049d00a483023ecfbbaa8000010466696c650a0313c40dd766c47b100e44692020332053657020323032342031353a32333a313620434553540a7b5c6f282c020317000407edc30200000000800001046c696e6b0a03134cf8d766482647180b050100076469722f666f6f4036861d1b02030b000100ed8301800001036469720a031340f8d76679df79071d77565103050400")
-	if err != nil {
-		t.Fatalf("error decoding rar data: %v", err)
-	}
-	return b
 }
 
 func TestUnsupportedArchiveNames(t *testing.T) {
