@@ -36,10 +36,8 @@ test_coverage_html:
 	go tool cover -html=coverage.out -o=coverage.html
 
 fuzz:
-	# Fuzzing FuzzSecurityCheckDisk in ./internal/extractor/target_test.go
-	go test ./internal/extractor -run=FuzzSecurityCheckDisk -fuzz=FuzzSecurityCheckDisk -fuzztime=30s
-	# Fuzzing FuzzDetermineOutputName in ./internal/extractor/decompress_test.go
-	go test ./internal/extractor -run=FuzzDetermineOutputName -fuzz=FuzzDetermineOutputName -fuzztime=30s
+	# Fuzzing FuzzSecurityCheckDisk in ./target_test.go
+	go test . -run=FuzzSecurityCheckDisk -fuzz=FuzzSecurityCheckDisk -fuzztime=30s
 
 all: build install
 
