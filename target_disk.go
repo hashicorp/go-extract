@@ -37,7 +37,7 @@ func (d *Disk) CreateDir(path string, mode fs.FileMode) error {
 // If maxSize < 0, the file size is not limited.
 func (d *Disk) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	// Check for path validity and if file existence+overwrite
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
 
 		// something wrong with path
 		if err != nil {

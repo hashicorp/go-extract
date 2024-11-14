@@ -499,11 +499,11 @@ func (e UnsupportedFileError) Error() string {
 	return fmt.Sprintf("%v: %s", e.error, e.filename)
 }
 
-// GetHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
+// getHeader reads the header from src and returns it. If src is a io.Seeker, the header is read
 // directly from the reader and the reader gets reset. If src is not a io.Seeker, the header is read
 // and transformed into a HeaderReader, which is returned as the second return value. If an error
 // occurs, the header is nil and the error is returned as the third return value
-func GetHeader(src io.Reader) ([]byte, io.Reader, error) {
+func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 	// check if source offers seek and preserve type of source
 	if s, ok := src.(io.Seeker); ok {
 

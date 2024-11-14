@@ -168,37 +168,626 @@ func Example() {
 	// Output: example content
 }
 
-// openFile is a helper function to "open" a file,
-// but it returns an in-memory reader for example purposes.
-func openFile(_ string) io.ReadCloser {
-	b := bytes.NewBuffer(nil)
+func TestUnpackCompressed(t *testing.T) {
 
-	zw := zip.NewWriter(b)
-
-	f, err := zw.Create("example.txt")
-	if err != nil {
-		panic(err)
+	tests := []struct {
+		name       string
+		compressor func(*testing.T, []byte) []byte
+		ext        string
+	}{
+		{
+			name:       "brotli",
+			compressor: compressBrotli,
+			ext:        "br",
+		},
+		{
+			name:       "gzip",
+			compressor: compressGzip,
+			ext:        "gz",
+		},
+		{
+			name:       "bzip2",
+			compressor: compressBzip2,
+			ext:        "bz2",
+		},
+		{
+			name:       "lz4",
+			compressor: compressLZ4,
+			ext:        "lz4",
+		},
+		{
+			name:       "snappy",
+			compressor: compressSnappy,
+			ext:        "sz",
+		},
+		{
+			name:       "xz",
+			compressor: compressXz,
+			ext:        "xz",
+		},
+		{
+			name:       "zlib",
+			compressor: compressZlib,
+			ext:        "zlib",
+		},
+		{
+			name:       "zstd",
+			compressor: compressZstd,
+			ext:        "zst",
+		},
 	}
 
-	_, err = f.Write([]byte("example content"))
-	if err != nil {
-		panic(err)
-	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 
-	if err := zw.Close(); err != nil {
-		panic(err)
-	}
+			var (
+				tmp  = t.TempDir()
+				data = []byte("test data")
+				ctx  = context.Background()
+				dst  = fmt.Sprintf("%v/decompressed", tmp)
+				src  = createFileReader(t, fmt.Sprintf("*.%s", test.ext), test.compressor(t, data))
+				cfg  = extract.NewConfig()
+			)
 
-	return io.NopCloser(b)
+			if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+				t.Fatalf("[%s] error decompressing data: %v", test.name, err)
+			}
+			content, err := os.ReadFile(dst)
+			if err != nil {
+				t.Fatalf("[%s] error reading decompressed file: %v", test.name, err)
+			}
+			if string(content) != string(data) {
+				t.Fatalf("[%s] expected %s, got %s", test.name, data, content)
+			}
+
+		})
+	}
 }
 
-func createDirectory(name string) string {
-	path, err := os.MkdirTemp(os.TempDir(), name)
-	if err != nil {
-		panic(err)
+func TestUnpackArchive(t *testing.T) {
+
+	ta := []archiveContent{
+		{
+			Name:    "test",
+			Content: []byte("hello world"),
+			Mode:    0644,
+		},
+		{
+			Name: "dir",
+			Mode: fs.ModeDir | 0755,
+		},
+		{
+			Name:    "dir/entry",
+			Content: []byte("hello world"),
+			Mode:    0644,
+		},
+		{
+			Name:       "dir/link",
+			Linktarget: "../test",
+			Mode:       fs.ModeSymlink | 0755,
+		},
 	}
 
-	return path
+	testCases := []struct {
+		name      string
+		src       []byte
+		noSymlink bool
+	}{
+		{
+			name: "tar",
+			src:  packTar(t, ta),
+		},
+		{
+			name: "zip",
+			src:  packZip(t, ta),
+		},
+		{
+			name:      "7z",
+			src:       pack7z(t, ta),
+			noSymlink: true,
+		},
+		{
+			name:      "rar",
+			src:       packRar(t, ta),
+			noSymlink: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, cacheFunction := range []func(*testing.T, []byte) io.Reader{asIoReader, asFileReader} {
+			t.Run(tc.name, func(t *testing.T) {
+
+				var (
+					ctx = context.Background()
+					dst = t.TempDir()
+					src = cacheFunction(t, tc.src)
+					cfg = extract.NewConfig(extract.WithCreateDestination(true), extract.WithContinueOnUnsupportedFiles(true))
+				)
+
+				if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+					t.Fatalf("[%s] error extracting data: %v", tc.name, err)
+				}
+
+				for _, c := range ta {
+					if tc.noSymlink && c.Mode&fs.ModeSymlink != 0 {
+						continue // skip symlink test
+					}
+					path := filepath.Join(dst, c.Name)
+					fi, err := os.Lstat(path)
+					if err != nil {
+						t.Fatalf("[%s] error stating file: %v", tc.name, err)
+					}
+					if c.Mode.IsDir() && !fi.IsDir() {
+						t.Fatalf("[%s] expected directory, got file", tc.name)
+					}
+					if c.Mode&fs.ModeSymlink != 0 && fi.Mode()&fs.ModeSymlink == 0 {
+						t.Fatalf("[%s] expected symlink, got file", tc.name)
+					}
+					if c.Mode.IsRegular() && !fi.Mode().IsRegular() {
+						t.Fatalf("[%s] expected regular file, got directory: %s", tc.name, c.Name)
+					}
+				}
+			})
+		}
+	}
+
+}
+
+func TestUnpackMaliciousArchive(t *testing.T) {
+
+	var testCases = []struct {
+		name        string
+		entries     []archiveContent
+		expectError bool
+	}{
+		{
+			name: "single file",
+			entries: []archiveContent{
+				{Name: "test", Mode: 0640, Content: []byte("foobar content")},
+			},
+		},
+		{
+			name: "path traversal in name",
+			entries: []archiveContent{
+				{Name: "../escaped", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "path traversal in name, but thats okay, bc/ its in a sub directory",
+			entries: []archiveContent{
+				{Name: "sub/../ok", Mode: 0640, Content: []byte("foobar content")},
+			},
+		},
+		{
+			name: "symlink to outside",
+			entries: []archiveContent{
+				{Name: "outside", Mode: fs.ModeSymlink | 0755, Linktarget: "../"},
+			},
+			expectError: true,
+		},
+		{
+			name: "symlink to absolute path",
+			entries: []archiveContent{
+				{Name: "etc-passwd", Mode: fs.ModeSymlink | 0755, Linktarget: "/etc/passwd"},
+			},
+			expectError: runtime.GOOS != "windows", // on windows, this is not an error
+		},
+		{
+			name: "symlink with path traversal in name",
+			entries: []archiveContent{
+				{Name: "../escaped", Mode: fs.ModeSymlink | 0755, Linktarget: "fooo"},
+			},
+			expectError: true,
+		},
+		{
+			name: "directory with path traversal in name",
+			entries: []archiveContent{
+				{Name: "../escaped", Mode: fs.ModeDir | 0755},
+			},
+			expectError: true,
+		},
+		{
+			name: "zip-slip attack",
+			entries: []archiveContent{
+				{Name: "sub", Mode: fs.ModeDir | 0755},
+				{Name: "sub/root", Mode: fs.ModeSymlink | 0755, Linktarget: "../"},
+				{Name: "sub/root/one-above", Mode: fs.ModeSymlink | 0755, Linktarget: "../"},
+				{Name: "sub/root/one-above/escaped", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "zip-slip attack sneaky",
+			entries: []archiveContent{
+				{Name: "sub", Mode: fs.ModeDir | 0755},
+				{Name: "sub/root", Mode: fs.ModeSymlink | 0755, Linktarget: "../"},
+				{Name: "sub/root/one-above", Mode: fs.ModeSymlink | 0755, Linktarget: "../"},
+				{Name: "sub/does-not-exist/../root/one-above/escaped", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "malicious tar with file named '.'",
+			entries: []archiveContent{
+				{Name: ".", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "malicious tar with file named '..'",
+			entries: []archiveContent{
+				{Name: "..", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "absolute path in filename (windows)",
+			entries: []archiveContent{
+				{Name: "s:\\absolute-path", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: runtime.GOOS == "windows",
+		},
+		{
+			name: "absolute path in link target (windows)",
+			entries: []archiveContent{
+				{Name: "test", Mode: fs.ModeSymlink | 0755, Linktarget: "s:\\absolute-path"},
+			},
+			expectError: runtime.GOOS == "windows",
+		},
+		{
+			name: "link-writer attack",
+			entries: []archiveContent{
+				{Name: "test", Mode: fs.ModeSymlink | 0755, Linktarget: "../escaped"},
+				{Name: "test", Mode: 0640, Content: []byte("foobar content")},
+			},
+			expectError: true,
+		},
+		{
+			name: "link-chain attack",
+			entries: []archiveContent{
+				{Name: "sub", Mode: fs.ModeDir | 0755},
+				{Name: "sub/escaped", Mode: fs.ModeSymlink | 0755, Linktarget: "../escaped"},
+				{Name: "sub/escaped", Mode: fs.ModeSymlink | 0755, Linktarget: "../escaped"},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// prepare test
+			var (
+				ctx = context.Background()
+				dst = t.TempDir()
+				src = asIoReader(t, packTar(t, tc.entries))
+				cfg = extract.NewConfig()
+			)
+
+			// perform test
+			err := extract.Unpack(ctx, src, dst, cfg)
+
+			// check if we got the expected error
+			if tc.expectError && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !tc.expectError && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// TestZipUnpackIllegalNames tests, with various cases, the implementation of zip.Unpack
+func TestUnpackWithIllegalNames(t *testing.T) {
+
+	// reserved names and forbidden characters
+	// from: https://go.googlesource.com/go/+/refs/tags/go1.19.1/src/path/filepath/path_windows.go#19
+	// from: https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
+	// removed `/` and `\` from tests, bc/ the zip lib cannot create directories as test file
+	var reservedNames []string
+	var forbiddenCharacters []string
+	if runtime.GOOS == "windows" {
+		reservedNames = []string{
+			"CON", "PRN", "AUX", "NUL",
+			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+		}
+		forbiddenCharacters = []string{`<`, `>`, `:`, `"`, `|`, `?`, `*`}
+		for i := 0; i <= 31; i++ {
+			fmt.Println(string(byte(i)))
+			forbiddenCharacters = append(forbiddenCharacters, string(byte(i)))
+		}
+	} else {
+		forbiddenCharacters = []string{"\x00"}
+	}
+	testCases := append(reservedNames, forbiddenCharacters...)
+
+	// test reserved names and forbidden chars
+	for _, tc := range testCases {
+		t.Run(tc, func(t *testing.T) {
+			var (
+				ctx = context.Background()
+				dst = t.TempDir()
+				src = packZip(t, []archiveContent{
+					{Name: tc, Content: []byte("hello world"), Mode: 0644},
+				})
+			)
+			if err := extract.Unpack(ctx, asIoReader(t, src), dst, extract.NewConfig()); err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+		})
+	}
+}
+
+func TestUnpackWithConfig(t *testing.T) {
+
+	defaultArchive := []archiveContent{
+		{
+			Name:    "test",
+			Content: []byte("hello world"),
+			Mode:    0644,
+		},
+		{
+			Name: "dir",
+			Mode: fs.ModeDir | 0755,
+		},
+		{
+			Name:       "dir/link",
+			Linktarget: "../test",
+			Mode:       fs.ModeSymlink | 0755,
+		},
+	}
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	testCases := []struct {
+		name        string
+		cfg         *extract.Config
+		ctx         context.Context
+		testArchive []archiveContent
+		dst         string
+		expectError bool
+	}{
+		{
+			name: "unpack normal",
+			cfg:  extract.NewConfig(),
+		},
+		{
+			name: "unpack with destination",
+			cfg:  extract.NewConfig(extract.WithCreateDestination(true)),
+			dst:  "sub",
+		},
+		{
+			name: "unpack with pattern missmatch",
+			cfg:  extract.NewConfig(extract.WithPatterns("*foo*")),
+		},
+		{
+			name:        "unpack with canceled context",
+			ctx:         canceledCtx,
+			expectError: true,
+		},
+		{
+			name:        "unpack with file limit",
+			cfg:         extract.NewConfig(extract.WithMaxFiles(2)),
+			expectError: true,
+		},
+		{
+			name: "unpack with file cache in memory",
+			cfg:  extract.NewConfig(extract.WithCacheInMemory(true)),
+		},
+		{
+			name:        "unpack with max input size",
+			cfg:         extract.NewConfig(extract.WithMaxInputSize(1)),
+			expectError: true,
+		},
+		{
+			name:        "archive with windows paths",
+			testArchive: []archiveContent{{Name: `example-dir\foo\bar\test`, Content: []byte("hello world"), Mode: 0644}},
+		},
+		{
+			name:        "unpack with extraction size limit",
+			cfg:         extract.NewConfig(extract.WithMaxExtractionSize(1)),
+			expectError: true,
+		},
+		{
+			name:        "unpack with continue on error",
+			cfg:         extract.NewConfig(extract.WithContinueOnError(true)),
+			testArchive: []archiveContent{{Name: "../test", Content: []byte("hello world"), Mode: 0644}},
+		},
+		{
+			name:        "unpack with deny symlink",
+			cfg:         extract.NewConfig(extract.WithDenySymlinkExtraction(true)),
+			expectError: true,
+		},
+		{
+			name: "unpack with deny symlink and continue on error",
+			cfg:  extract.NewConfig(extract.WithDenySymlinkExtraction(true), extract.WithContinueOnError(true)),
+		},
+		{
+			name: "unpack with deny symlink and continue on unsupported files",
+			cfg:  extract.NewConfig(extract.WithDenySymlinkExtraction(true), extract.WithContinueOnUnsupportedFiles(true)),
+		},
+		{
+			name:        "unpack fifo",
+			testArchive: []archiveContent{{Name: "../test", Content: []byte("hello world"), Mode: fs.ModeNamedPipe | 0755}},
+			expectError: true,
+		},
+		{
+			name: "tar with legit git pax_global_header",
+			testArchive: []archiveContent{
+				{Name: "pax_global_header", Mode: fs.FileMode(tar.TypeXGlobalHeader)},
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+			},
+		},
+		{
+			name: "unpack with  overwrite disabled",
+			testArchive: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+			},
+			expectError: true,
+		},
+		{
+			name: "unpack with overwrite enabled",
+			testArchive: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+			},
+			cfg:         extract.NewConfig(extract.WithOverwrite(true)),
+			expectError: false,
+		},
+		{
+			name: "traverse symlink disabled",
+			testArchive: []archiveContent{
+				{Name: "dir", Mode: fs.ModeDir | 0755},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "dir"},
+				{Name: "link/test", Content: []byte("hello world"), Mode: 0644},
+			},
+			expectError: true,
+		},
+		{
+			name: "traverse symlink enabled",
+			testArchive: []archiveContent{
+				{Name: "dir", Mode: fs.ModeDir | 0755},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "dir"},
+				{Name: "link/test", Content: []byte("hello world"), Mode: 0644},
+			},
+			cfg:         extract.NewConfig(extract.WithFollowSymlinks(true)),
+			expectError: false,
+		},
+	}
+
+	packer := []struct {
+		name string
+		pack func(*testing.T, []archiveContent) []byte
+	}{
+		{
+			name: "tar",
+			pack: packTar,
+		},
+		{
+			name: "zip",
+			pack: packZip,
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, p := range packer {
+			t.Run(tc.name, func(t *testing.T) {
+
+				if tc.ctx == nil {
+					tc.ctx = context.Background()
+				}
+				if tc.testArchive == nil {
+					tc.testArchive = defaultArchive
+				}
+				if tc.cfg == nil {
+					tc.cfg = extract.NewConfig()
+				}
+
+				var (
+					ctx = tc.ctx
+					tmp = t.TempDir()
+					src = createFileReader(t, fmt.Sprintf("*.%s", p.name), p.pack(t, tc.testArchive))
+					dst = filepath.Join(tmp, tc.dst)
+					cfg = tc.cfg
+				)
+
+				err := extract.Unpack(ctx, src, dst, cfg)
+
+				if tc.expectError && err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				if !tc.expectError && err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			})
+		}
+	}
+}
+
+func TestDecompression(t *testing.T) {
+
+	// 1024 * A
+	defaultContent := bytes.Repeat([]byte("A"), 1024)
+	compressed := compressZlib(t, defaultContent)
+	exampleTarGz := compressGzip(t, packTar(t, []archiveContent{{Name: "test", Content: defaultContent, Mode: 0644}}))
+	outputName := "decompressed"
+
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	testCases := []struct {
+		name        string
+		src         io.Reader
+		cfg         *extract.Config
+		ctx         context.Context
+		expectError bool
+	}{
+		{
+			name: "normal decompression",
+			src:  asIoReader(t, compressed),
+		},
+		{
+			name:        "decompression with canceled context",
+			src:         asIoReader(t, compressed),
+			ctx:         cancelCtx,
+			expectError: true,
+		},
+		{
+			name:        "decompression with max input size",
+			src:         asIoReader(t, compressed),
+			cfg:         extract.NewConfig(extract.WithMaxInputSize(1)),
+			expectError: true,
+		},
+		{
+			name:        "decompression with max extraction size",
+			src:         asIoReader(t, compressed),
+			cfg:         extract.NewConfig(extract.WithMaxExtractionSize(1)),
+			expectError: true,
+		},
+		{
+			name: "extract after decompression true",
+			src:  asIoReader(t, exampleTarGz),
+			cfg:  extract.NewConfig(extract.WithCreateDestination(true)),
+		},
+		{
+			name: "extract after decompression false",
+			src:  asIoReader(t, exampleTarGz),
+			cfg:  extract.NewConfig(extract.WithNoUntarAfterDecompression(true)),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			if tc.ctx == nil {
+				tc.ctx = context.Background()
+			}
+			if tc.cfg == nil {
+				tc.cfg = extract.NewConfig()
+			}
+
+			var (
+				ctx = tc.ctx
+				tmp = t.TempDir()
+				dst = filepath.Join(tmp, outputName)
+				cfg = tc.cfg
+			)
+
+			err := extract.Unpack(ctx, tc.src, dst, cfg)
+
+			if tc.expectError && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !tc.expectError && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+
 }
 
 func compressBrotli(t *testing.T, data []byte) []byte {
@@ -322,28 +911,56 @@ func compressZstd(t *testing.T, data []byte) []byte {
 
 // archiveContent is a struct to store the content of a file inside an archive
 type archiveContent struct {
+	Name       string
 	Content    []byte
 	Linktarget string
 	Mode       fs.FileMode
-	Name       string
-	Filetype   uint32
 }
 
 // packTar creates a tar file with the given content
 func packTar(t *testing.T, content []archiveContent) []byte {
-	t.Helper()
+	// t.Helper()
 	b := bytes.NewBuffer([]byte{})
 	w := tar.NewWriter(b)
 	for _, c := range content {
-		if err := w.WriteHeader(
-			&tar.Header{
-				Name:     c.Name,
-				Mode:     int64(c.Mode),
-				Size:     int64(len(c.Content)),
-				Linkname: c.Linktarget,
-				Typeflag: byte(c.Filetype & 0xFF),
-			}); err != nil {
+		var tFlag byte
+		switch {
+		case c.Mode.IsDir():
+			tFlag = tar.TypeDir
+		case c.Mode&fs.ModeSymlink != 0:
+			tFlag = tar.TypeSymlink
+		case c.Mode == tar.TypeXGlobalHeader:
+			tFlag = tar.TypeXGlobalHeader
+		case c.Mode.IsRegular():
+			tFlag = tar.TypeReg
+		case c.Mode&fs.ModeNamedPipe != 0:
+			tFlag = tar.TypeFifo
+		case c.Mode&fs.ModeCharDevice != 0:
+			tFlag = tar.TypeChar
+		case c.Mode&fs.ModeDevice != 0:
+			tFlag = tar.TypeBlock
+		default:
+			t.Fatalf("unsupported file mode: %v", c.Mode)
+		}
+		header := &tar.Header{
+			Name:     c.Name,
+			Mode:     int64(c.Mode & fs.ModePerm),
+			Size:     int64(len(c.Content)),
+			Linkname: c.Linktarget,
+			Typeflag: tFlag,
+		}
+		if tFlag == tar.TypeXGlobalHeader {
+			header.Mode = 0
+			header.Size = 0
+			header.Format = tar.FormatPAX
+			header.PAXRecords = map[string]string{}
+			header.PAXRecords["path"] = c.Name
+		}
+		if err := w.WriteHeader(header); err != nil {
 			t.Fatalf("error writing tar header: %v", err)
+		}
+		if !c.Mode.IsRegular() {
+			continue
 		}
 		if _, err := w.Write(c.Content); err != nil {
 			t.Fatalf("error writing tar data: %v", err)
@@ -362,12 +979,12 @@ func packZip(t *testing.T, content []archiveContent) []byte {
 		h := &zip.FileHeader{
 			Name: c.Name,
 		}
-		h.SetMode(fs.FileMode(c.Filetype) | c.Mode)
+		h.SetMode(c.Mode)
 		f, err := w.CreateHeader(h)
 		if err != nil {
 			t.Fatalf("error creating zip header: %v", err)
 		}
-		if h.Mode()&fs.ModeSymlink != 0 {
+		if c.Mode&fs.ModeSymlink != 0 {
 			if _, err := f.Write([]byte(c.Linktarget)); err != nil {
 				t.Fatalf("error writing zip data: %v", err)
 			}
@@ -383,236 +1000,95 @@ func packZip(t *testing.T, content []archiveContent) []byte {
 	return b.Bytes()
 }
 
-// pack7z creates always the same a 7z archive with 'test/data' as a
-// file and 'Hello World!' as content.
+// pack7z creates always the same a 7z archive with following files:
+// - dir			<- directory
+// - test			<- file with content 'hello world'
+// - dir/entry		<- file with content 'hello world'
+// - dir/link		<- symlink to ../test
 func pack7z(t *testing.T, _ []archiveContent) []byte {
 	t.Helper()
-	b, err := hex.DecodeString("377abcaf271c00049af18e7973000000000000002000000000000000a7e80f9801000b48656c6c6f20576f726c6421000000813307ae0fcef2b20c07c8437f41b1fafddb88b6d7636b8bd58a0e24a2f717a5f156e37f41fd00833298421d5d088c0cf987b30c0473663599e4d2f21cb69620038f10458109662135c3024189f42799abe3227b174a853e824f808b2efaab000017061001096300070b01000123030101055d001000000c760a015bcfa0a70000")
+	b, err := hex.DecodeString("377abcaf271c0004c56aaa05aa0000000000000022000000000000006f8f4694e0001e00195d00341949ee8de917893a335ffcaddde25ddffcba68ee826f0000000000813307ae0fd01dd27c9f3f47412d1ea0d6499572eff9701b44818f17d1ebf97a30988cb480987d5533695021ec7e826d40e780f3cc2281aa4269a8a6a4ca37325ce8144d61a65483cfaf19d952c49c1a6b394c806a28dea4123077df58998b710e178eaba4e90f9e59bc7e542d862968c5002d7b21b837330a6f57a080e68a0f5f3f38675600001706210109808900070b01000123030101055d001000000c80b60a015e606c030000")
 	if err != nil {
 		t.Fatalf("error decoding 7z data: %v", err)
 	}
 	return b
 }
 
-// packRar creates always the same a rar archive with 'dir/foo' as a
-// file and 'Mi  4 Sep 2024 08:03:44 CEST' as content.
+// packRar creates always the same a rar archive with following files:
+// - dir			<- directory
+// - test			<- file with content 'hello world'
+// - dir/entry		<- file with content 'hello world'
+// - dir/link		<- symlink to ../test
 func packRar(t *testing.T, _ []archiveContent) []byte {
 	t.Helper()
-	b, err := hex.DecodeString("526172211a0701003392b5e50a01050600050101808000039356282502030b9d00049d00a48302940800f4800001076469722f666f6f0a031340f8d766c8c149084d692020342053657020323032342030383a30333a343420434553540a941dbbea2202030b9d00049d00a483023ecfbbaa8000010466696c650a0313c40dd766c47b100e44692020332053657020323032342031353a32333a313620434553540a7b5c6f282c020317000407edc30200000000800001046c696e6b0a03134cf8d766482647180b050100076469722f666f6f4036861d1b02030b000100ed8301800001036469720a031340f8d76679df79071d77565103050400")
+	b, err := hex.DecodeString("526172211a0701003392b5e50a01050600050101808000e371be362202030b8c00048c00a483022d3b08af80000104746573740a03136efb3167e4a0682868656c6c6f20776f726c640adcb502882702030b8c00048c00a483022d3b08af800001096469722f656e7472790a0313b7fc31670b0c701768656c6c6f20776f726c640ad4e90fbc30020317000407edc30200000000800001086469722f6c696e6b0a031386fb3167644557330b050100072e2e2f74657374d8f240b61b02030b000100ed8301800001036469720a03131f033267492769271d77565103050400")
 	if err != nil {
 		t.Fatalf("error decoding rar data: %v", err)
 	}
 	return b
 }
 
-func TestDecompress(t *testing.T) {
+// openFile is a helper function to "open" a file,
+// but it returns an in-memory reader for example purposes.
+func openFile(_ string) io.ReadCloser {
+	b := bytes.NewBuffer(nil)
 
-	tests := []struct {
-		name       string
-		compressor func(*testing.T, []byte) []byte
-		ext        string
-	}{
-		{
-			name:       "brotli",
-			compressor: compressBrotli,
-			ext:        "br",
-		},
-		{
-			name:       "gzip",
-			compressor: compressGzip,
-			ext:        "gz",
-		},
-		{
-			name:       "bzip2",
-			compressor: compressBzip2,
-			ext:        "bz2",
-		},
-		{
-			name:       "lz4",
-			compressor: compressLZ4,
-			ext:        "lz4",
-		},
-		{
-			name:       "snappy",
-			compressor: compressSnappy,
-			ext:        "sz",
-		},
-		{
-			name:       "xz",
-			compressor: compressXz,
-			ext:        "xz",
-		},
-		{
-			name:       "zlib",
-			compressor: compressZlib,
-			ext:        "zlib",
-		},
-		{
-			name:       "zstd",
-			compressor: compressZstd,
-			ext:        "zst",
-		},
+	zw := zip.NewWriter(b)
+
+	f, err := zw.Create("example.txt")
+	if err != nil {
+		panic(err)
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-
-			var (
-				tmp  = t.TempDir()
-				data = []byte("test data")
-				ctx  = context.Background()
-				dst  = fmt.Sprintf("%v/decompressed", tmp)
-				src  = openReader(t, tmp, test.compressor(t, data), test.ext)
-				cfg  = extract.NewConfig()
-			)
-
-			if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
-				t.Fatalf("[%s] error decompressing data: %v", test.name, err)
-			}
-			content, err := os.ReadFile(dst)
-			if err != nil {
-				t.Fatalf("[%s] error reading decompressed file: %v", test.name, err)
-			}
-			if string(content) != string(data) {
-				t.Fatalf("[%s] expected %s, got %s", test.name, data, content)
-			}
-
-		})
+	_, err = f.Write([]byte("example content"))
+	if err != nil {
+		panic(err)
 	}
+
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
+
+	return io.NopCloser(b)
 }
 
-func openReader(t *testing.T, tmp string, b []byte, ext string) io.Reader {
+func createDirectory(name string) string {
+	path, err := os.MkdirTemp(os.TempDir(), name)
+	if err != nil {
+		panic(err)
+	}
+
+	return path
+}
+
+func createFileReader(t *testing.T, name string, content []byte) io.Reader {
 	t.Helper()
-	f, err := os.Create(filepath.Join(tmp, fmt.Sprintf("test.%s", ext)))
+	f, err := os.CreateTemp("", name)
 	if err != nil {
 		t.Fatalf("error creating file: %v", err)
 	}
-	defer f.Close()
-	if _, err := f.Write(b); err != nil {
+	if _, err := f.Write(content); err != nil {
 		t.Fatalf("error writing data: %v", err)
 	}
-	r, err := os.Open(f.Name())
-	if err != nil {
-		t.Fatalf("error opening file: %v", err)
+	if _, err := f.Seek(0, 0); err != nil {
+		t.Fatalf("error seeking file: %v", err)
 	}
-	return r
+	return f
 }
 
-func TestExtract(t *testing.T) {
-
-	// create test data
-	content := []archiveContent{
-		{
-			Name:     "test",
-			Content:  []byte("test data"),
-			Mode:     0644,
-			Filetype: '0',
-		},
-		{
-			Name:     "sub",
-			Mode:     0755,
-			Filetype: uint32(fs.ModeDir),
-		},
-	}
-
-	tests := []struct {
-		name   string
-		packer func(*testing.T, []archiveContent) []byte
-	}{}
-
-}
-
-// func TestGetUnpackFunction(t *testing.T) {
-// 	tests := []struct {
-// 		name           string
-// 		createTestFile func(*testing.T, string) string
-// 		expected       func(context.Context, extract.Target, string, io.Reader, *extract.Config) error
-// 	}{
-// 		{
-// 			name:           "get zip extractor from file",
-// 			createTestFile: createTestZip,
-// 			expected:       extract.UnpackZip,
-// 		},
-// 		{
-// 			name:           "get tar extractor from file",
-// 			createTestFile: createTestTar,
-// 			expected:       extract.UnpackTar,
-// 		},
-// 		{
-// 			name:           "get gzip extractor from file",
-// 			createTestFile: createTestGzipWithFile,
-// 			expected:       extract.UnpackGZip,
-// 		},
-// 		{
-// 			name:           "get 7zip extractor for 7z file",
-// 			createTestFile: create7zip,
-// 			expected:       extract.Unpack7Zip,
-// 		},
-// 		{
-// 			name:           "get nil extractor fot textfile",
-// 			createTestFile: createTestNonArchive,
-// 			expected:       nil,
-// 		},
-// 	}
-
-// 	for _, test := range tests {
-// 		t.Run(test.name, func(t *testing.T) {
-// 			// create testing directory
-// 			testDir := t.TempDir()
-
-// 			// prepare vars
-// 			want := test.expected
-
-// 			// perform actual tests
-// 			f, err := os.Open(test.createTestFile(t, testDir))
-// 			if err != nil {
-// 				f.Close()
-// 				t.Fatal(err)
-// 			}
-// 			input, err := io.ReadAll(f)
-// 			if err != nil {
-// 				f.Close()
-// 				t.Fatal(err)
-// 			}
-// 			got := extract.AvailableExtractors.GetUnpackFunction(input, "")
-// 			f.Close()
-
-// 			wantT := reflect.TypeOf(want)
-// 			gotT := reflect.TypeOf(got)
-
-// 			if !gotT.AssignableTo(wantT) {
-// 				t.Fatalf("\nexpected: %s\ngot: %s", wantT, gotT)
-// 			}
-// 		})
-// 	}
-// }
-
-// createGzip creates a gzip archive at dstFile with contents from input
-func createGzip(t *testing.T, dstFile string, input io.Reader) {
+func asFileReader(t *testing.T, b []byte) io.Reader {
 	t.Helper()
+	return createFileReader(t, "test*", b)
+}
 
-	// Create a new gzipped file
-	gzippedFile, err := os.Create(dstFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer gzippedFile.Close()
-
-	// Create a new gzip writer
-	gzipWriter := gzip.NewWriter(gzippedFile)
-	defer gzipWriter.Close()
-
-	// Copy the contents of the original file to the gzip writer
-	_, err = io.Copy(gzipWriter, input)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Flush the gzip writer to ensure all data is written
-	err = gzipWriter.Flush()
-	if err != nil {
-		t.Fatal(err)
-	}
+func asIoReader(t *testing.T, b []byte) io.Reader {
+	t.Helper()
+	r, w := io.Pipe()
+	go func() {
+		defer w.Close()
+		w.Write(b)
+	}()
+	return r
 }
 
 // createTestGzipWithFile creates a test gzip file in dstDir for testing
@@ -623,38 +1099,6 @@ func createTestGzipWithFile(t *testing.T, dstDir string) string {
 		t.Fatal(err)
 	}
 	return targetFile
-}
-
-func createGzipFromFile(t *testing.T, dstFile string, srcFile string) {
-	// Create a new gzipped file
-	gzippedFile, err := os.Create(dstFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer gzippedFile.Close()
-
-	// Create a new gzip writer
-	gzipWriter := gzip.NewWriter(gzippedFile)
-	defer gzipWriter.Close()
-
-	// open src file
-	src, err := os.Open(srcFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer src.Close()
-
-	// Copy the contents of the original file to the gzip writer
-	_, err = io.Copy(gzipWriter, src)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Flush the gzip writer to ensure all data is written
-	err = gzipWriter.Flush()
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 // createTestZip is a helper function to generate test data
@@ -805,67 +1249,6 @@ func addFileToTarArchive(tarWriter *tar.Writer, fileName string, f1 *os.File) {
 	}
 }
 
-func TestUnpack(t *testing.T) {
-	tests := []struct {
-		name        string
-		fn          func(*testing.T, string) string
-		expectError bool
-	}{
-		{
-			name:        "get zip extractor from file",
-			fn:          createTestZip,
-			expectError: false,
-		},
-		{
-			name:        "get tar extractor from file",
-			fn:          createTestTar,
-			expectError: false,
-		},
-		{
-			name:        "get gzip extractor from file",
-			fn:          createTestGzipWithFile,
-			expectError: false,
-		},
-		{
-			name:        "get nil extractor fot textfile",
-			fn:          createTestNonArchive,
-			expectError: true,
-		},
-	}
-
-	// run cases
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			// create testing directory
-			testDir := t.TempDir()
-
-			// prepare vars
-			want := test.expectError
-
-			// perform actual tests
-			archive, err := os.Open(test.fn(t, testDir))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer archive.Close()
-			err = extract.Unpack(
-				context.Background(),
-				archive,
-				testDir,
-				extract.NewConfig(
-					extract.WithOverwrite(true),
-				),
-			)
-			got := err != nil
-
-			// success if both are nil and no engine found
-			if want != got {
-				t.Errorf("\nexpected error: %v\ngot: %s\n", want, err)
-			}
-		})
-	}
-}
-
 // TestUnpack is a test function
 func TestUnpackToMemory(t *testing.T) {
 	tests := []struct {
@@ -930,7 +1313,10 @@ func TestUnpackToMemory(t *testing.T) {
 
 func gen1024ByteGzip(t *testing.T, dstDir string) string {
 	testFile := filepath.Join(dstDir, "GzipWithFile.gz")
-	createGzip(t, testFile, strings.NewReader(strings.Repeat("A", 1024)))
+	b := compressGzip(t, []byte(strings.Repeat("A", 1024)))
+	if err := os.WriteFile(testFile, b, 0644); err != nil {
+		t.Fatal(err)
+	}
 	return testFile
 }
 
@@ -948,26 +1334,21 @@ func genSingleFileTar(t *testing.T, dstDir string) string {
 }
 
 func genTarGzWith5Files(t *testing.T, dstDir string) string {
-	// create a temporary dir for files in tar archive
-	tmpDir := t.TempDir()
-
-	// create test files
+	var ac []archiveContent
 	for i := 0; i < 5; i++ {
-		testFile := filepath.Join(tmpDir, fmt.Sprintf("testFile%d", i))
-		createTestFile(t, testFile, strings.Repeat("A", 1024))
+		ac = append(ac, archiveContent{
+			Name:    fmt.Sprintf("testFile%d", i),
+			Content: []byte(strings.Repeat("A", 1024)),
+			Mode:    0644,
+		})
 	}
-	tmpTar := filepath.Join(tmpDir, "tmp.tar")
-	createTestTarWithFiles(t, tmpTar, map[string]string{
-		"testFile0": filepath.Join(tmpDir, "testFile0"),
-		"testFile1": filepath.Join(tmpDir, "testFile1"),
-		"testFile2": filepath.Join(tmpDir, "testFile2"),
-		"testFile3": filepath.Join(tmpDir, "testFile3"),
-		"testFile4": filepath.Join(tmpDir, "testFile4"),
-	})
-
-	gzipFileName := filepath.Join(dstDir, "TarGzWith5Files.tar.gz")
-	createGzipFromFile(t, gzipFileName, tmpTar)
-	return gzipFileName
+	tarByte := packTar(t, ac)
+	gzByte := compressGzip(t, tarByte)
+	tarGzFileName := filepath.Join(dstDir, "TarGzWith5Files.tar.gz")
+	if err := os.WriteFile(tarGzFileName, gzByte, 0644); err != nil {
+		t.Fatal(err)
+	}
+	return tarGzFileName
 }
 
 func TestTelemetryHook(t *testing.T) {
@@ -1286,7 +1667,6 @@ func TestUnpackWithTypes(t *testing.T) {
 					Linktarget: "",
 					Mode:       0644,
 					Name:       "example.json.zip",
-					Filetype:   tar.TypeReg,
 				},
 			})),
 			gen:           createFile,
@@ -1303,7 +1683,6 @@ func TestUnpackWithTypes(t *testing.T) {
 					Linktarget: "",
 					Mode:       0644,
 					Name:       "example.json.zip",
-					Filetype:   tar.TypeReg,
 				},
 			})),
 			gen:         createFile,
@@ -1559,9 +1938,8 @@ func TestWithCustomMode(t *testing.T) {
 					Mode: fs.FileMode(0000), // 0
 				},
 				{
-					Name:     "dir/",
-					Mode:     fs.FileMode(0000), // 0
-					Filetype: tar.TypeDir,
+					Name: "dir/",
+					Mode: fs.ModeDir, // 000 permission
 				},
 			})),
 			cfg: extract.NewConfig(),

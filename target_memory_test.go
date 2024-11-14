@@ -1,4 +1,4 @@
-package extract
+package extract_test
 
 import (
 	"bytes"
@@ -7,11 +7,13 @@ import (
 	p "path"
 	"testing"
 	"testing/fstest"
+
+	"github.com/hashicorp/go-extract"
 )
 
 func TestMemoryOpen(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -92,9 +94,49 @@ func TestMemoryOpen(t *testing.T) {
 
 }
 
+func TestMemoryReadlink(t *testing.T) {
+	// instantiate a new memory target
+	mem := extract.NewMemory()
+
+	// test data
+	testPath := "test"
+	testLink := "link"
+	testPathNotExist := "notexist"
+
+	// create a symlink
+	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+
+	// read the symlink
+	link, err := mem.Readlink(testLink)
+	if err != nil {
+		t.Fatalf("Readlink() failed: %s", err)
+	}
+
+	if link != testPath {
+		t.Fatalf("Readlink() failed: expected %s, got %s", testPath, link)
+	}
+
+	// read a symlink that does not exist
+	if _, err := mem.Readlink(testPathNotExist); err == nil {
+		t.Fatalf("Readlink() failed: expected error, got nil")
+	}
+
+	// create a file
+	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// readlink a file
+	if _, err := mem.Readlink(testPath); err == nil {
+		t.Fatalf("Readlink() failed: expected error, got nil")
+	}
+}
+
 func TestMemoryWithFsTest(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "foo"
@@ -134,7 +176,7 @@ func TestMemoryWithFsTest(t *testing.T) {
 
 func TestMemoryOpen2(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -182,7 +224,7 @@ func TestMemoryOpen2(t *testing.T) {
 
 func TestMemoryLstat(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -212,7 +254,7 @@ func TestMemoryLstat(t *testing.T) {
 
 func TestMemoryStat(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -265,7 +307,7 @@ func TestMemoryStat(t *testing.T) {
 
 func TestMemoryRemove(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -327,7 +369,7 @@ func TestMemoryRemove(t *testing.T) {
 
 func TestMemoryReadDir(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testDir := "dir"
@@ -372,7 +414,7 @@ func TestMemoryReadDir(t *testing.T) {
 
 func TestMemoryReadFile(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -413,7 +455,7 @@ func TestMemoryReadFile(t *testing.T) {
 
 func TestMemorySub(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testDir := "dir"
@@ -437,7 +479,7 @@ func TestMemorySub(t *testing.T) {
 	}
 
 	// read the sub
-	subFs, ok := sub.(*Memory)
+	subFs, ok := sub.(*extract.Memory)
 	if !ok {
 		t.Fatalf("Sub() failed: expected Memory, got %T", sub)
 	}
@@ -458,7 +500,7 @@ func TestMemorySub(t *testing.T) {
 
 func TestMemoryGlob(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -488,7 +530,7 @@ func TestMemoryGlob(t *testing.T) {
 
 func TestInvalidPath(t *testing.T) {
 	// instantiate a new memory target
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	invalidPath := "../invalid/path"
@@ -524,7 +566,7 @@ func TestInvalidPath(t *testing.T) {
 	}
 
 	// readlink the file
-	if _, err := mem.readlink(invalidPath); err == nil {
+	if _, err := mem.Readlink(invalidPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 
@@ -556,7 +598,7 @@ func TestInvalidPath(t *testing.T) {
 
 func TestMemoryEntry(t *testing.T) {
 	// instantiate a new memory
-	mem := NewMemory()
+	mem := extract.NewMemory()
 
 	// test data
 	testPath := "test"
@@ -648,5 +690,68 @@ func TestMemoryEntry(t *testing.T) {
 	// close the file
 	if err := f.Close(); err != nil {
 		t.Fatalf("Close() failed: %s", err)
+	}
+}
+
+func TestCreateFile(t *testing.T) {
+	// instantiate a new memory
+	mem := extract.NewMemory()
+
+	// test data
+	testPath := "test"
+	testContent := "test"
+	testPerm := 0644
+
+	// create a file
+	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// open the file
+	f, err := mem.Open(testPath)
+	if err != nil {
+		t.Fatalf("Open() failed: %s", err)
+	}
+
+	// stat the file
+	stat, err := f.Stat()
+	if err != nil {
+		t.Fatalf("Stat() failed: %s", err)
+	}
+
+	// check name
+	if stat.Name() != testPath {
+		t.Fatalf("Name() returned unexpected value: expected %s, got %s", testPath, stat.Name())
+	}
+
+	// check mode
+	if int(stat.Mode().Perm()&fs.ModePerm) != testPerm {
+		t.Fatalf("Mode() returned unexpected value: expected %d, got %d", testPerm, stat.Mode().Perm())
+	}
+
+	// read the file
+	data, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll() failed: %s", err)
+	}
+
+	if !bytes.Equal(data, []byte(testContent)) {
+		t.Fatalf("unexpected file contents: expected %s, got %s", testContent, data)
+	}
+
+	// close the file
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close() failed: %s", err)
+	}
+
+	// create a dir
+	testDir := "dir"
+	if err := mem.CreateDir(testDir, fs.FileMode(testPerm)); err != nil {
+		t.Fatalf("CreateDir() failed: %s", err)
+	}
+
+	// create a file with the same name as the dir
+	if _, err := mem.CreateFile(testDir, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
+		t.Fatalf("CreateFile() failed: expected error, got nil")
 	}
 }

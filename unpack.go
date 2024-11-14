@@ -66,7 +66,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 		return fmt.Errorf("%w: %q not in %q", ErrUnsupportedFileType, et, AvailableExtractors.Extensions())
 	}
 
-	header, reader, err := GetHeader(src)
+	header, reader, err := getHeader(src)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFailedToReadHeader, err)
 	}
