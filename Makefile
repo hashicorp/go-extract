@@ -36,8 +36,8 @@ test_coverage_html:
 	go tool cover -html=coverage.out -o=coverage.html
 
 fuzz:
-	# Fuzzing FuzzSecurityCheckDisk in ./target_test.go
-	go test . -run=FuzzSecurityCheckDisk -fuzz=FuzzSecurityCheckDisk -fuzztime=30s
+	# currently no fuzzing tests
+	exit 0
 
 all: build install
 
