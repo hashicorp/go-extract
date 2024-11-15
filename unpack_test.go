@@ -1139,6 +1139,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error opening file: %s", err)
 			}
+			defer src.Close()
 			if err := extract.Unpack(ctx, src, tmpDir, extract.NewConfig()); err != nil {
 				t.Fatalf("error unpacking file: %s", err)
 			}
