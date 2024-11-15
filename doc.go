@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package extract provides a function to extract files from a reader to a destination.
 //
 // The extraction process is determined by the file type, with support for various formats
