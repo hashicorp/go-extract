@@ -7,7 +7,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -472,9 +471,6 @@ func readerToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
 	// return temp file
 	return tmpFile, nil
 }
-
-// ErrUnsupportedFile is an error that indicates that the file is not supported.
-var ErrUnsupportedFile = errors.New("unsupported file")
 
 // unsupportedFile returns an error that indicates that the file is not supported.
 func unsupportedFile(filename string) error {

@@ -23,6 +23,9 @@ var (
 
 	// ErrFailedToExtract is returned when the file cannot be extracted.
 	ErrFailedToUnpack = fmt.Errorf("extract: failed to unpack")
+
+	// ErrUnsupportedFile is an error that indicates that the file is not supported.
+	ErrUnsupportedFile = fmt.Errorf("extract: unsupported file")
 )
 
 // Unpack unpacks the given source to the destination, according to the given configuration,
