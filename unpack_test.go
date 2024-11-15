@@ -710,7 +710,7 @@ func TestUnpackWithConfig(t *testing.T) {
 				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "dir"},
 				{Name: "link/test", Content: []byte("hello world"), Mode: 0644},
 			},
-			cfg:         extract.NewConfig(extract.WithFollowSymlinks(true)),
+			cfg:         extract.NewConfig(extract.WithTraverseSymlinks(true)),
 			expectError: false,
 		},
 	}

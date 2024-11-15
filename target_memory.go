@@ -218,7 +218,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 // If the file does not exist, an error is returned. If the file is a directory,
 // an error is returned. If the file is a symlink, the target of the symlink is returned.
 func (m *Memory) Open(path string) (fs.File, error) {
-	// follow the path & symlinks to get to the real path
+	// traverse the path & symlinks to get to the real path
 	actualPath, err := m.resolvePath(path)
 	if err != nil {
 		return nil, &fs.PathError{Op: "Open", Path: path, Err: err}
@@ -379,7 +379,7 @@ func (m *Memory) resolvePath(path string) (string, error) {
 	for i, part := range parts {
 		resultingPath = p.Clean(p.Join(resultingPath, part))
 
-		// following symlinks, protect against endless loops
+		// traverse symlinks, protect against endless loops
 		for j := 255; j >= 0; j-- {
 
 			if j == 0 {
@@ -442,7 +442,7 @@ func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 		return nil, &fs.PathError{Op: "Lstat", Path: path, Err: fs.ErrInvalid}
 	}
 
-	// check if path exist, follow symlinks in the path to get to the real
+	// check if path exist, traverse symlinks in the path to get to the real
 	// path
 	me, err := m.resolveEntry(path)
 	if err != nil {
@@ -465,7 +465,7 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 		return nil, &fs.PathError{Op: "Stat", Path: path, Err: fs.ErrInvalid}
 	}
 
-	// check if path exist, follow symlinks in the path to get to the real
+	// check if path exist, traverse symlinks in the path to get to the real
 	// file
 	actualPath, err := m.resolvePath(path)
 	if err != nil {

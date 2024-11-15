@@ -47,8 +47,8 @@ type Config struct {
 	// extractionType is the type of extraction algorithm
 	extractionType string
 
-	// followSymlinks follow symlinks to directories during extraction
-	followSymlinks bool
+	// traverseSymlinks traverses symlinks to directories during extraction
+	traverseSymlinks bool
 
 	// logger stream for extraction
 	logger logger
@@ -161,9 +161,9 @@ func (c *Config) ExtractType() string {
 	return c.extractionType
 }
 
-// FollowSymlinks returns true if symlinks should be traversed during extraction.
-func (c *Config) FollowSymlinks() bool {
-	return c.followSymlinks
+// TraverseSymlinks returns true if symlinks should be traversed during extraction.
+func (c *Config) TraverseSymlinks() bool {
+	return c.traverseSymlinks
 }
 
 // Logger returns the logger.
@@ -227,12 +227,13 @@ const (
 	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
 	defaultDenySymlinkExtraction      = false         // allow symlink extraction
 	defaultExtractionType             = ""            // do not limit extraction type
-	defaultFollowSymlinks             = false         // do not traverse symlinks
 	defaultMaxFiles                   = 1000          // 1k files
 	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
+	defaultTraverseSymlinks           = false         // do not traverse symlinks
+
 )
 
 var (
@@ -262,13 +263,13 @@ func NewConfig(opts ...ConfigOption) *Config {
 		customDecompressFileMode:   defaultCustomDecompressFileMode,
 		denySymlinkExtraction:      defaultDenySymlinkExtraction,
 		extractionType:             defaultExtractionType,
-		followSymlinks:             defaultFollowSymlinks,
 		logger:                     defaultLogger,
 		maxFiles:                   defaultMaxFiles,
 		maxExtractionSize:          defaultMaxExtractionSize,
 		maxInputSize:               defaultMaxInputSize,
 		overwrite:                  defaultOverwrite,
 		telemetryHook:              defaultTelemetryHook,
+		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
 		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
 	}
@@ -350,10 +351,10 @@ func WithExtractType(extractionType string) ConfigOption {
 	}
 }
 
-// WithFollowSymlinks options pattern function to traverse symlinks during extraction.
-func WithFollowSymlinks(follow bool) ConfigOption {
+// WithTraverseSymlinks options pattern function to traverse symlinks during extraction.
+func WithTraverseSymlinks(follow bool) ConfigOption {
 	return func(c *Config) {
-		c.followSymlinks = follow
+		c.traverseSymlinks = follow
 	}
 }
 

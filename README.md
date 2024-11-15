@@ -56,7 +56,7 @@ Flags:
       --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive. (respecting umask)
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
-  -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
+  -F, --follow-symlinks                    Traverse symlinks to directories during extraction.
       --max-files=1000                     Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
@@ -96,7 +96,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
     config.WithCustomDecompressFileMode(..),
     config.WithDenySymlinkExtraction(..),
     config.WithExtractType(..),
-    config.WithFollowSymlinks(..),
+    config.WithTraverseSymlinks(..),
     config.WithLogger(..),
     config.WithMaxExtractionSize(..),
     config.WithMaxFiles(..),

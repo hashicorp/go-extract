@@ -48,9 +48,9 @@ type Target interface {
 //
 // If the path contains path traversal or a symlink, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+// If the path contains a symlink and config.TraverseSymlinks() returns false, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// If the path contains a symlink and config.TraverseSymlinks() returns true, a warning is logged and the
 // function continues.
 //
 // If the file is created successfully, the function returns the number of bytes written and nil.
@@ -85,9 +85,9 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 //
 // If the path contains path traversal or a symlink, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+// If the path contains a symlink and config.TraverseSymlinks() returns false, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// If the path contains a symlink and config.TraverseSymlinks() returns true, a warning is logged and the
 // function continues.
 //
 // If the directory is created successfully, the function returns nil.
@@ -135,9 +135,9 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 //
 // If the path contains path traversal or a symlink, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns false, the function returns an error.
+// If the path contains a symlink and config.TraverseSymlinks() returns false, the function returns an error.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns true, a warning is logged and the
+// If the path contains a symlink and config.TraverseSymlinks() returns true, a warning is logged and the
 // function continues.
 //
 // If the symlink is created successfully, the function returns nil.
@@ -200,10 +200,10 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 // The function returns an error if the path contains path traversal or
 // if a symlink is detected.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns true,
+// If the path contains a symlink and config.TraverseSymlinks() returns true,
 // a warning is logged and the function continues.
 //
-// If the path contains a symlink and config.FollowSymlinks() returns false,
+// If the path contains a symlink and config.TraverseSymlinks() returns false,
 // an error is returned.
 func securityCheck(t Target, dst string, path string, config *Config) error {
 	// check if dstBase is empty, then targetDirectory should not be an absolute path
@@ -257,8 +257,8 @@ func securityCheck(t Target, dst string, path string, config *Config) error {
 			return fmt.Errorf("failed to check symlink: %w", err)
 		}
 		if isSymlink {
-			if config.FollowSymlinks() {
-				config.Logger().Warn("following symlink", "sub-dir", subDirs)
+			if config.TraverseSymlinks() {
+				config.Logger().Warn("traverse symlink", "sub-dir", subDirs)
 			} else {
 				return fmt.Errorf("symlink in path")
 			}
