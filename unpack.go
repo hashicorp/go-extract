@@ -31,7 +31,7 @@ var (
 // Unpack unpacks the given source to the destination, according to the given configuration,
 // using the default OS  If cfg is nil, the default configuration
 // is used for extraction. If an error occurs, it is returned.
-func Unpack(ctx context.Context, src io.Reader, dst string, cfg *Config) error {
+func Unpack(ctx context.Context, dst string, src io.Reader, cfg *Config) error {
 	return UnpackTo(ctx, NewDisk(), dst, src, cfg)
 }
 

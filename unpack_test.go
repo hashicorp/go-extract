@@ -39,7 +39,7 @@ func ExampleUnpack() {
 	)
 
 	// unpack
-	if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+	if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
 		// handle error
 	}
 
@@ -139,7 +139,7 @@ func Example() {
 		cfg = extract.NewConfig()       // custom config for extraction
 	)
 
-	err := extract.Unpack(ctx, src, dst, cfg)
+	err := extract.Unpack(ctx, dst, src, cfg)
 	if err != nil {
 		switch {
 		case errors.Is(err, extract.ErrNoExtractorFound):
@@ -214,7 +214,7 @@ func TestUnpack(t *testing.T) {
 				cfg = tc.cfg
 			)
 
-			err := extract.Unpack(ctx, src, dst, cfg)
+			err := extract.Unpack(ctx, dst, src, cfg)
 			if tc.expectError && err == nil {
 				t.Fatalf("expected error, got nil")
 			}
@@ -286,7 +286,7 @@ func TestUnpackCompressed(t *testing.T) {
 				cfg  = extract.NewConfig()
 			)
 
-			if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+			if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
 				t.Fatalf("[%s] error decompressing data: %v", test.name, err)
 			}
 			content, err := os.ReadFile(dst)
@@ -361,7 +361,7 @@ func TestUnpackArchive(t *testing.T) {
 					cfg = extract.NewConfig(extract.WithCreateDestination(true), extract.WithContinueOnUnsupportedFiles(true))
 				)
 
-				if err := extract.Unpack(ctx, src, dst, cfg); err != nil {
+				if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
 					t.Fatalf("[%s] error extracting data: %v", tc.name, err)
 				}
 
@@ -522,7 +522,7 @@ func TestUnpackMaliciousArchive(t *testing.T) {
 			)
 
 			// perform test
-			err := extract.Unpack(ctx, src, dst, cfg)
+			err := extract.Unpack(ctx, dst, src, cfg)
 
 			// check if we got the expected error
 			if tc.expectError && err == nil {
@@ -566,11 +566,11 @@ func TestUnpackWithIllegalNames(t *testing.T) {
 			var (
 				ctx = context.Background()
 				dst = t.TempDir()
-				src = packZip(t, []archiveContent{
+				src = asIoReader(t, packZip(t, []archiveContent{
 					{Name: tc, Content: []byte("hello world"), Mode: 0644},
-				})
+				}))
 			)
-			if err := extract.Unpack(ctx, asIoReader(t, src), dst, extract.NewConfig()); err == nil {
+			if err := extract.Unpack(ctx, dst, src, extract.NewConfig()); err == nil {
 				t.Fatalf("expected error, got nil")
 			}
 		})
@@ -748,7 +748,7 @@ func TestUnpackWithConfig(t *testing.T) {
 					dst = filepath.Join(tmp, tc.dst)
 					cfg = tc.cfg
 				)
-				err := extract.Unpack(ctx, src, dst, cfg)
+				err := extract.Unpack(ctx, dst, src, cfg)
 				if tc.expectError && err == nil {
 					t.Fatalf("expected error, got nil")
 				}
@@ -825,7 +825,7 @@ func TestDecompression(t *testing.T) {
 				dst = filepath.Join(tmp, outputName)
 				cfg = tc.cfg
 			)
-			err := extract.Unpack(ctx, tc.src, dst, cfg)
+			err := extract.Unpack(ctx, dst, tc.src, cfg)
 			if tc.expectError && err == nil {
 				t.Fatalf("expected error, got nil")
 			}
@@ -1029,7 +1029,7 @@ func TestTelemetryHook(t *testing.T) {
 			if tc.expectedTelemetryData.InputSize == 0 {
 				tc.expectedTelemetryData.InputSize = int64(len(tc.archive))
 			}
-			err := extract.Unpack(ctx, src, dst, cfg)
+			err := extract.Unpack(ctx, dst, src, cfg)
 			if tc.expectError != (err != nil) {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, tc.expectError, err)
 			}
@@ -1089,7 +1089,7 @@ func TestUnpackWithTypes(t *testing.T) {
 				dst     = testDir
 				cfg     = test.cfg
 			)
-			err := extract.Unpack(ctx, test.src, dst, cfg)
+			err := extract.Unpack(ctx, dst, test.src, cfg)
 			if test.expectError && err == nil {
 				t.Fatalf("expected error, got nil")
 			}
@@ -1203,7 +1203,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 				t.Fatalf("error opening file: %s", err)
 			}
 			defer src.Close()
-			if err := extract.Unpack(ctx, src, tmpDir, extract.NewConfig()); err != nil {
+			if err := extract.Unpack(ctx, tmpDir, src, extract.NewConfig()); err != nil {
 				t.Fatalf("error unpacking file: %s", err)
 			}
 			if _, err := os.Stat(expectedFile); err != nil {
@@ -1617,7 +1617,7 @@ func TestWithCustomMode(t *testing.T) {
 				src = asIoReader(t, test.data)
 				cfg = test.cfg
 			)
-			err := extract.Unpack(ctx, src, dst, cfg)
+			err := extract.Unpack(ctx, dst, src, cfg)
 			if test.expectError && err == nil {
 				t.Fatalf("expected error, got nil")
 			}

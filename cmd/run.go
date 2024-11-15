@@ -121,7 +121,7 @@ func Run(version, commit, date string) {
 	}
 
 	// extract archive
-	if err := extract.Unpack(ctx, archive, cli.Destination, config); err != nil {
+	if err := extract.Unpack(ctx, cli.Destination, archive, config); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}

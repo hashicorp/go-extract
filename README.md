@@ -76,7 +76,7 @@ The simplest way to use the library is to call the `extract.Unpack` function wit
 
 ```go
 // Unpack the archive
-if err := extract.Unpack(ctx, archive, dst, config.NewConfig()); err != nil {
+if err := extract.Unpack(ctx, dst, archive, config.NewConfig()); err != nil {
     // Handle error
     log.Fatalf("Failed to unpack archive: %v", err)
 }
@@ -109,7 +109,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
 
 [..]
 
-  if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+  if err := extract.Unpack(ctx, dst, archive, cfg); err != nil {
     log.Println(fmt.Errorf("error during extraction: %w", err))
     os.Exit(-1)
   }
@@ -204,7 +204,7 @@ if err := fs.WalkDir(m, ".", func(path string, d fs.DirEntry, err error) error {
 If the extraction fails, you can check for specific errors returned by the `extract.Unpack` function:
 
 ```golang
-if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+if err := extract.Unpack(ctx, dst, archive, cfg); err != nil {
   switch {
   case errors.Is(err, extract.ErrNoExtractorFound):
     // handle no extractor found
