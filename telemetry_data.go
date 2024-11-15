@@ -72,3 +72,22 @@ func (m TelemetryData) MarshalJSON() ([]byte, error) {
 // after an extraction has finished which can be used to submit the [TelemetryData]
 // to a telemetry service, for example.
 type TelemetryHook func(context.Context, *TelemetryData)
+
+// Equals returns true if the given [TelemetryData] is equal to the receiver.
+func (td *TelemetryData) Equals(other *TelemetryData) bool {
+	if td == nil && other == nil {
+		return true
+	}
+	if td == nil || other == nil {
+		return false
+	}
+	return td.ExtractedDirs == other.ExtractedDirs &&
+		td.ExtractionErrors == other.ExtractionErrors &&
+		td.ExtractedFiles == other.ExtractedFiles &&
+		td.ExtractionSize == other.ExtractionSize &&
+		td.ExtractedSymlinks == other.ExtractedSymlinks &&
+		td.ExtractedType == other.ExtractedType &&
+		td.PatternMismatches == other.PatternMismatches &&
+		td.UnsupportedFiles == other.UnsupportedFiles &&
+		td.LastUnsupportedFile == other.LastUnsupportedFile
+}
