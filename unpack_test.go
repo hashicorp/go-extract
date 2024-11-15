@@ -1446,7 +1446,8 @@ func asIoReader(t *testing.T, b []byte) io.Reader {
 	go func() {
 		defer w.Close()
 		if _, err := w.Write(b); err != nil {
-			t.Fatalf("error writing data to pipe: %v", err)
+			t.Logf("error writing data to pipe: %v", err)
+			t.Fail()
 		}
 	}()
 	return r
