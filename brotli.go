@@ -10,16 +10,16 @@ import (
 	"github.com/andybalholm/brotli"
 )
 
-// FileExtensionBrotli is the file extension for brotli files
-const FileExtensionBrotli = "br"
+// fileExtensionBrotli is the file extension for brotli files
+const fileExtensionBrotli = "br"
 
-// IsBrotli returns always false, because the brotli magic bytes are not unique
-func IsBrotli(header []byte) bool {
+// isBrotli returns always false, because the brotli magic bytes are not unique
+func isBrotli(header []byte) bool {
 	return false
 }
 
 // Unpack sets a timeout for the ctx and starts the brotli decompression from src to dst.
-func UnpackBrotli(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+func unpackBrotli(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
 	return decompress(ctx, t, dst, src, cfg, decompressBrotliStream, "br")
 }
 

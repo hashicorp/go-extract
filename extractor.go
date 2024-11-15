@@ -52,7 +52,7 @@ func captureExtractionDuration(m *TelemetryData, start time.Time) {
 }
 
 // captureInputSize captures the input size of the extraction
-func captureInputSize(td *TelemetryData, ler *LimitErrorReader) {
+func captureInputSize(td *TelemetryData, ler *limitErrorReader) {
 	td.InputSize = int64(ler.ReadBytes())
 }
 
@@ -130,74 +130,74 @@ func (e extractors) Extensions() string {
 // AvailableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
 var AvailableExtractors = extractors{
-	FileExtension7zip: {
-		Unpacker:    Unpack7Zip,
-		HeaderCheck: Is7zip,
+	fileExtension7zip: {
+		Unpacker:    unpack7Zip,
+		HeaderCheck: is7zip,
 		MagicBytes:  magicBytes7zip,
 	},
-	FileExtensionBrotli: {
-		Unpacker:    UnpackBrotli,
-		HeaderCheck: IsBrotli,
+	fileExtensionBrotli: {
+		Unpacker:    unpackBrotli,
+		HeaderCheck: isBrotli,
 	},
-	FileExtensionBzip2: {
-		Unpacker:    UnpackBzip2,
-		HeaderCheck: IsBzip2,
+	fileExtensionBzip2: {
+		Unpacker:    unpackBzip2,
+		HeaderCheck: isBzip2,
 		MagicBytes:  magicBytesBzip2,
 	},
-	FileExtensionGZip: {
-		Unpacker:    UnpackGZip,
-		HeaderCheck: IsGZip,
+	fileExtensionGZip: {
+		Unpacker:    unpackGZip,
+		HeaderCheck: isGZip,
 		MagicBytes:  magicBytesGZip,
 	},
-	FileExtensionLZ4: {
-		Unpacker:    UnpackLZ4,
-		HeaderCheck: IsLZ4,
+	fileExtensionLZ4: {
+		Unpacker:    unpackLZ4,
+		HeaderCheck: isLZ4,
 		MagicBytes:  magicBytesLZ4,
 	},
-	FileExtensionSnappy: {
-		Unpacker:    UnpackSnappy,
-		HeaderCheck: IsSnappy,
+	fileExtensionSnappy: {
+		Unpacker:    unpackSnappy,
+		HeaderCheck: isSnappy,
 		MagicBytes:  magicBytesSnappy,
 	},
-	FileExtensionTar: {
-		Unpacker:    UnpackTar,
-		HeaderCheck: IsTar,
+	fileExtensionTar: {
+		Unpacker:    unpackTar,
+		HeaderCheck: isTar,
 		MagicBytes:  magicBytesTar,
 		Offset:      offsetTar,
 	},
-	FileExtensionTarGZip: {
-		Unpacker:    UnpackGZip,
-		HeaderCheck: IsGZip,
+	fileExtensionTarGZip: {
+		Unpacker:    unpackGZip,
+		HeaderCheck: isGZip,
 		MagicBytes:  magicBytesGZip,
 	},
-	FileExtensionXz: {
-		Unpacker:    UnpackXz,
-		HeaderCheck: IsXz,
+	fileExtensionXz: {
+		Unpacker:    unpackXz,
+		HeaderCheck: isXz,
 		MagicBytes:  magicBytesXz,
 	},
-	FileExtensionZIP: {
-		Unpacker:    UnpackZip,
-		HeaderCheck: IsZip,
+	fileExtensionZIP: {
+		Unpacker:    unpackZip,
+		HeaderCheck: isZip,
 		MagicBytes:  magicBytesZIP,
 	},
-	FileExtensionZlib: {
-		Unpacker:    UnpackZlib,
-		HeaderCheck: IsZlib,
+	fileExtensionZlib: {
+		Unpacker:    unpackZlib,
+		HeaderCheck: isZlib,
 		MagicBytes:  magicBytesZlib,
 	},
-	FileExtensionZstd: {
-		Unpacker:    UnpackZstd,
-		HeaderCheck: IsZstd,
+	fileExtensionZstd: {
+		Unpacker:    unpackZstd,
+		HeaderCheck: isZstd,
 		MagicBytes:  magicBytesZstd,
 	},
-	FileExtensionRar: {
-		Unpacker:    UnpackRar,
-		HeaderCheck: IsRar,
+	fileExtensionRar: {
+		Unpacker:    unpackRar,
+		HeaderCheck: isRar,
 		MagicBytes:  magicBytesRar,
 	},
 }
 
-var MaxHeaderLength int
+var maxHeaderLength int
 
 // init calculates the maximum header length
 func init() {
@@ -208,8 +208,8 @@ func init() {
 				needs = len(mb) + ex.Offset
 			}
 		}
-		if needs > MaxHeaderLength {
-			MaxHeaderLength = needs
+		if needs > maxHeaderLength {
+			maxHeaderLength = needs
 		}
 	}
 }
@@ -379,7 +379,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 			// check if symlinks are allowed
 			if cfg.DenySymlinkExtraction() {
 
-				err := UnsupportedFile(ae.Name())
+				err := unsupportedFile(ae.Name())
 				if err := handleError(cfg, td, "symlink extraction disabled", err); err != nil {
 					return err
 				}
@@ -411,7 +411,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				continue
 			}
 
-			err := UnsupportedFile(ae.Name())
+			err := unsupportedFile(ae.Name())
 			msg := fmt.Sprintf("unsupported filetype in archive (%x)", ae.Mode())
 			if err := handleError(cfg, td, msg, err); err != nil {
 				return err
@@ -423,8 +423,8 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	}
 }
 
-// ReaderToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
-func ReaderToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
+// readerToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
+func readerToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
 	if s, ok := r.(seekerReaderAt); ok {
 		return s, nil
 	}
@@ -440,7 +440,7 @@ func ReaderToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
 	}
 
 	// limit reader
-	ler := NewLimitErrorReader(r, c.MaxInputSize())
+	ler := newLimitErrorReader(r, c.MaxInputSize())
 
 	// check how to cache
 	if c.CacheInMemory() {
@@ -476,8 +476,8 @@ func ReaderToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
 // ErrUnsupportedFile is an error that indicates that the file is not supported.
 var ErrUnsupportedFile = errors.New("unsupported file")
 
-// UnsupportedFile returns an error that indicates that the file is not supported.
-func UnsupportedFile(filename string) error {
+// unsupportedFile returns an error that indicates that the file is not supported.
+func unsupportedFile(filename string) error {
 	return &UnsupportedFileError{error: ErrUnsupportedFile, filename: filename}
 }
 
@@ -511,7 +511,7 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 	if s, ok := src.(io.Seeker); ok {
 
 		// allocate buffer for header
-		header := make([]byte, MaxHeaderLength)
+		header := make([]byte, maxHeaderLength)
 
 		// read header from source
 		_, err := src.Read(header)
@@ -526,7 +526,7 @@ func getHeader(src io.Reader) ([]byte, io.Reader, error) {
 		return header, src, nil
 	}
 
-	headerReader, err := NewHeaderReader(src, MaxHeaderLength)
+	headerReader, err := newHeaderReader(src, maxHeaderLength)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create header reader: %w", err)
 	}

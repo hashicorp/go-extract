@@ -55,11 +55,11 @@ func ExampleUnpack() {
 
 func ExampleUnpackTo() {
 	var (
-		ctx = context.Background()      // context for cancellation
-		m   = extract.NewMemoryTarget() // create a new in-memory filesystem
-		dst = ""                        // root of in-memory filesystem
-		src = openFile("example.zip")   // source reader
-		cfg = extract.NewConfig()       // custom config for extraction
+		ctx = context.Background()    // context for cancellation
+		m   = extract.NewMemory()     // create a new in-memory filesystem
+		dst = ""                      // root of in-memory filesystem
+		src = openFile("example.zip") // source reader
+		cfg = extract.NewConfig()     // custom config for extraction
 	)
 
 	// unpack
@@ -67,9 +67,8 @@ func ExampleUnpackTo() {
 		// handle error
 	}
 
-	// read extracted file
-	memFS := m.(fs.FS)
-	content, err := fs.ReadFile(memFS, "example.txt")
+	// read extracted file using fs package
+	content, err := fs.ReadFile(m, "example.txt")
 	if err != nil {
 		// handle error
 	}
@@ -78,13 +77,13 @@ func ExampleUnpackTo() {
 	// example content
 }
 
-func ExampleNewMemoryTarget() {
+func ExampleNewMemory() {
 	var (
-		ctx = context.Background()      // context for cancellation
-		m   = extract.NewMemoryTarget() // create a new in-memory filesystem
-		dst = ""                        // root of in-memory filesystem
-		src = openFile("example.zip")   // source reader
-		cfg = extract.NewConfig()       // custom config for extraction
+		ctx = context.Background()    // context for cancellation
+		m   = extract.NewMemory()     // create a new in-memory filesystem
+		dst = ""                      // root of in-memory filesystem
+		src = openFile("example.zip") // source reader
+		cfg = extract.NewConfig()     // custom config for extraction
 	)
 
 	// unpack
@@ -92,9 +91,7 @@ func ExampleNewMemoryTarget() {
 		// handle error
 	}
 
-	// Walk the memory filesystem
-	memFs := m.(fs.FS)
-	if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+	if err := fs.WalkDir(m, ".", func(path string, d fs.DirEntry, err error) error {
 		if path == "." {
 			return nil
 		}
@@ -108,10 +105,10 @@ func ExampleNewMemoryTarget() {
 	// example.txt
 }
 
-func ExampleNewDiskTarget() {
+func ExampleNewDisk() {
 	var (
 		ctx = context.Background()    // context for cancellation
-		d   = extract.NewDiskTarget() // local filesystem
+		d   = extract.NewDisk()       // local filesystem
 		dst = createDirectory("out")  // create destination directory
 		src = openFile("example.zip") // source reader
 		cfg = extract.NewConfig()     // custom config for extraction
@@ -1054,7 +1051,7 @@ func TestUnpackWithTypes(t *testing.T) {
 	}{
 		{
 			name: "Fix extraction to gunzip",
-			cfg:  extract.NewConfig(extract.WithExtractType(extract.FileExtensionGZip)),
+			cfg:  extract.NewConfig(extract.WithExtractType("tgz")),
 			src:  createFileReader(t, "test*.gz", compressGzip(t, []byte("foobar content")))},
 		{
 			name:        "Non valid extraction type",
@@ -1069,13 +1066,13 @@ func TestUnpackWithTypes(t *testing.T) {
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to tar.gz",
-			cfg:         extract.NewConfig(extract.WithExtractType(extract.FileExtensionGZip)),
+			cfg:         extract.NewConfig(extract.WithExtractType("gz")),
 			src:         createFileReader(t, "test*.tar.gz", compressGzip(t, packTar(t, []archiveContent{{Name: "test", Content: []byte("foobar content")}}))),
 			expectError: false,
 		},
 		{
 			name:        "extract zip file inside a tar.gz archive with extract type set to zip, so that it fails",
-			cfg:         extract.NewConfig(extract.WithExtractType(extract.FileExtensionZIP)),
+			cfg:         extract.NewConfig(extract.WithExtractType("zip")),
 			src:         createFileReader(t, "example.json.zip*.tar.gz", compressGzip(t, packTar(t, []archiveContent{{Name: "example.json.zip", Content: packZip(t, []archiveContent{{Name: "example.json", Content: []byte(`{"foo": "bar"}`)}})}}))),
 			expectError: true,
 		},

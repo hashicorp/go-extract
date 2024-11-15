@@ -11,8 +11,8 @@ import (
 	"os"
 )
 
-// FileExtensionTar is the file extension for tar files
-const FileExtensionTar = "tar"
+// fileExtensionTar is the file extension for tar files
+const fileExtensionTar = "tar"
 
 // offsetTar is the offset where the magic bytes are located in the file
 const offsetTar = 257
@@ -24,28 +24,28 @@ var magicBytesTar = [][]byte{
 	[]byte("ustar  \x00"),
 }
 
-// IsTar checks if the header matches the magic bytes for tar files
-func IsTar(data []byte) bool {
+// isTar checks if the header matches the magic bytes for tar files
+func isTar(data []byte) bool {
 	return matchesMagicBytes(data, offsetTar, magicBytesTar)
 }
 
 // Unpack sets a timeout for the ctx and starts the tar extraction from src to dst.
-func UnpackTar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+func unpackTar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
 	// prepare telemetry capturing
-	td := &TelemetryData{ExtractedType: FileExtensionTar}
+	td := &TelemetryData{ExtractedType: fileExtensionTar}
 	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// prepare reader
-	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
+	limitedReader := newLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(td, limitedReader)
 
 	// start extraction
-	return unpackTar(ctx, t, limitedReader, dst, cfg, td)
+	return processTar(ctx, t, limitedReader, dst, cfg, td)
 }
 
-// unpackTar extracts the tar archive from src to dst
-func unpackTar(ctx context.Context, t Target, src io.Reader, dst string, c *Config, td *TelemetryData) error {
+// processTar extracts the tar archive from src to dst
+func processTar(ctx context.Context, t Target, src io.Reader, dst string, c *Config, td *TelemetryData) error {
 	return extract(ctx, t, dst, &tarWalker{tr: tar.NewReader(src)}, c, td)
 }
 
@@ -56,7 +56,7 @@ type tarWalker struct {
 
 // Type returns the file extension for tar files
 func (t *tarWalker) Type() string {
-	return FileExtensionTar
+	return fileExtensionTar
 }
 
 // Next returns the next entry in the tar archive
@@ -111,7 +111,7 @@ func (t *tarEntry) IsSymlink() bool {
 
 // Open returns a reader for the entry
 func (t *tarEntry) Open() (io.ReadCloser, error) {
-	return &NoopReaderCloser{t.tr}, nil
+	return &noopReaderCloser{t.tr}, nil
 }
 
 // Type returns the type of the entry

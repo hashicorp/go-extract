@@ -25,20 +25,6 @@ var (
 	ErrFailedToUnpack = fmt.Errorf("extract: failed to unpack")
 )
 
-// // Target is an interface that defines the methods that a target must implement
-// // so that the unpacking process can be done.
-// type Target Target
-
-// NewMemoryTarget returns a new memory target that provides an in-memory filesystem (that implements [io/fs.FS]).
-func NewMemoryTarget() Target {
-	return NewMemory()
-}
-
-// NewDiskTarget returns a new OS target that uses the filesystem of the operating system.
-func NewDiskTarget() Target {
-	return NewDisk()
-}
-
 // Unpack unpacks the given source to the destination, according to the given configuration,
 // using the default OS  If cfg is nil, the default configuration
 // is used for extraction. If an error occurs, it is returned.
@@ -55,7 +41,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 	}
 	if et := cfg.ExtractType(); len(et) > 0 {
 		if ae, found := AvailableExtractors[et]; found {
-			if et == FileExtensionTarGZip {
+			if et == fileExtensionTarGZip {
 				cfg.SetNoUntarAfterDecompression(false)
 			}
 

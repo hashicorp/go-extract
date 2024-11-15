@@ -5,9 +5,9 @@ package extract
 
 import "io"
 
-// LimitErrorWriter is a wrapper around an io.Writer that returns io.ErrShortWrite
+// limitErrorWriter is a wrapper around an io.Writer that returns io.ErrShortWrite
 // when the limit is reached.
-type LimitErrorWriter struct {
+type limitErrorWriter struct {
 	W io.Writer // underlying reader
 	L int64     // limit
 	N int64     // number of bytes read
@@ -18,7 +18,7 @@ type LimitErrorWriter struct {
 // that caused the write to stop early. Write returns a non-nil error when n < len(p).
 // Write does not modify the slice data, even temporarily. The limit is enforced by
 // returning io.ErrShortWrite when the limit is reached.
-func (l *LimitErrorWriter) Write(p []byte) (n int, err error) {
+func (l *limitErrorWriter) Write(p []byte) (n int, err error) {
 	// check if we reached the limit
 	if l.N >= l.L {
 		return 0, io.ErrShortWrite
@@ -41,10 +41,10 @@ func (l *LimitErrorWriter) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-// NewLimitErrorWriter returns a new LimitErrorWriter that wraps the given writer
+// newLimitErrorWriter returns a new LimitErrorWriter that wraps the given writer
 // and limit.
-func NewLimitErrorWriter(w io.Writer, l int64) *LimitErrorWriter {
-	return &LimitErrorWriter{W: w, L: l}
+func newLimitErrorWriter(w io.Writer, l int64) *limitErrorWriter {
+	return &limitErrorWriter{W: w, L: l}
 }
 
 // limitWriter returns a new writer that wraps the given writer and limits the
@@ -52,5 +52,5 @@ func limitWriter(w io.Writer, maxSize int64) io.Writer {
 	if maxSize < 0 {
 		return w
 	}
-	return NewLimitErrorWriter(w, maxSize)
+	return newLimitErrorWriter(w, maxSize)
 }

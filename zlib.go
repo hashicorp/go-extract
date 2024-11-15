@@ -9,8 +9,8 @@ import (
 	"io"
 )
 
-// FileExtensionZlib is the file extension for Zlib files.
-const FileExtensionZlib = "zz"
+// fileExtensionZlib is the file extension for Zlib files.
+const fileExtensionZlib = "zz"
 
 // magicBytesZlib is the magic bytes for Zlib files.
 // reference https://www.ietf.org/rfc/rfc1950.txt
@@ -26,13 +26,13 @@ var magicBytesZlib = [][]byte{
 }
 
 // isZlib checks if the header matches the Zlib magic bytes.
-func IsZlib(header []byte) bool {
+func isZlib(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesZlib)
 }
 
 // Unpack sets a timeout for the ctx and starts the zlib decompression from src to dst.
-func UnpackZlib(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
-	return decompress(ctx, t, dst, src, cfg, decompressZlibStream, FileExtensionZlib)
+func unpackZlib(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressZlibStream, fileExtensionZlib)
 }
 
 // decompressZlibStream returns an io.Reader that decompresses src with zlib algorithm

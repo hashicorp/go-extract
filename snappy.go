@@ -10,8 +10,8 @@ import (
 	"github.com/golang/snappy"
 )
 
-// FileExtensionSnappy is the file extension for snappy files.
-const FileExtensionSnappy = "sz"
+// fileExtensionSnappy is the file extension for snappy files.
+const fileExtensionSnappy = "sz"
 
 // magicBytesSnappy is the magic bytes for snappy files.
 var magicBytesSnappy = [][]byte{
@@ -19,13 +19,13 @@ var magicBytesSnappy = [][]byte{
 }
 
 // isSnappy checks if the header matches the snappy magic bytes.
-func IsSnappy(header []byte) bool {
+func isSnappy(header []byte) bool {
 	return matchesMagicBytes(header, 0, magicBytesSnappy)
 }
 
 // Unpack sets a timeout for the ctx and starts the snappy decompression from src to dst.
-func UnpackSnappy(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
-	return decompress(ctx, t, dst, src, cfg, decompressSnappyStream, FileExtensionSnappy)
+func unpackSnappy(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+	return decompress(ctx, t, dst, src, cfg, decompressSnappyStream, fileExtensionSnappy)
 }
 
 // decompressSnappyStream returns an io.Reader that decompresses src with snappy algorithm

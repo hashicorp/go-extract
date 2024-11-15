@@ -111,7 +111,7 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 		return nil
 	}
 
-	if err := SecurityCheck(t, dst, name, cfg); err != nil {
+	if err := securityCheck(t, dst, name, cfg); err != nil {
 		return fmt.Errorf("security check path failed: %w", err)
 	}
 
@@ -144,7 +144,7 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Config) error {
 	// check if symlink extraction is denied
 	if cfg.DenySymlinkExtraction() {
-		return UnsupportedFile(name)
+		return unsupportedFile(name)
 	}
 
 	// check if a name is provided
@@ -185,7 +185,7 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 
 	// check link target for traversal
 	targetCleaned := filepath.Join(linkDirectory, linkTarget)
-	if err := SecurityCheck(t, dst, targetCleaned, cfg); err != nil {
+	if err := securityCheck(t, dst, targetCleaned, cfg); err != nil {
 		return fmt.Errorf("symlink target security check path failed: %w", err)
 	}
 
@@ -194,7 +194,7 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 
 }
 
-// SecurityCheck checks if the targetDirectory contains path traversal
+// securityCheck checks if the targetDirectory contains path traversal
 // and if the path contains a symlink.
 //
 // The function returns an error if the path contains path traversal or
@@ -205,7 +205,7 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 //
 // If the path contains a symlink and config.FollowSymlinks() returns false,
 // an error is returned.
-func SecurityCheck(t Target, dst string, path string, config *Config) error {
+func securityCheck(t Target, dst string, path string, config *Config) error {
 	// check if dstBase is empty, then targetDirectory should not be an absolute path
 	if len(dst) == 0 {
 		if filepath.IsAbs(path) {

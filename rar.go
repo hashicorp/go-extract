@@ -12,8 +12,8 @@ import (
 	"github.com/nwaples/rardecode"
 )
 
-// FileExtensionRar is the file extension for Rar files.
-const FileExtensionRar = "rar"
+// fileExtensionRar is the file extension for Rar files.
+const fileExtensionRar = "rar"
 
 // magicBytesRar are the magic bytes for Rar files.
 var magicBytesRar = [][]byte{
@@ -21,29 +21,29 @@ var magicBytesRar = [][]byte{
 	{0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00}, // Rar 5.0
 }
 
-// IsRar checks if the header matches the magic bytes for Rar files.
-func IsRar(data []byte) bool {
+// isRar checks if the header matches the magic bytes for Rar files.
+func isRar(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesRar)
 }
 
-// UnpackRar sets a timeout for the ctx and starts the Rar extraction from src to dst.
-func UnpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+// unpackRar sets a timeout for the ctx and starts the Rar extraction from src to dst.
+func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
 	// prepare telemetry data collection and emit
-	td := &TelemetryData{ExtractedType: FileExtensionRar}
+	td := &TelemetryData{ExtractedType: fileExtensionRar}
 	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// cache reader if needed
-	reader, err := ReaderToReaderAtSeeker(cfg, src)
+	reader, err := readerToReaderAtSeeker(cfg, src)
 	if err != nil {
 		return handleError(cfg, td, "cannot cache reader", err)
 	}
 
-	return unpackRar(ctx, t, dst, reader.(io.Reader), cfg, td)
+	return processRar(ctx, t, dst, reader.(io.Reader), cfg, td)
 }
 
-// unpackRar extracts a Rar archive from src to dst.
-func unpackRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config, td *TelemetryData) error {
+// processRar extracts a Rar archive from src to dst.
+func processRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config, td *TelemetryData) error {
 	// log extraction
 	cfg.Logger().Info("extracting rar")
 
@@ -72,7 +72,7 @@ type rarWalker struct {
 
 // Type returns the file extension for rar files.
 func (rw *rarWalker) Type() string {
-	return FileExtensionRar
+	return fileExtensionRar
 }
 
 // Next returns the next entry in the rar file.
@@ -83,7 +83,7 @@ func (rw *rarWalker) Next() (archiveEntry, error) {
 	}
 	re := &rarEntry{fh, rw.r}
 	if re.IsSymlink() { // symlink not supported
-		return nil, UnsupportedFile(re.Name())
+		return nil, unsupportedFile(re.Name())
 	}
 	return re, nil
 }

@@ -28,7 +28,7 @@ func decompress(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 	defer captureExtractionDuration(m, now())
 
 	// limit input size
-	limitedReader := NewLimitErrorReader(src, cfg.MaxInputSize())
+	limitedReader := newLimitErrorReader(src, cfg.MaxInputSize())
 	defer captureInputSize(m, limitedReader)
 
 	// start decompression
@@ -47,7 +47,7 @@ func decompress(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 	}
 
 	// convert to peek header
-	headerReader, err := NewHeaderReader(decompressedStream, MaxHeaderLength)
+	headerReader, err := newHeaderReader(decompressedStream, maxHeaderLength)
 	if err != nil {
 		return handleError(cfg, m, "cannot read uncompressed header", err)
 	}
@@ -62,9 +62,9 @@ func decompress(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 
 	// check for tar header
 	checkUntar := !cfg.NoUntarAfterDecompression()
-	if checkUntar && IsTar(headerBytes) {
+	if checkUntar && isTar(headerBytes) {
 		m.ExtractedType = fmt.Sprintf("tar.%s", fileExt) // combine types
-		return unpackTar(ctx, t, headerReader, dst, cfg, m)
+		return processTar(ctx, t, headerReader, dst, cfg, m)
 	}
 
 	// determine name and decompress content

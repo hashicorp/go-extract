@@ -180,9 +180,9 @@ Extract archives directly into memory, supporting files, directories, and symlin
 
 ```golang
 // prepare destination and config
-m := extract.NewMemoryTarget()
-dst := "" // extract to root of memory filesystem
-cfg := config.NewConfig()
+m   = extract.NewMemory()     // create a new in-memory filesystem
+dst = ""                      // root of in-memory filesystem
+cfg = extract.NewConfig()     // custom config for extraction
 
 // unpack
 if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
@@ -190,8 +190,7 @@ if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
 }
 
 // Walk the memory filesystem
-memFs := m.(fs.FS)
-if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+if err := fs.WalkDir(m, ".", func(path string, d fs.DirEntry, err error) error {
     fmt.Println(path)
     return nil
 }); err != nil {

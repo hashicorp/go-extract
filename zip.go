@@ -12,8 +12,8 @@ import (
 	"os"
 )
 
-// FileExtensionZIP is the file extension for zip files.
-const FileExtensionZIP = "zip"
+// fileExtensionZIP is the file extension for zip files.
+const fileExtensionZIP = "zip"
 
 // magicBytesZIP contains the magic bytes for a zip archive.
 // reference: https://golang.org/pkg/archive/zip/
@@ -21,25 +21,25 @@ var magicBytesZIP = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
-// IsZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
-func IsZip(data []byte) bool {
+// isZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
+func isZip(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytesZIP)
 }
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
-func UnpackZip(ctx context.Context, t Target, dst string, src io.Reader, c *Config) error {
+func unpackZip(ctx context.Context, t Target, dst string, src io.Reader, c *Config) error {
 	// prepare telemetry data collection and emit
-	td := &TelemetryData{ExtractedType: FileExtensionZIP}
+	td := &TelemetryData{ExtractedType: fileExtensionZIP}
 	defer c.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(seekerReaderAt); ok {
-		return unpackZip(ctx, t, sra, dst, c, td)
+		return processZip(ctx, t, sra, dst, c, td)
 	}
 
 	// convert
-	sra, err := ReaderToReaderAtSeeker(c, src)
+	sra, err := readerToReaderAtSeeker(c, src)
 	if err != nil {
 		return handleError(c, td, "cannot convert reader to readerAt and seeker", err)
 	}
@@ -50,12 +50,12 @@ func UnpackZip(ctx context.Context, t Target, dst string, src io.Reader, c *Conf
 		}
 	}()
 
-	return unpackZip(ctx, t, sra, dst, c, td)
+	return processZip(ctx, t, sra, dst, c, td)
 }
 
-// unpackZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
+// processZip checks ctx for cancellation, while it reads a zip file from src and extracts the contents to dst.
 // src is a readerAt and a seeker. If the InputSize exceeds the maximum input size, the function returns an error.
-func unpackZip(ctx context.Context, t Target, src seekerReaderAt, dst string, cfg *Config, m *TelemetryData) error {
+func processZip(ctx context.Context, t Target, src seekerReaderAt, dst string, cfg *Config, m *TelemetryData) error {
 
 	// log extraction
 	cfg.Logger().Info("extracting zip")
@@ -90,7 +90,7 @@ type zipWalker struct {
 
 // Type returns the file extension for zip files
 func (z zipWalker) Type() string {
-	return FileExtensionZIP
+	return fileExtensionZIP
 }
 
 // Next returns the next entry in the zip archive

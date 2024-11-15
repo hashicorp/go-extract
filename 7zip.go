@@ -13,33 +13,33 @@ import (
 	"github.com/bodgit/sevenzip"
 )
 
-// FileExtension7zip is the file extension for 7zip files
-const FileExtension7zip = "7z"
+// fileExtension7zip is the file extension for 7zip files
+const fileExtension7zip = "7z"
 
 // magicBytes7zip are the magic bytes for 7zip files
 var magicBytes7zip = [][]byte{
 	{0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C},
 }
 
-// Is7zip checks if the header matches the magic bytes for 7zip files
-func Is7zip(data []byte) bool {
+// is7zip checks if the header matches the magic bytes for 7zip files
+func is7zip(data []byte) bool {
 	return matchesMagicBytes(data, 0, magicBytes7zip)
 }
 
-// Unpack7Zip sets a timeout for the ctx and starts the 7zip extraction from src to dst.
-func Unpack7Zip(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
+// unpack7Zip sets a timeout for the ctx and starts the 7zip extraction from src to dst.
+func unpack7Zip(ctx context.Context, t Target, dst string, src io.Reader, cfg *Config) error {
 	// prepare telemetry data collection and emit
-	td := &TelemetryData{ExtractedType: FileExtension7zip}
+	td := &TelemetryData{ExtractedType: fileExtension7zip}
 	defer cfg.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
 	// check if src is a readerAt and an io.Seeker
 	if sra, ok := src.(seekerReaderAt); ok {
-		return unpack7zip(ctx, t, dst, sra, cfg, td)
+		return process7zip(ctx, t, dst, sra, cfg, td)
 	}
 
 	// convert
-	sra, err := ReaderToReaderAtSeeker(cfg, src)
+	sra, err := readerToReaderAtSeeker(cfg, src)
 	if err != nil {
 		return handleError(cfg, td, "cannot convert reader to readerAt and seeker", err)
 	}
@@ -50,11 +50,11 @@ func Unpack7Zip(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 		}
 	}()
 
-	return unpack7zip(ctx, t, dst, sra, cfg, td)
+	return process7zip(ctx, t, dst, sra, cfg, td)
 }
 
-// unpack7zip checks ctx for cancellation, while it reads a 7zip file from src and extracts the contents to dst.
-func unpack7zip(ctx context.Context, t Target, dst string, sra seekerReaderAt, cfg *Config, td *TelemetryData) error {
+// process7zip checks ctx for cancellation, while it reads a 7zip file from src and extracts the contents to dst.
+func process7zip(ctx context.Context, t Target, dst string, sra seekerReaderAt, cfg *Config, td *TelemetryData) error {
 	// log extraction
 	cfg.Logger().Info("extracting 7zip")
 
@@ -89,7 +89,7 @@ type sevenZipWalker struct {
 
 // Type returns the file extension for 7zip files
 func (z sevenZipWalker) Type() string {
-	return FileExtension7zip
+	return fileExtension7zip
 }
 
 // Next returns the next entry in the 7zip file

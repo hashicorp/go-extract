@@ -20,6 +20,7 @@ import (
 // create, read, and write files in memory. It can also be used to create
 // directories and symlinks. Permissions (such as owner or group) are not enforced.
 type Memory struct {
+	fs.FS
 	files sync.Map // map[string]*MemoryEntry
 }
 
