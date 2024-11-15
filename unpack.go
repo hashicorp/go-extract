@@ -26,6 +26,12 @@ var (
 
 	// ErrUnsupportedFile is an error that indicates that the file is not supported.
 	ErrUnsupportedFile = fmt.Errorf("extract: unsupported file")
+
+	// ErrMaxFilesExceeded indicates that the maximum number of files is exceeded.
+	ErrMaxFilesExceeded = fmt.Errorf("extract: maximum files exceeded")
+
+	// ErrMaxSizeExceeded indicates that the maximum size is exceeded.
+	ErrorMaxSizeExceeded = fmt.Errorf("extract: maximum extraction size exceeded")
 )
 
 // Unpack unpacks the given source to the destination, according to the given configuration,

@@ -5,7 +5,6 @@ package extract
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -243,11 +242,6 @@ var (
 	defaultTelemetryHook = func(ctx context.Context, d *TelemetryData) {
 		// noop
 	}
-
-	// error message for max files exceeded
-	ErrMaxFilesExceeded = fmt.Errorf("extract/config: maximum files exceeded")
-	// error message for max extraction size exceeded
-	ErrorMaxSizeExceeded = fmt.Errorf("extract/config: maximum extraction size exceeded")
 )
 
 // NewConfig is a generator option that takes opts as adjustments of the
@@ -352,9 +346,9 @@ func WithExtractType(extractionType string) ConfigOption {
 }
 
 // WithTraverseSymlinks options pattern function to traverse symlinks during extraction.
-func WithTraverseSymlinks(follow bool) ConfigOption {
+func WithTraverseSymlinks(traverse bool) ConfigOption {
 	return func(c *Config) {
-		c.traverseSymlinks = follow
+		c.traverseSymlinks = traverse
 	}
 }
 
