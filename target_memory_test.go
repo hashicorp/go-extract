@@ -8,7 +8,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/hashicorp/go-extract"
+	extract "github.com/hashicorp/go-extract"
 )
 
 func TestMemoryOpen(t *testing.T) {

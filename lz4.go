@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/pierrec/lz4/v4"
+	lz4 "github.com/pierrec/lz4/v4"
 )
 
 // FileExtensionLZ4 is the file extension for LZ4 files.

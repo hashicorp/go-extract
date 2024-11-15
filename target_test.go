@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/go-extract"
+	extract "github.com/hashicorp/go-extract"
 )
 
 func testTargets(t *testing.T) []struct {

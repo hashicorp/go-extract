@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/hashicorp/go-extract"
+	extract "github.com/hashicorp/go-extract"
 )
 
 // CLI are the cli parameters for go-extract binary

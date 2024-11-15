@@ -23,7 +23,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/hashicorp/go-extract"
 	"github.com/klauspost/compress/zstd"
-	"github.com/pierrec/lz4/v4"
+	lz4 "github.com/pierrec/lz4/v4"
 	"github.com/ulikunitz/xz"
 )
 
