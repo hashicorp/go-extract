@@ -141,11 +141,7 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Config) error {
 	// check if symlink extraction is denied
 	if cfg.DenySymlinkExtraction() {
-		if cfg.ContinueOnError() {
-			cfg.Logger().Info("skipped symlink extraction", name, linkTarget)
-			return nil
-		}
-		return fmt.Errorf("symlink extraction disabled")
+		return UnsupportedFile(name)
 	}
 
 	// check if a name is provided

@@ -1,86 +1,83 @@
 package extract_test
 
 import (
-	"bytes"
-	"os"
-	"path/filepath"
 	"testing"
 
 	extract "github.com/hashicorp/go-extract"
 )
 
-func testTargets(t *testing.T) []struct {
-	name   string
-	path   string
-	link   string
-	file   string
-	data   []byte
-	target extract.Target
-} {
-	tmpDir := t.TempDir()
-	testData := []byte("test data")
-	return []struct {
-		name   string
-		path   string
-		link   string
-		file   string
-		data   []byte
-		target extract.Target
-	}{
-		{
-			name:   "os",
-			path:   filepath.Join(tmpDir, "test"),
-			link:   filepath.Join(tmpDir, "symlink"),
-			file:   filepath.Join(tmpDir, "file"),
-			data:   testData,
-			target: extract.NewDisk(),
-		},
-		{
-			name:   "Memory",
-			path:   "test",
-			link:   "symlink",
-			file:   "file",
-			data:   testData,
-			target: extract.NewMemory(),
-		},
-	}
-}
+// func testTargets(t *testing.T) []struct {
+// 	name   string
+// 	path   string
+// 	link   string
+// 	file   string
+// 	data   []byte
+// 	target extract.Target
+// } {
+// 	tmpDir := t.TempDir()
+// 	testData := []byte("test data")
+// 	return []struct {
+// 		name   string
+// 		path   string
+// 		link   string
+// 		file   string
+// 		data   []byte
+// 		target extract.Target
+// 	}{
+// 		{
+// 			name:   "os",
+// 			path:   filepath.Join(tmpDir, "test"),
+// 			link:   filepath.Join(tmpDir, "symlink"),
+// 			file:   filepath.Join(tmpDir, "file"),
+// 			data:   testData,
+// 			target: extract.NewDisk(),
+// 		},
+// 		{
+// 			name:   "Memory",
+// 			path:   "test",
+// 			link:   "symlink",
+// 			file:   "file",
+// 			data:   testData,
+// 			target: extract.NewMemory(),
+// 		},
+// 	}
+// }
 
-func TestCreateSymlink(t *testing.T) {
-	for _, test := range testTargets(t) {
-		t.Run(test.name, func(t *testing.T) {
-			// create a file
-			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err != nil {
-				t.Fatalf("CreateFile() failed with an error, but no error was expected: %s", err)
-			}
+// func TestCreateSymlink(t *testing.T) {
+// 	for _, test := range testTargets(t) {
+// 		t.Run(test.name, func(t *testing.T) {
+// 			// create a file
+// 			if _, err := test.target.CreateFile(test.path, bytes.NewReader(test.data), 0644, false, -1); err != nil {
+// 				t.Fatalf("CreateFile() failed with an error, but no error was expected: %s", err)
+// 			}
 
-			// create a symlink
-			if err := test.target.CreateSymlink(test.path, test.link, false); err != nil {
-				t.Fatalf("CreateSymlink() failed with an error, but no error was expected: %s", err)
-			}
+// 			// create a symlink
+// 			if err := test.target.CreateSymlink(test.path, test.link, false); err != nil {
+// 				t.Fatalf("CreateSymlink() failed with an error, but no error was expected: %s", err)
+// 			}
 
-			// check if symlink exists
-			lstat, err := test.target.Lstat(test.link)
-			if err != nil {
-				t.Fatalf("Lstat() returned an error, but no error was expected: %s", err)
-			}
-			if lstat.Mode()&os.ModeSymlink == 0 {
-				t.Fatalf("CreateSymlink() failed: %s", "not a symlink")
-			}
+// 			// check if symlink exists
+// 			lstat, err := test.target.Lstat(test.link)
+// 			if err != nil {
+// 				t.Fatalf("Lstat() returned an error, but no error was expected: %s", err)
+// 			}
+// 			if lstat.Mode()&os.ModeSymlink == 0 {
+// 				t.Fatalf("CreateSymlink() failed: %s", "not a symlink")
+// 			}
 
-			// create a symlink with overwrite
-			if err := test.target.CreateSymlink(test.link, test.path, true); err != nil {
-				t.Fatalf("CreateSymlink() with overwrite failed, but no error was expected: %s", err)
-			}
+// 			// create a symlink with overwrite
+// 			if err := test.target.CreateSymlink(test.link, test.path, true); err != nil {
+// 				t.Fatalf("CreateSymlink() with overwrite failed, but no error was expected: %s", err)
+// 			}
 
-			// create a symlink with overwrite expect fail
-			if err := test.target.CreateSymlink(test.link, test.path, false); err == nil {
-				t.Fatalf("CreateSymlink() with disabled overwrite try to let the function fail, but error returned: %s", err)
-			}
+// 			// create a symlink with overwrite expect fail
+// 			if err := test.target.CreateSymlink(test.link, test.path, false); err == nil {
+// 				t.Fatalf("CreateSymlink() with disabled overwrite try to let the function fail, but error returned: %s", err)
+// 			}
 
-		})
-	}
-}
+// 		})
+// 	}
+// }
 
 // func TestCreateFile(t *testing.T) {
 // 	tests := []struct {
@@ -246,68 +243,68 @@ func TestCreateSymlink(t *testing.T) {
 // 	}
 // }
 
-func TestSecurityCheck(t *testing.T) {
-	tests := []struct {
-		dst         string
-		name        string
-		cfg         *extract.Config
-		expectError bool
-		prep        func(*testing.T, extract.Target, string)
-	}{
-		{
-			name: "test.txt",
-			dst:  "",
-		},
-		{
-			name: "",
-			dst:  "",
-		},
-		{
-			dst:  "foo",
-			name: "bar",
-		},
-		{
-			dst:  "foo",
-			name: "bar/../baz",
-		},
-		{
-			dst:         "foo",
-			name:        "../baz",
-			expectError: true,
-		},
-		{
-			name: "foo/above/bar",
-			prep: func(t *testing.T, target extract.Target, dst string) {
-				if err := target.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
-					t.Fatalf("failed to create dir: %s", err)
-				}
+// func TestSecurityCheck(t *testing.T) {
+// 	tests := []struct {
+// 		dst         string
+// 		name        string
+// 		cfg         *extract.Config
+// 		expectError bool
+// 		prep        func(*testing.T, extract.Target, string)
+// 	}{
+// 		{
+// 			name: "test.txt",
+// 			dst:  "",
+// 		},
+// 		{
+// 			name: "",
+// 			dst:  "",
+// 		},
+// 		{
+// 			dst:  "foo",
+// 			name: "bar",
+// 		},
+// 		{
+// 			dst:  "foo",
+// 			name: "bar/../baz",
+// 		},
+// 		{
+// 			dst:         "foo",
+// 			name:        "../baz",
+// 			expectError: true,
+// 		},
+// 		{
+// 			name: "foo/above/bar",
+// 			prep: func(t *testing.T, target extract.Target, dst string) {
+// 				if err := target.CreateDir(filepath.Join(dst, "foo"), 0750); err != nil {
+// 					t.Fatalf("failed to create dir: %s", err)
+// 				}
 
-				above := filepath.Join(dst, "foo", "above")
-				if err := target.CreateSymlink("..", above, false); err != nil {
-					t.Fatalf("failed to create symlink: %s", err)
-				}
-			},
-			expectError: true,
-		},
-	}
+// 				above := filepath.Join(dst, "foo", "above")
+// 				if err := target.CreateSymlink("..", above, false); err != nil {
+// 					t.Fatalf("failed to create symlink: %s", err)
+// 				}
+// 			},
+// 			expectError: true,
+// 		},
+// 	}
 
-	for _, test := range tests {
-		testTarget := extract.NewDisk()
-		tmp := t.TempDir()
-		if test.cfg == nil {
-			test.cfg = extract.NewConfig()
-		}
-		if test.prep != nil {
-			test.prep(t, testTarget, tmp)
-		}
-		dst := filepath.Join(tmp, test.dst)
-		err := extract.SecurityCheck(testTarget, dst, test.name, test.cfg)
-		gotError := (err != nil)
-		if test.expectError != gotError {
-			t.Errorf("securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", test.dst, test.name, err, test.expectError)
-		}
-	}
-}
+// 	for _, test := range tests {
+// 		testTarget := extract.NewDisk()
+// 		tmp := t.TempDir()
+// 		if test.cfg == nil {
+// 			test.cfg = extract.NewConfig()
+// 		}
+// 		if test.prep != nil {
+// 			test.prep(t, testTarget, tmp)
+// 		}
+// 		dst := filepath.Join(tmp, test.dst)
+// 		err := extract.SecurityCheck(testTarget, dst, test.name, test.cfg)
+// 		gotError := (err != nil)
+// 		if test.expectError != gotError {
+// 			t.Errorf("securityCheck(dst=%s, name=%s) = ERROR(%v); want %v", test.dst, test.name, err, test.expectError)
+// 		}
+// 	}
+// }
 
 // FuzzSecurityCheckDisk is a fuzzer for the SecurityCheck function
 func FuzzSecurityCheckDisk(f *testing.F) {

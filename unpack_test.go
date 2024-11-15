@@ -164,6 +164,67 @@ func Example() {
 	// Output: example content
 }
 
+func TestUnpack(t *testing.T) {
+
+	testCases := []struct {
+		name        string
+		archive     []byte
+		cfg         *extract.Config
+		expectError bool
+	}{
+		{
+			name:    "single file",
+			archive: packTar(t, []archiveContent{{Name: "test", Mode: 0640, Content: []byte("foobar content")}}),
+		},
+		{
+			name:        "file with no name",
+			archive:     packTar(t, []archiveContent{{Name: "", Mode: 0640, Content: []byte("foobar content")}}),
+			expectError: true,
+		},
+		{
+			name:        "symlink with no name",
+			archive:     packTar(t, []archiveContent{{Name: "", Mode: fs.ModeSymlink | 0755, Linktarget: "foobar"}}),
+			expectError: true,
+		},
+		{
+			name:    "symlink with absolute path, but continue on error",
+			archive: packTar(t, []archiveContent{{Name: "passwd", Mode: fs.ModeSymlink | 0755, Linktarget: "/etc/passwd"}}),
+			cfg:     extract.NewConfig(extract.WithContinueOnError(true)),
+		},
+		{
+			name:    "test rar",
+			archive: packRar(t, []archiveContent{{Name: "test", Mode: 0640, Content: []byte("foobar content")}}),
+			cfg: extract.NewConfig(
+				extract.WithDenySymlinkExtraction(true),
+				extract.WithContinueOnError(true),
+				extract.WithCacheInMemory(true),
+			),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.cfg == nil {
+				tc.cfg = extract.NewConfig()
+			}
+			var (
+				ctx = context.Background()
+				dst = t.TempDir()
+				src = asIoReader(t, tc.archive)
+				cfg = tc.cfg
+			)
+
+			err := extract.Unpack(ctx, src, dst, cfg)
+			if tc.expectError && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !tc.expectError && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestUnpackCompressed(t *testing.T) {
 
 	tests := []struct {
@@ -972,6 +1033,8 @@ func TestTelemetryHook(t *testing.T) {
 			if tc.expectError != (err != nil) {
 				t.Errorf("test case %d failed: %s\nexpected error: %v\ngot: %s", i, tc.name, tc.expectError, err)
 			}
+			t.Logf("expected telemetry data: %s", tc.expectedTelemetryData.String())
+			t.Logf("collected telemetry data: %s", td.String())
 			if !tc.expectedTelemetryData.Equals(td) {
 				t.Errorf("test case %d failed: %s\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData, td)
 			}
