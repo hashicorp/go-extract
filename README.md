@@ -68,7 +68,7 @@ Flags:
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
   -V, --version                            Print release version information.
-  ```
+```
 
 ### Library
 
