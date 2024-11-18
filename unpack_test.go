@@ -1006,7 +1006,7 @@ func TestTelemetryHook(t *testing.T) {
 			expectedTelemetryData: &extract.TelemetryData{
 				ExtractionErrors:    1,
 				ExtractedType:       "zip",
-				LastExtractionError: fmt.Errorf("max extraction size exceeded: %w", extract.ErrorMaxSizeExceeded),
+				LastExtractionError: fmt.Errorf("max extraction size exceeded: %w", extract.ErrMaxExtractionSizeExceeded),
 			},
 			expectError: true,
 		},

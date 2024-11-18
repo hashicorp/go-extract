@@ -126,9 +126,9 @@ func (e extractors) Extensions() string {
 	return strings.Join(types, ", ")
 }
 
-// AvailableExtractors is collection of new extractor functions with
+// availableExtractors is collection of new extractor functions with
 // the required magic bytes and potential offset
-var AvailableExtractors = extractors{
+var availableExtractors = extractors{
 	fileExtension7zip: {
 		Unpacker:    unpack7Zip,
 		HeaderCheck: is7zip,
@@ -196,11 +196,20 @@ var AvailableExtractors = extractors{
 	},
 }
 
+func GetSupportedTypes() []string {
+	var types []string
+	for t := range availableExtractors {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	return types
+}
+
 var maxHeaderLength int
 
 // init calculates the maximum header length
 func init() {
-	for _, ex := range AvailableExtractors {
+	for _, ex := range availableExtractors {
 		needs := ex.Offset
 		for _, mb := range ex.MagicBytes {
 			if len(mb)+ex.Offset > needs {

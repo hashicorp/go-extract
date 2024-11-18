@@ -108,7 +108,7 @@ func (c *Config) CheckMaxFiles(counter int64) error {
 }
 
 // CheckExtractionSize checks if fileSize exceeds configured maximum. If the maximum is exceeded,
-// a [ErrorMaxSizeExceeded] error is returned.
+// a [ErrMaxExtractionSizeExceeded] error is returned.
 func (c *Config) CheckExtractionSize(fileSize int64) error {
 
 	// check if disabled
@@ -118,7 +118,7 @@ func (c *Config) CheckExtractionSize(fileSize int64) error {
 
 	// check value
 	if fileSize > c.MaxExtractionSize() {
-		return ErrorMaxSizeExceeded
+		return ErrMaxExtractionSizeExceeded
 	}
 	return nil
 }

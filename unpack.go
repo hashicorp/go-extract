@@ -30,8 +30,8 @@ var (
 	// ErrMaxFilesExceeded indicates that the maximum number of files is exceeded.
 	ErrMaxFilesExceeded = fmt.Errorf("extract: maximum files exceeded")
 
-	// ErrMaxSizeExceeded indicates that the maximum size is exceeded.
-	ErrorMaxSizeExceeded = fmt.Errorf("extract: maximum extraction size exceeded")
+	// ErrMaxExtractionSizeExceeded indicates that the maximum size is exceeded.
+	ErrMaxExtractionSizeExceeded = fmt.Errorf("extract: maximum extraction size exceeded")
 )
 
 // Unpack unpacks the given source to the destination, according to the given configuration,
@@ -49,7 +49,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 		cfg = NewConfig()
 	}
 	if et := cfg.ExtractType(); len(et) > 0 {
-		if ae, found := AvailableExtractors[et]; found {
+		if ae, found := availableExtractors[et]; found {
 			if et == fileExtensionTarGZip {
 				cfg.SetNoUntarAfterDecompression(false)
 			}
@@ -61,7 +61,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 			return nil
 		}
 
-		return fmt.Errorf("%w: %q not in %q", ErrUnsupportedFileType, et, AvailableExtractors.Extensions())
+		return fmt.Errorf("%w: %q not in %q", ErrUnsupportedFileType, et, availableExtractors.Extensions())
 	}
 
 	header, reader, err := getHeader(src)
@@ -74,7 +74,7 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 		ext = filepath.Ext(f.Name())
 	}
 
-	unpacker := AvailableExtractors.GetUnpackFunction(header, ext)
+	unpacker := availableExtractors.GetUnpackFunction(header, ext)
 	if unpacker != nil {
 		err := unpacker(ctx, t, dst, reader, cfg)
 		if err != nil {
