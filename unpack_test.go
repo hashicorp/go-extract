@@ -907,7 +907,7 @@ func TestTelemetryHook(t *testing.T) {
 		name                  string
 		archive               []byte
 		cfgOps                []extract.ConfigOption
-		expectedTelemetryData extract.TelemetryData
+		expectedTelemetryData *extract.TelemetryData
 		expectError           bool
 		dst                   string
 	}{
@@ -918,7 +918,7 @@ func TestTelemetryHook(t *testing.T) {
 				extract.WithMaxExtractionSize(1024),
 				extract.WithMaxFiles(1),
 			},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles: 1,
 				ExtractionSize: 1024,
 				ExtractedType:  "gz",
@@ -932,7 +932,7 @@ func TestTelemetryHook(t *testing.T) {
 				extract.WithMaxExtractionSize(1024),
 				extract.WithMaxFiles(1),
 			},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractionErrors: 1,
 				ExtractedType:    "gz",
 			},
@@ -943,7 +943,7 @@ func TestTelemetryHook(t *testing.T) {
 			archive: compressGzip(t, []byte(strings.Repeat("A", 1024))),
 			dst:     "sub/target", // important: the gzip decompression has a filename das dst
 			cfgOps:  []extract.ConfigOption{extract.WithCreateDestination(true)},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles: 1,
 				ExtractionSize: 1024,
 				ExtractedType:  "gz",
@@ -952,7 +952,7 @@ func TestTelemetryHook(t *testing.T) {
 		{
 			name:    "normal tar with file",
 			archive: packTar(t, oneFile),
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles: 1,
 				ExtractionSize: 1024,
 				ExtractedType:  "tar",
@@ -961,7 +961,7 @@ func TestTelemetryHook(t *testing.T) {
 		{
 			name:    "normal tar.gz with 5 files",
 			archive: packTar(t, fiveFiles),
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles: 5,
 				ExtractionSize: 1024 * 5,
 				ExtractedType:  "tar",
@@ -971,7 +971,7 @@ func TestTelemetryHook(t *testing.T) {
 			name:    "normal tar.gz with file with max files limit",
 			archive: packTar(t, fiveFiles),
 			cfgOps:  []extract.ConfigOption{extract.WithMaxFiles(4)},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles:      4,
 				ExtractionErrors:    1,
 				ExtractionSize:      1024 * 4,
@@ -985,7 +985,7 @@ func TestTelemetryHook(t *testing.T) {
 			archive: packTar(t, fiveFiles),
 			dst:     "sub",
 			cfgOps:  []extract.ConfigOption{extract.WithContinueOnError(true)},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractionErrors: 5,
 				ExtractedType:    "tar",
 			},
@@ -993,7 +993,7 @@ func TestTelemetryHook(t *testing.T) {
 		{
 			name:    "normal zip file",
 			archive: packZip(t, oneFile),
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractedFiles: 1,
 				ExtractionSize: 1024,
 				ExtractedType:  "zip",
@@ -1003,13 +1003,31 @@ func TestTelemetryHook(t *testing.T) {
 			name:    "normal zip file extraction size exceeded",
 			archive: packZip(t, oneFile),
 			cfgOps:  []extract.ConfigOption{extract.WithMaxExtractionSize(512)},
-			expectedTelemetryData: extract.TelemetryData{
+			expectedTelemetryData: &extract.TelemetryData{
 				ExtractionErrors:    1,
 				ExtractedType:       "zip",
 				LastExtractionError: fmt.Errorf("max extraction size exceeded: %w", extract.ErrorMaxSizeExceeded),
 			},
 			expectError: true,
 		},
+	}
+
+	tdEquals := func(td, other *extract.TelemetryData) bool {
+		if td == nil && other == nil {
+			return true
+		}
+		if td == nil || other == nil {
+			return false
+		}
+		return td.ExtractedDirs == other.ExtractedDirs &&
+			td.ExtractionErrors == other.ExtractionErrors &&
+			td.ExtractedFiles == other.ExtractedFiles &&
+			td.ExtractionSize == other.ExtractionSize &&
+			td.ExtractedSymlinks == other.ExtractedSymlinks &&
+			td.ExtractedType == other.ExtractedType &&
+			td.PatternMismatches == other.PatternMismatches &&
+			td.UnsupportedFiles == other.UnsupportedFiles &&
+			td.LastUnsupportedFile == other.LastUnsupportedFile
 	}
 
 	for i, tc := range tests {
@@ -1035,7 +1053,7 @@ func TestTelemetryHook(t *testing.T) {
 			}
 			t.Logf("expected telemetry data: %s", tc.expectedTelemetryData.String())
 			t.Logf("collected telemetry data: %s", td.String())
-			if !tc.expectedTelemetryData.Equals(td) {
+			if !tdEquals(tc.expectedTelemetryData, td) {
 				t.Errorf("test case %d failed: %s\nexpected: %v\ngot: %v", i, tc.name, tc.expectedTelemetryData, td)
 			}
 		})
