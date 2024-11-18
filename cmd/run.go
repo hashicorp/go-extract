@@ -30,7 +30,7 @@ type CLI struct {
 	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files. (respecting umask)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
-	TraverseSymlinks           bool             `short:"F" help:"Traverse symlinks to directories during extraction."`
+	InsecureTraverseSymlinks   bool             `help:"Traverse symlinks to directories during extraction."`
 	MaxFiles                   int64            `optional:"" default:"${default_max_files}" help:"Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize          int64            `optional:"" default:"${default_max_extraction_size}" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime          int64            `optional:"" default:"${default_max_extraction_time}" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
@@ -89,7 +89,7 @@ func Run(version, commit, date string) {
 		extract.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
 		extract.WithDenySymlinkExtraction(cli.DenySymlinks),
 		extract.WithExtractType(cli.Type),
-		extract.WithTraverseSymlinks(cli.TraverseSymlinks),
+		extract.WithTraverseSymlinks(cli.InsecureTraverseSymlinks),
 		extract.WithLogger(logger),
 		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
 		extract.WithMaxFiles(cli.MaxFiles),
