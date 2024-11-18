@@ -12,40 +12,40 @@ import (
 // TelemetryData holds all telemetry data of an extraction.
 type TelemetryData struct {
 	// ExtractedDirs is the number of extracted directories
-	ExtractedDirs int64
+	ExtractedDirs int64 `json:"extracted_dirs"`
 
 	// ExtractionDuration is the time it took to extract the archive
-	ExtractionDuration time.Duration
+	ExtractionDuration time.Duration `json:"extraction_duration"`
 
 	// ExtractionErrors is the number of errors during extraction
-	ExtractionErrors int64
+	ExtractionErrors int64 `json:"extraction_errors"`
 
 	// ExtractedFiles is the number of extracted files
-	ExtractedFiles int64
+	ExtractedFiles int64 `json:"extracted_files"`
 
 	// ExtractionSize is the size of the extracted files
-	ExtractionSize int64
+	ExtractionSize int64 `json:"extraction_size"`
 
 	// ExtractedSymlinks is the number of extracted symlinks
-	ExtractedSymlinks int64
+	ExtractedSymlinks int64 `json:"extracted_symlinks"`
 
 	// ExtractedType is the type of the archive
-	ExtractedType string
+	ExtractedType string `json:"extracted_type"`
 
 	// InputSize is the size of the input
-	InputSize int64
+	InputSize int64 `json:"input_size"`
 
 	// LastExtractionError is the last error during extraction
-	LastExtractionError error
+	LastExtractionError error `json:"last_extraction_error"`
 
 	// PatternMismatches is the number of skipped files
-	PatternMismatches int64
+	PatternMismatches int64 `json:"pattern_mismatches"`
 
 	// UnsupportedFiles is the number of skipped unsupported files
-	UnsupportedFiles int64
+	UnsupportedFiles int64 `json:"unsupported_files"`
 
 	// LastUnsupportedFile is the last skipped unsupported file
-	LastUnsupportedFile string
+	LastUnsupportedFile string `json:"last_unsupported_file"`
 }
 
 // String returns a string representation of [TelemetryData].
@@ -63,7 +63,7 @@ func (m TelemetryData) MarshalJSON() ([]byte, error) {
 
 	type Alias TelemetryData
 	return json.Marshal(&struct {
-		LastExtractionError string `json:"LastExtractionError"`
+		LastExtractionError string `json:"last_extraction_error"`
 		*Alias
 	}{
 		LastExtractionError: lastError,
