@@ -89,7 +89,7 @@ func Run(version, commit, date string) {
 		extract.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
 		extract.WithDenySymlinkExtraction(cli.DenySymlinks),
 		extract.WithExtractType(cli.Type),
-		extract.WithTraverseSymlinks(cli.InsecureTraverseSymlinks),
+		extract.WithInsecureTraverseSymlinks(cli.InsecureTraverseSymlinks),
 		extract.WithLogger(logger),
 		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
 		extract.WithMaxFiles(cli.MaxFiles),

@@ -345,8 +345,8 @@ func WithExtractType(extractionType string) ConfigOption {
 	}
 }
 
-// WithTraverseSymlinks options pattern function to traverse symlinks during extraction.
-func WithTraverseSymlinks(traverse bool) ConfigOption {
+// WithInsecureTraverseSymlinks options pattern function to traverse symlinks during extraction.
+func WithInsecureTraverseSymlinks(traverse bool) ConfigOption {
 	return func(c *Config) {
 		c.traverseSymlinks = traverse
 	}
