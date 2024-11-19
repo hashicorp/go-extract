@@ -174,10 +174,10 @@ var availableExtractors = extractors{
 		HeaderCheck: isXz,
 		MagicBytes:  magicBytesXz,
 	},
-	fileExtensionZIP: {
+	fileExtensionZip: {
 		Unpacker:    unpackZip,
 		HeaderCheck: isZip,
-		MagicBytes:  magicBytesZIP,
+		MagicBytes:  magicBytesZip,
 	},
 	fileExtensionZlib: {
 		Unpacker:    unpackZlib,
@@ -194,15 +194,6 @@ var availableExtractors = extractors{
 		HeaderCheck: isRar,
 		MagicBytes:  magicBytesRar,
 	},
-}
-
-func GetSupportedTypes() []string {
-	var types []string
-	for t := range availableExtractors {
-		types = append(types, t)
-	}
-	sort.Strings(types)
-	return types
 }
 
 var maxHeaderLength int

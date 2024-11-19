@@ -12,24 +12,24 @@ import (
 	"os"
 )
 
-// fileExtensionZIP is the file extension for zip files.
-const fileExtensionZIP = "zip"
+// fileExtensionZip is the file extension for zip files.
+const fileExtensionZip = "zip"
 
-// magicBytesZIP contains the magic bytes for a zip archive.
+// magicBytesZip contains the magic bytes for a zip archive.
 // reference: https://golang.org/pkg/archive/zip/
-var magicBytesZIP = [][]byte{
+var magicBytesZip = [][]byte{
 	{0x50, 0x4B, 0x03, 0x04},
 }
 
 // isZip checks if data is a zip archive. It returns true if data is a zip archive and false if data is not a zip archive.
 func isZip(data []byte) bool {
-	return matchesMagicBytes(data, 0, magicBytesZIP)
+	return matchesMagicBytes(data, 0, magicBytesZip)
 }
 
 // Unpack sets a timeout for the ctx and starts the zip extraction from src to dst. It returns an error if the extraction failed.
 func unpackZip(ctx context.Context, t Target, dst string, src io.Reader, c *Config) error {
 	// prepare telemetry data collection and emit
-	td := &TelemetryData{ExtractedType: fileExtensionZIP}
+	td := &TelemetryData{ExtractedType: fileExtensionZip}
 	defer c.TelemetryHook()(ctx, td)
 	defer captureExtractionDuration(td, now())
 
@@ -90,7 +90,7 @@ type zipWalker struct {
 
 // Type returns the file extension for zip files
 func (z zipWalker) Type() string {
-	return fileExtensionZIP
+	return fileExtensionZip
 }
 
 // Next returns the next entry in the zip archive

@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -54,7 +53,7 @@ func Run(version, commit, date string) {
 		kong.UsageOnError(),
 		kong.Vars{
 			"version":                     fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":                 strings.Join(extract.GetSupportedTypes(), ", "),
+			"valid_types":                 "7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz",
 			"default_type":                "",                          // default is empty, but needs to be set to avoid kong error
 			"default_max_extraction_size": strconv.Itoa(1 << (10 * 3)), // 1GB
 			"default_max_files":           strconv.Itoa(1000),          // 1000 files
