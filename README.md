@@ -155,7 +155,7 @@ Interact with the local operating system to create files, directories, and symli
 
 ```golang
 // prepare destination and config
-d := extract.NewDisk()
+d := extract.NewTargetDisk()
 dst := "output/"
 cfg := config.NewConfig()
 

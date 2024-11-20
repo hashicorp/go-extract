@@ -55,20 +55,20 @@ func ExampleUnpack() {
 
 func ExampleUnpackTo() {
 	var (
-		ctx = context.Background()    // context for cancellation
-		m   = extract.NewMemory()     // create a new in-memory filesystem
-		dst = ""                      // root of in-memory filesystem
-		src = openFile("example.zip") // source reader
-		cfg = extract.NewConfig()     // custom config for extraction
+		ctx = context.Background()      // context for cancellation
+		tm  = extract.NewTargetMemory() // create a new in-memory filesystem
+		dst = ""                        // root of in-memory filesystem
+		src = openFile("example.zip")   // source reader
+		cfg = extract.NewConfig()       // custom config for extraction
 	)
 
 	// unpack
-	if err := extract.UnpackTo(ctx, m, dst, src, cfg); err != nil {
+	if err := extract.UnpackTo(ctx, tm, dst, src, cfg); err != nil {
 		// handle error
 	}
 
 	// read extracted file using fs package
-	content, err := fs.ReadFile(m, "example.txt")
+	content, err := fs.ReadFile(tm, "example.txt")
 	if err != nil {
 		// handle error
 	}
@@ -77,21 +77,21 @@ func ExampleUnpackTo() {
 	// example content
 }
 
-func ExampleNewMemory() {
+func ExampleNewTargetMemory() {
 	var (
-		ctx = context.Background()    // context for cancellation
-		m   = extract.NewMemory()     // create a new in-memory filesystem
-		dst = ""                      // root of in-memory filesystem
-		src = openFile("example.zip") // source reader
-		cfg = extract.NewConfig()     // custom config for extraction
+		ctx = context.Background()      // context for cancellation
+		tm  = extract.NewTargetMemory() // create a new in-memory filesystem
+		dst = ""                        // root of in-memory filesystem
+		src = openFile("example.zip")   // source reader
+		cfg = extract.NewConfig()       // custom config for extraction
 	)
 
 	// unpack
-	if err := extract.UnpackTo(ctx, m, dst, src, cfg); err != nil {
+	if err := extract.UnpackTo(ctx, tm, dst, src, cfg); err != nil {
 		// handle error
 	}
 
-	if err := fs.WalkDir(m, ".", func(path string, d fs.DirEntry, err error) error {
+	if err := fs.WalkDir(tm, ".", func(path string, d fs.DirEntry, err error) error {
 		if path == "." {
 			return nil
 		}
@@ -105,17 +105,17 @@ func ExampleNewMemory() {
 	// example.txt
 }
 
-func ExampleNewDisk() {
+func ExampleNewTargetDisk() {
 	var (
 		ctx = context.Background()    // context for cancellation
-		d   = extract.NewDisk()       // local filesystem
+		td  = extract.NewTargetDisk() // local filesystem
 		dst = createDirectory("out")  // create destination directory
 		src = openFile("example.zip") // source reader
 		cfg = extract.NewConfig()     // custom config for extraction
 	)
 
 	// unpack
-	if err := extract.UnpackTo(ctx, d, dst, src, cfg); err != nil {
+	if err := extract.UnpackTo(ctx, td, dst, src, cfg); err != nil {
 		// handle error
 	}
 
@@ -874,11 +874,11 @@ func TestUnpackToMemory(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var (
 				ctx = context.Background()
-				mem = extract.NewMemory()
+				tm  = extract.NewTargetMemory()
 				dst = ""
 				cfg = extract.NewConfig()
 			)
-			err := extract.UnpackTo(ctx, mem, dst, test.src, cfg)
+			err := extract.UnpackTo(ctx, tm, dst, test.src, cfg)
 			if test.expectError && err == nil {
 				t.Fatalf("expected error, got nil")
 			}

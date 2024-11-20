@@ -16,7 +16,7 @@ import (
 
 func TestMemoryOpen(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -27,12 +27,12 @@ func TestMemoryOpen(t *testing.T) {
 	testLink := "link"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// open the file
-	f, err := mem.Open(testPath)
+	f, err := tm.Open(testPath)
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
@@ -59,27 +59,27 @@ func TestMemoryOpen(t *testing.T) {
 	}
 
 	// open a file that does not exist
-	if _, err := mem.Open(testNotExist); err == nil {
+	if _, err := tm.Open(testNotExist); err == nil {
 		t.Fatalf("Open() failed: expected error, got nil")
 	}
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("failed to perform CreateDir(): %s", err)
 	}
 
 	// open the directory
-	if _, err := mem.Open(testDir); err != nil {
+	if _, err := tm.Open(testDir); err != nil {
 		t.Fatalf("failed to Open() directory: %s", err)
 	}
 
 	// create a symlink
-	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
 		t.Fatalf("CreateSymlink() failed: %s", err)
 	}
 
 	// open the symlink
-	f, err = mem.Open(testLink)
+	f, err = tm.Open(testLink)
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
@@ -99,7 +99,7 @@ func TestMemoryOpen(t *testing.T) {
 
 func TestMemoryReadlink(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -107,12 +107,12 @@ func TestMemoryReadlink(t *testing.T) {
 	testPathNotExist := "notexist"
 
 	// create a symlink
-	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
 		t.Fatalf("CreateSymlink() failed: %s", err)
 	}
 
 	// read the symlink
-	link, err := mem.Readlink(testLink)
+	link, err := tm.Readlink(testLink)
 	if err != nil {
 		t.Fatalf("Readlink() failed: %s", err)
 	}
@@ -122,24 +122,24 @@ func TestMemoryReadlink(t *testing.T) {
 	}
 
 	// read a symlink that does not exist
-	if _, err := mem.Readlink(testPathNotExist); err == nil {
+	if _, err := tm.Readlink(testPathNotExist); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// readlink a file
-	if _, err := mem.Readlink(testPath); err == nil {
+	if _, err := tm.Readlink(testPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryWithFsTest(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "foo"
@@ -151,27 +151,27 @@ func TestMemoryWithFsTest(t *testing.T) {
 	expectedFiles := []string{testPath, testLink, testDir, testDirFile}
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// create a symlink
-	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
 		t.Fatalf("CreateSymlink() failed: %s", err)
 	}
 
 	// create directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// create file with directory
-	if _, err := mem.CreateFile(testDirFile, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
+	if _, err := tm.CreateFile(testDirFile, bytes.NewReader([]byte(testContent)), 0640, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// perform test
-	if err := fstest.TestFS(mem, expectedFiles...); err != nil {
+	if err := fstest.TestFS(tm, expectedFiles...); err != nil {
 		t.Fatalf("TestFS() failed: %s", err)
 	}
 
@@ -179,7 +179,7 @@ func TestMemoryWithFsTest(t *testing.T) {
 
 func TestMemoryOpen2(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -188,12 +188,12 @@ func TestMemoryOpen2(t *testing.T) {
 	testDir := "dir"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// open the file
-	f, err := mem.Open(testPath)
+	f, err := tm.Open(testPath)
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
@@ -210,36 +210,36 @@ func TestMemoryOpen2(t *testing.T) {
 	}
 
 	// open a file that does not exist
-	if _, err := mem.Open(testPathNotExist); err == nil {
+	if _, err := tm.Open(testPathNotExist); err == nil {
 		t.Fatalf("Open() failed: expected error, got nil")
 	}
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// open the directory
-	if _, err := mem.Open(testDir); err != nil {
+	if _, err := tm.Open(testDir); err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
 }
 
 func TestMemoryLstat(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
 	testPathNotExist := "notexist"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// lstat the file
-	stat, err := mem.Lstat(testPath)
+	stat, err := tm.Lstat(testPath)
 	if err != nil {
 		t.Fatalf("Lstat() failed: %s", err)
 	}
@@ -250,14 +250,14 @@ func TestMemoryLstat(t *testing.T) {
 	}
 
 	// lstat a symlink that does not exist
-	if _, err := mem.Lstat(testPathNotExist); err == nil {
+	if _, err := tm.Lstat(testPathNotExist); err == nil {
 		t.Fatalf("Lstat() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryStat(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -266,12 +266,12 @@ func TestMemoryStat(t *testing.T) {
 	testPathNotExist := "notexist"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// stat the file
-	stat, err := mem.Stat(testPath)
+	stat, err := tm.Stat(testPath)
 	if err != nil {
 		t.Fatalf("Stat() failed: %s", err)
 	}
@@ -282,17 +282,17 @@ func TestMemoryStat(t *testing.T) {
 	}
 
 	// stat a file with invalid path
-	if _, err := mem.Stat(testInvalidPath); err == nil {
+	if _, err := tm.Stat(testInvalidPath); err == nil {
 		t.Fatalf("Stat() failed: expected error, got nil")
 	}
 
 	// create a symlink
-	if err := mem.CreateSymlink(testPath, testLink, false); err != nil {
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
 		t.Fatalf("CreateSymlink() failed: %s", err)
 	}
 
 	// stat the symlink
-	stat, err = mem.Stat(testLink)
+	stat, err = tm.Stat(testLink)
 	if err != nil {
 		t.Fatalf("Stat() failed: %s", err)
 	}
@@ -303,14 +303,14 @@ func TestMemoryStat(t *testing.T) {
 	}
 
 	// stat a symlink that does not exist
-	if _, err := mem.Stat(testPathNotExist); err == nil {
+	if _, err := tm.Stat(testPathNotExist); err == nil {
 		t.Fatalf("Stat() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryRemove(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -319,51 +319,51 @@ func TestMemoryRemove(t *testing.T) {
 	testDirFile := "dir/file"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// remove the file
-	if err := mem.Remove(testPath); err != nil {
+	if err := tm.Remove(testPath); err != nil {
 		t.Fatalf("Remove() failed: %s", err)
 	}
 
 	// remove a file that does not exist
-	if err := mem.Remove(testPathNotExist); err != nil {
+	if err := tm.Remove(testPathNotExist); err != nil {
 		t.Fatalf("Remove() failed: %s", err)
 	}
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// create a file in the directory
-	if _, err := mem.CreateFile(testDirFile, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testDirFile, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// remove the directory
-	if err := mem.Remove(testDir); err != nil {
+	if err := tm.Remove(testDir); err != nil {
 		t.Fatalf("Remove() failed: %s", err)
 	}
 
 	// remove a file thats open and expect to fail
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() for testPath failed: %s", err)
 	}
-	f, err := mem.Open(testPath)
+	f, err := tm.Open(testPath)
 	if err != nil {
 		t.Fatalf("Open() testPath failed: %s", err)
 	}
-	err = mem.Remove(testPath)
+	err = tm.Remove(testPath)
 	if err == nil {
 		t.Fatalf("Remove() misbehaved failed: expected error, got nil")
 	}
 	if err := f.Close(); err != nil {
 		t.Fatalf("Close() failed: %s", err)
 	}
-	err = mem.Remove(testPath)
+	err = tm.Remove(testPath)
 	if err != nil {
 		t.Fatalf("Remove() failed: %s", err)
 	}
@@ -372,7 +372,7 @@ func TestMemoryRemove(t *testing.T) {
 
 func TestMemoryReadDir(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testDir := "dir"
@@ -380,17 +380,17 @@ func TestMemoryReadDir(t *testing.T) {
 	testPathNotExist := "notexist"
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// create an additional directory
-	if err := mem.CreateDir(testDir2, 0755); err != nil {
+	if err := tm.CreateDir(testDir2, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// read the root
-	entries, err := mem.ReadDir(".")
+	entries, err := tm.ReadDir(".")
 	if err != nil {
 		t.Fatalf("ReadDir() failed: %s", err)
 	}
@@ -400,7 +400,7 @@ func TestMemoryReadDir(t *testing.T) {
 	}
 
 	// read the directory
-	entries, err = mem.ReadDir(testDir)
+	entries, err = tm.ReadDir(testDir)
 	if err != nil {
 		t.Fatalf("ReadDir() failed: %s", err)
 	}
@@ -410,14 +410,14 @@ func TestMemoryReadDir(t *testing.T) {
 	}
 
 	// read a directory that does not exist
-	if _, err := mem.ReadDir(testPathNotExist); err == nil {
+	if _, err := tm.ReadDir(testPathNotExist); err == nil {
 		t.Fatalf("ReadDir() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryReadFile(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -426,12 +426,12 @@ func TestMemoryReadFile(t *testing.T) {
 	testDir := "dir"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// read the file
-	data, err := mem.ReadFile(testPath)
+	data, err := tm.ReadFile(testPath)
 	if err != nil {
 		t.Fatalf("ReadFile() failed: %s", err)
 	}
@@ -441,24 +441,24 @@ func TestMemoryReadFile(t *testing.T) {
 	}
 
 	// read a file that does not exist
-	if _, err := mem.ReadFile(testPathNotExist); err == nil {
+	if _, err := tm.ReadFile(testPathNotExist); err == nil {
 		t.Fatalf("ReadFile() failed: expected error, got nil")
 	}
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// read a directory
-	if _, err := mem.ReadFile(testDir); err == nil {
+	if _, err := tm.ReadFile(testDir); err == nil {
 		t.Fatalf("ReadFile() failed: expected error, got nil")
 	}
 }
 
 func TestMemorySub(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testDir := "dir"
@@ -466,23 +466,23 @@ func TestMemorySub(t *testing.T) {
 	testPathNotExist := "notexist"
 
 	// create a directory
-	if err := mem.CreateDir(testDir, 0755); err != nil {
+	if err := tm.CreateDir(testDir, 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// create an additional directory
-	if err := mem.CreateDir(p.Join(testDir, testSubDir), 0755); err != nil {
+	if err := tm.CreateDir(p.Join(testDir, testSubDir), 0755); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// sub the root
-	sub, err := mem.Sub(testDir)
+	sub, err := tm.Sub(testDir)
 	if err != nil {
 		t.Fatalf("Sub() failed: %s", err)
 	}
 
 	// read the sub
-	subFs, ok := sub.(*extract.Memory)
+	subFs, ok := sub.(*extract.TargetMemory)
 	if !ok {
 		t.Fatalf("Sub() failed: expected Memory, got %T", sub)
 	}
@@ -496,14 +496,14 @@ func TestMemorySub(t *testing.T) {
 	}
 
 	// sub a directory that does not exist
-	if _, err := mem.Sub(testPathNotExist); err == nil {
+	if _, err := tm.Sub(testPathNotExist); err == nil {
 		t.Fatalf("Sub() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryGlob(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -511,17 +511,17 @@ func TestMemoryGlob(t *testing.T) {
 	testPattern := "test*"
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// create an additional file
-	if _, err := mem.CreateFile(testPath2, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath2, bytes.NewReader([]byte("test")), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// glob the files
-	matches, err := mem.Glob(testPattern)
+	matches, err := tm.Glob(testPattern)
 	if err != nil {
 		t.Fatalf("Glob() failed: %s", err)
 	}
@@ -533,75 +533,75 @@ func TestMemoryGlob(t *testing.T) {
 
 func TestInvalidPath(t *testing.T) {
 	// instantiate a new memory target
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	invalidPath := "../invalid/path"
 
 	// create a file
-	if _, err := mem.CreateFile(invalidPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
+	if _, err := tm.CreateFile(invalidPath, bytes.NewReader([]byte("test")), 0644, false, -1); err == nil {
 		t.Fatalf("CreateFile(%s) failed: expected error, got nil", invalidPath)
 	}
 
 	// create a directory
-	if err := mem.CreateDir(invalidPath, 0755); err == nil {
+	if err := tm.CreateDir(invalidPath, 0755); err == nil {
 		t.Fatalf("CreateDir() failed: expected error, got nil")
 	}
 
 	// create a symlink
-	if err := mem.CreateSymlink("target", invalidPath, false); err == nil {
+	if err := tm.CreateSymlink("target", invalidPath, false); err == nil {
 		t.Fatalf("CreateSymlink() failed: expected error, got nil")
 	}
 
 	// open the file
-	if _, err := mem.Open(invalidPath); err == nil {
+	if _, err := tm.Open(invalidPath); err == nil {
 		t.Fatalf("Open() failed: expected error, got nil")
 	}
 
 	// lstat the file
-	if _, err := mem.Lstat(invalidPath); err == nil {
+	if _, err := tm.Lstat(invalidPath); err == nil {
 		t.Fatalf("Lstat() failed: expected error, got nil")
 	}
 
 	// stat the file
-	if _, err := mem.Stat(invalidPath); err == nil {
+	if _, err := tm.Stat(invalidPath); err == nil {
 		t.Fatalf("Stat() failed: expected error, got nil")
 	}
 
 	// readlink the file
-	if _, err := mem.Readlink(invalidPath); err == nil {
+	if _, err := tm.Readlink(invalidPath); err == nil {
 		t.Fatalf("Readlink() failed: expected error, got nil")
 	}
 
 	// remove the file
-	if err := mem.Remove(invalidPath); err == nil {
+	if err := tm.Remove(invalidPath); err == nil {
 		t.Fatalf("Remove() failed: expected error, got nil")
 	}
 
 	// read the file
-	if _, err := mem.ReadFile(invalidPath); err == nil {
+	if _, err := tm.ReadFile(invalidPath); err == nil {
 		t.Fatalf("ReadFile() failed: expected error, got nil")
 	}
 
 	// readdir
-	if _, err := mem.ReadDir(invalidPath); err == nil {
+	if _, err := tm.ReadDir(invalidPath); err == nil {
 		t.Fatalf("ReadDir() failed: expected error, got nil")
 	}
 
 	// sub the file
-	if _, err := mem.Sub(invalidPath); err == nil {
+	if _, err := tm.Sub(invalidPath); err == nil {
 		t.Fatalf("Sub() failed: expected error, got nil")
 	}
 
 	// glob the file
-	if _, err := mem.Glob(invalidPath); err == nil {
+	if _, err := tm.Glob(invalidPath); err == nil {
 		t.Fatalf("Glob() failed: expected error, got nil")
 	}
 }
 
 func TestMemoryEntry(t *testing.T) {
 	// instantiate a new memory
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -609,12 +609,12 @@ func TestMemoryEntry(t *testing.T) {
 	testPerm := 0644
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), 0644, false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// open the file
-	f, err := mem.Open(testPath)
+	f, err := tm.Open(testPath)
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
@@ -698,7 +698,7 @@ func TestMemoryEntry(t *testing.T) {
 
 func TestCreateFile(t *testing.T) {
 	// instantiate a new memory
-	mem := extract.NewMemory()
+	tm := extract.NewTargetMemory()
 
 	// test data
 	testPath := "test"
@@ -706,12 +706,12 @@ func TestCreateFile(t *testing.T) {
 	testPerm := 0644
 
 	// create a file
-	if _, err := mem.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err != nil {
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err != nil {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
 	// open the file
-	f, err := mem.Open(testPath)
+	f, err := tm.Open(testPath)
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
@@ -749,12 +749,12 @@ func TestCreateFile(t *testing.T) {
 
 	// create a dir
 	testDir := "dir"
-	if err := mem.CreateDir(testDir, fs.FileMode(testPerm)); err != nil {
+	if err := tm.CreateDir(testDir, fs.FileMode(testPerm)); err != nil {
 		t.Fatalf("CreateDir() failed: %s", err)
 	}
 
 	// create a file with the same name as the dir
-	if _, err := mem.CreateFile(testDir, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
+	if _, err := tm.CreateFile(testDir, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
 		t.Fatalf("CreateFile() failed: expected error, got nil")
 	}
 }

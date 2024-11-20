@@ -16,17 +16,17 @@ import (
 	"time"
 )
 
-// Memory is an in-memory filesystem implementation that can be used to
+// TargetMemory is an in-memory filesystem implementation that can be used to
 // create, read, and write files in memory. It can also be used to create
 // directories and symlinks. Permissions (such as owner or group) are not enforced.
-type Memory struct {
+type TargetMemory struct {
 	fs.FS
 	files sync.Map // map[string]*MemoryEntry
 }
 
-// NewMemory creates a new in-memory filesystem.
-func NewMemory() *Memory {
-	return &Memory{
+// NewTargetMemory creates a new in-memory filesystem.
+func NewTargetMemory() *TargetMemory {
+	return &TargetMemory{
 		files: sync.Map{},
 	}
 }
@@ -36,7 +36,7 @@ func NewMemory() *Memory {
 // flag is set to true, the file is overwritten. The maxSize parameter can be used to limit the size of the file.
 // If the file exceeds the maxSize, an error is returned. If the file is created successfully, the number of bytes
 // written is returned.
-func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
+func (m *TargetMemory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwrite bool, maxSize int64) (int64, error) {
 	if !fs.ValidPath(path) {
 		return 0, &fs.PathError{Op: "CreateFile", Path: path, Err: fs.ErrInvalid}
 	}
@@ -84,7 +84,7 @@ func (m *Memory) CreateFile(path string, src io.Reader, mode fs.FileMode, overwr
 
 }
 
-func (m *Memory) createFile(path string, mode fs.FileMode, src io.Reader, maxSize int64) (int64, error) {
+func (m *TargetMemory) createFile(path string, mode fs.FileMode, src io.Reader, maxSize int64) (int64, error) {
 	// get name
 	name := p.Base(path)
 
@@ -111,7 +111,7 @@ func (m *Memory) createFile(path string, mode fs.FileMode, src io.Reader, maxSiz
 // CreateDir creates a new directory in the in-memory filesystem.
 // If the directory already exists, nothing is done. If the directory does not exist, it is created.
 // The directory is created with the given mode. If the directory is created successfully, nil is returned.
-func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
+func (m *TargetMemory) CreateDir(path string, mode fs.FileMode) error {
 	if !fs.ValidPath(path) {
 		return &fs.PathError{Op: "CreateDir", Path: path, Err: fs.ErrInvalid}
 	}
@@ -157,7 +157,7 @@ func (m *Memory) CreateDir(path string, mode fs.FileMode) error {
 // CreateSymlink creates a new symlink in the in-memory filesystem.
 // If the overwrite flag is set to false and the symlink already exists, an error is returned.
 // If the overwrite flag is set to true, the symlink is overwritten. If the symlink is created successfully, nil is returned.
-func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) error {
+func (m *TargetMemory) CreateSymlink(oldName string, newName string, overwrite bool) error {
 	if !fs.ValidPath(newName) {
 		return &fs.PathError{Op: "CreateSymlink", Path: newName, Err: fs.ErrInvalid}
 	}
@@ -217,7 +217,7 @@ func (m *Memory) CreateSymlink(oldName string, newName string, overwrite bool) e
 // Open implements the [io/fs.FS] interface. It opens the file at the given path.
 // If the file does not exist, an error is returned. If the file is a directory,
 // an error is returned. If the file is a symlink, the target of the symlink is returned.
-func (m *Memory) Open(path string) (fs.File, error) {
+func (m *TargetMemory) Open(path string) (fs.File, error) {
 	// traverse the path & symlinks to get to the real path
 	actualPath, err := m.resolvePath(path)
 	if err != nil {
@@ -242,7 +242,7 @@ func (m *Memory) Open(path string) (fs.File, error) {
 
 type dirEntry struct {
 	*memoryEntry
-	memory         *Memory
+	memory         *TargetMemory
 	path           string
 	readDirCounter int
 	closed         bool
@@ -327,7 +327,7 @@ func (fe *fileEntry) Close() error {
 }
 
 // resolveEntry resolves the entry at the given path. If the path does not exist, an error is returned.
-func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
+func (m *TargetMemory) resolveEntry(path string) (*memoryEntry, error) {
 
 	// split path and traverse
 	name := p.Base(path)
@@ -362,7 +362,7 @@ func (m *Memory) resolveEntry(path string) (*memoryEntry, error) {
 // resolvePath resolves the path and traverses symlinks. If anything went
 // wrong or the paths are in a symlink loop or the path is invalid, an error
 // is returned. If the path is empty, the current directory is returned.
-func (m *Memory) resolvePath(path string) (string, error) {
+func (m *TargetMemory) resolvePath(path string) (string, error) {
 	// handle empty path
 	if path == "" {
 		return ".", nil
@@ -437,7 +437,7 @@ func (m *Memory) resolvePath(path string) (string, error) {
 // golang/go#49580 proposes adding a standard io/fs.SymlinkFS interface to the io/fs package, which discusses
 // if the Lstat method should be moved to the io/fs.SymlinkFS interface.
 // ref: https://github.com/golang/go/issues/49580#issuecomment-2344253737
-func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
+func (m *TargetMemory) Lstat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "Lstat", Path: path, Err: fs.ErrInvalid}
 	}
@@ -460,7 +460,7 @@ func (m *Memory) Lstat(path string) (fs.FileInfo, error) {
 
 // Stat implements the [io/fs.File] and [io/fs.StatFS] interfaces. It returns the
 // [io/fs.FileInfo] for the given path.
-func (m *Memory) Stat(path string) (fs.FileInfo, error) {
+func (m *TargetMemory) Stat(path string) (fs.FileInfo, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "Stat", Path: path, Err: fs.ErrInvalid}
 	}
@@ -494,7 +494,7 @@ func (m *Memory) Stat(path string) (fs.FileInfo, error) {
 // to the io/fs package. If this proposal is accepted, the Readlink
 // method will be moved to the io/fs.SymlinkFS interface.
 // Until then, the Readlink method is kept not exposed.
-func (m *Memory) Readlink(path string) (string, error) {
+func (m *TargetMemory) Readlink(path string) (string, error) {
 	if !fs.ValidPath(path) {
 		return "", &fs.PathError{Op: "Readlink", Path: path, Err: fs.ErrInvalid}
 	}
@@ -516,7 +516,7 @@ func (m *Memory) Readlink(path string) (string, error) {
 // Remove removes the file or directory at the given path. If the path
 // is invalid, an error is returned. If the path does not exist, no error
 // is returned.
-func (m *Memory) Remove(path string) error {
+func (m *TargetMemory) Remove(path string) error {
 	if !fs.ValidPath(path) {
 		return &fs.PathError{Op: "Remove", Path: path, Err: fs.ErrInvalid}
 	}
@@ -553,7 +553,7 @@ func (m *Memory) Remove(path string) error {
 // ReadDir implements the [io/fs.ReadDirFS] interface. It reads
 // the directory named by dirname and returns a list of directory
 // entries sorted by filename.
-func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
+func (m *TargetMemory) ReadDir(path string) ([]fs.DirEntry, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "ReadDir", Path: path, Err: fs.ErrInvalid}
 	}
@@ -590,7 +590,7 @@ func (m *Memory) ReadDir(path string) ([]fs.DirEntry, error) {
 
 // ReadFile implements the [io/fs.ReadFileFS] interface. It
 // reads the file named by filename and returns the contents.
-func (m *Memory) ReadFile(path string) ([]byte, error) {
+func (m *TargetMemory) ReadFile(path string) ([]byte, error) {
 	// open file for reading to ensure that symlinks are resolved
 	f, err := m.Open(path)
 	if err != nil {
@@ -618,7 +618,7 @@ func (m *Memory) ReadFile(path string) ([]byte, error) {
 
 // Sub implements the [io/fs.SubFS] interface. It returns a
 // new FS representing the subtree rooted at dir.
-func (m *Memory) Sub(subPath string) (fs.FS, error) {
+func (m *TargetMemory) Sub(subPath string) (fs.FS, error) {
 	// get real path
 	realPath, err := m.resolvePath(subPath)
 	if err != nil {
@@ -643,21 +643,21 @@ func (m *Memory) Sub(subPath string) (fs.FS, error) {
 
 	// handle directories
 	realPath = p.Clean(realPath) + "/"
-	subFS := NewMemory()
+	tm := NewTargetMemory()
 	m.files.Range(func(key, entry any) bool {
 		path := key.(string)
 		if strings.HasPrefix(path, realPath) {
-			subFS.files.Store(path[len(realPath):], entry)
+			tm.files.Store(path[len(realPath):], entry)
 		}
 		return true
 	})
 
-	return subFS, nil
+	return tm, nil
 }
 
 // Glob implements the [io/fs.GlobFS] interface. It returns
 // the names of all files matching pattern.
-func (m *Memory) Glob(pattern string) ([]string, error) {
+func (m *TargetMemory) Glob(pattern string) ([]string, error) {
 	if !fs.ValidPath(pattern) {
 		return nil, &fs.PathError{Op: "Glob", Path: pattern, Err: fs.ErrInvalid}
 	}
