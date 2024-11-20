@@ -1,3 +1,5 @@
+// Copyright (c) HashiCorp, Inc.
+
 package main
 
 import "github.com/hashicorp/go-extract/cmd"

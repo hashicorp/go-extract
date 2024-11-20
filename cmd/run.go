@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cmd
 
 import (
@@ -14,10 +17,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/hashicorp/go-extract"
-	"github.com/hashicorp/go-extract/config"
-	"github.com/hashicorp/go-extract/internal/extractor"
-	"github.com/hashicorp/go-extract/telemetry"
+	extract "github.com/hashicorp/go-extract"
 )
 
 // CLI are the cli parameters for go-extract binary
@@ -30,7 +30,7 @@ type CLI struct {
 	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files. (respecting umask)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
-	FollowSymlinks             bool             `short:"F" help:"[Dangerous!] Follow symlinks to directories during extraction."`
+	InsecureTraverseSymlinks   bool             `help:"Traverse symlinks to directories during extraction."`
 	MaxFiles                   int64            `optional:"" default:"${default_max_files}" help:"Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize          int64            `optional:"" default:"${default_max_extraction_size}" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime          int64            `optional:"" default:"${default_max_extraction_time}" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
@@ -53,7 +53,7 @@ func Run(version, commit, date string) {
 		kong.UsageOnError(),
 		kong.Vars{
 			"version":                     fmt.Sprintf("%s (%s), commit %s, built at %s", filepath.Base(os.Args[0]), version, commit, date),
-			"valid_types":                 extractor.AvailableExtractors.Extensions(),
+			"valid_types":                 "7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz",
 			"default_type":                "",                          // default is empty, but needs to be set to avoid kong error
 			"default_max_extraction_size": strconv.Itoa(1 << (10 * 3)), // 1GB
 			"default_max_files":           strconv.Itoa(1000),          // 1000 files
@@ -74,30 +74,30 @@ func Run(version, commit, date string) {
 	}))
 
 	// setup telemetry hook
-	telemetryDataToLog := func(ctx context.Context, td *telemetry.Data) {
+	telemetryDataToLog := func(ctx context.Context, td *extract.TelemetryData) {
 		if cli.Telemetry {
 			logger.Info("extraction finished", "telemetryData", td)
 		}
 	}
 
 	// process cli params
-	config := config.NewConfig(
-		config.WithContinueOnError(cli.ContinueOnError),
-		config.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
-		config.WithCreateDestination(cli.CreateDestination),
-		config.WithCustomCreateDirMode(toFileMode(cli.CustomCreateDirMode)),
-		config.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
-		config.WithDenySymlinkExtraction(cli.DenySymlinks),
-		config.WithExtractType(cli.Type),
-		config.WithFollowSymlinks(cli.FollowSymlinks),
-		config.WithLogger(logger),
-		config.WithMaxExtractionSize(cli.MaxExtractionSize),
-		config.WithMaxFiles(cli.MaxFiles),
-		config.WithMaxInputSize(cli.MaxInputSize),
-		config.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
-		config.WithOverwrite(cli.Overwrite),
-		config.WithPatterns(cli.Pattern...),
-		config.WithTelemetryHook(telemetryDataToLog),
+	config := extract.NewConfig(
+		extract.WithContinueOnError(cli.ContinueOnError),
+		extract.WithContinueOnUnsupportedFiles(cli.ContinueOnUnsupportedFiles),
+		extract.WithCreateDestination(cli.CreateDestination),
+		extract.WithCustomCreateDirMode(toFileMode(cli.CustomCreateDirMode)),
+		extract.WithCustomDecompressFileMode(toFileMode(cli.CustomDecompressFileMode)),
+		extract.WithDenySymlinkExtraction(cli.DenySymlinks),
+		extract.WithExtractType(cli.Type),
+		extract.WithInsecureTraverseSymlinks(cli.InsecureTraverseSymlinks),
+		extract.WithLogger(logger),
+		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
+		extract.WithMaxFiles(cli.MaxFiles),
+		extract.WithMaxInputSize(cli.MaxInputSize),
+		extract.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
+		extract.WithOverwrite(cli.Overwrite),
+		extract.WithPatterns(cli.Pattern...),
+		extract.WithTelemetryHook(telemetryDataToLog),
 	)
 
 	// open archive
@@ -121,7 +121,7 @@ func Run(version, commit, date string) {
 	}
 
 	// extract archive
-	if err := extract.Unpack(ctx, archive, cli.Destination, config); err != nil {
+	if err := extract.Unpack(ctx, cli.Destination, archive, config); err != nil {
 		log.Println(fmt.Errorf("error during extraction: %w", err))
 		os.Exit(-1)
 	}

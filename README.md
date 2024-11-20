@@ -56,7 +56,7 @@ Flags:
       --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive. (respecting umask)
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
-  -F, --follow-symlinks                    [Dangerous!] Follow symlinks to directories during extraction.
+      --insecure-traverse-symlinks         Traverse symlinks to directories during extraction.
       --max-files=1000                     Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
@@ -76,7 +76,7 @@ The simplest way to use the library is to call the `extract.Unpack` function wit
 
 ```go
 // Unpack the archive
-if err := extract.Unpack(ctx, archive, dst, config.NewConfig()); err != nil {
+if err := extract.Unpack(ctx, dst, archive, config.NewConfig()); err != nil {
     // Handle error
     log.Fatalf("Failed to unpack archive: %v", err)
 }
@@ -96,7 +96,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
     config.WithCustomDecompressFileMode(..),
     config.WithDenySymlinkExtraction(..),
     config.WithExtractType(..),
-    config.WithFollowSymlinks(..),
+    config.WithTraverseSymlinks(..),
     config.WithLogger(..),
     config.WithMaxExtractionSize(..),
     config.WithMaxFiles(..),
@@ -109,7 +109,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
 
 [..]
 
-  if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+  if err := extract.Unpack(ctx, dst, archive, cfg); err != nil {
     log.Println(fmt.Errorf("error during extraction: %w", err))
     os.Exit(-1)
   }
@@ -155,7 +155,7 @@ Interact with the local operating system to create files, directories, and symli
 
 ```golang
 // prepare destination and config
-d := extract.NewDiskTarget()
+d := extract.NewTargetDisk()
 dst := "output/"
 cfg := config.NewConfig()
 
@@ -180,9 +180,9 @@ Extract archives directly into memory, supporting files, directories, and symlin
 
 ```golang
 // prepare destination and config
-m := extract.NewMemoryTarget()
-dst := "" // extract to root of memory filesystem
-cfg := config.NewConfig()
+m   = extract.NewMemory()     // create a new in-memory filesystem
+dst = ""                      // root of in-memory filesystem
+cfg = extract.NewConfig()     // custom config for extraction
 
 // unpack
 if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
@@ -190,8 +190,7 @@ if err := extract.UnpackTo(ctx, m, dst, archive, cfg); err != nil {
 }
 
 // Walk the memory filesystem
-memFs := m.(fs.FS)
-if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) error {
+if err := fs.WalkDir(m, ".", func(path string, d fs.DirEntry, err error) error {
     fmt.Println(path)
     return nil
 }); err != nil {
@@ -205,7 +204,7 @@ if err := fs.WalkDir(memFs, ".", func(path string, d fs.DirEntry, err error) err
 If the extraction fails, you can check for specific errors returned by the `extract.Unpack` function:
 
 ```golang
-if err := extract.Unpack(ctx, archive, dst, cfg); err != nil {
+if err := extract.Unpack(ctx, dst, archive, cfg); err != nil {
   switch {
   case errors.Is(err, extract.ErrNoExtractorFound):
     // handle no extractor found
