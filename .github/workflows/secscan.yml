@@ -9,11 +9,6 @@ jobs:
   sec_scan:
     runs-on: ubuntu-latest
     steps:
-    - name: Configure Git
-      env:
-        GITHUB_TOKEN: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
-      run: |
-        git config --global url."https://hashibot-prodsec:$GITHUB_TOKEN@github.com".insteadOf "https://github.com"
 
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
@@ -23,11 +18,18 @@ jobs:
         go-version: "1.21"
         cache: false
 
+    - name: Clone Security Scanner repo
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        repository: hashicorp/security-scanner
+        token: ${{ secrets.PRODSEC_SCANNER_READ_ONLY }}
+        path: security-scanner
+        ref: main
+
+
     - name: Scan
       id: scan
-      uses: hashicorp/security-scanner@main
-      env:
-        GITHUB_TOKEN: ${{ secrets.HASHIBOT_PRODSEC_GITHUB_TOKEN }}
+      uses: ./security-scanner
       with:
         repository: "$PWD" # (path or github.com/owner/name)
         config: |
@@ -38,7 +40,7 @@ jobs:
               all = true
             } 
           }
-
+  
     - name: SARIF Output 
       shell: bash
       run: cat results.sarif | jq
