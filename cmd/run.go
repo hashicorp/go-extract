@@ -56,7 +56,7 @@ func Run(version, commit, date string) {
 			"valid_types":                 "7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz",
 			"default_type":                "",                          // default is empty, but needs to be set to avoid kong error
 			"default_max_extraction_size": strconv.Itoa(1 << (10 * 3)), // 1GB
-			"default_max_files":           strconv.Itoa(1000),          // 1000 files
+			"default_max_files":           strconv.Itoa(100000),        // 100k files
 			"default_max_input_size":      strconv.Itoa(1 << (10 * 3)), // 1GB
 			"default_max_extraction_time": strconv.Itoa(60),            // 60 seconds
 		},
