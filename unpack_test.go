@@ -129,6 +129,19 @@ func ExampleNewTargetDisk() {
 	// example content
 }
 
+// Demonstrates how to check if a given file has a known archive extension.
+func ExampleHasKnownArchiveExtension() {
+	var (
+		testFile = "example.zip" // source file
+	)
+
+	if extract.HasKnownArchiveExtension(testFile) {
+		fmt.Println("test file is an archive")
+	}
+	// Output:
+	// test file is an archive
+}
+
 // Demonstrates how to extract an "example.zip" source archive to an "output" directory on
 // disk with the default configuration options.
 func Example() {
@@ -1226,6 +1239,87 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			}
 			if _, err := os.Stat(expectedFile); err != nil {
 				t.Fatalf("\nexpected file: %s\ngot: %s\n", expectedFile, err)
+			}
+		})
+	}
+}
+
+func TestHasKnownArchiveExtension(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+		expected bool
+	}{
+		{
+			name:     "valid archive name (bz2)",
+			fileName: "test.bz2",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (gz)",
+			fileName: "test.gz",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.gz)",
+			fileName: "test.tar.gz",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.bz2)",
+			fileName: "test.tar.bz2",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (zip)",
+			fileName: "test.zip",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tgz)",
+			fileName: "test.tgz",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.xz)",
+			fileName: "test.tar.xz",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.lz4)",
+			fileName: "test.tar.lz4",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.zst)",
+			fileName: "test.tar.zst",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.sz)",
+			fileName: "test.tar.sz",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar)",
+			fileName: "test.tar",
+			expected: true,
+		},
+		{
+			name:     "valid archive name (tar.lz4)",
+			fileName: "test.tar.lz4",
+			expected: true,
+		},
+		{
+			name:     "invalid archive name (tar.txt)",
+			fileName: "test.tar.txt",
+			expected: false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if extract.HasKnownArchiveExtension(tc.fileName) != tc.expected {
+				t.Fatalf("expected %v, got %v", tc.expected, !tc.expected)
 			}
 		})
 	}
