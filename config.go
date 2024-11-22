@@ -226,7 +226,7 @@ const (
 	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
 	defaultDenySymlinkExtraction      = false         // allow symlink extraction
 	defaultExtractionType             = ""            // do not limit extraction type
-	defaultMaxFiles                   = 1000          // 1k files
+	defaultMaxFiles                   = 100000        // 100k files
 	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
