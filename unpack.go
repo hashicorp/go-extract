@@ -69,12 +69,12 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 		return fmt.Errorf("%w: %w", ErrFailedToReadHeader, err)
 	}
 
-	var ext string
+	var name string
 	if f, ok := src.(*os.File); ok {
-		ext = filepath.Ext(f.Name())
+		name = filepath.Ext(f.Name())
 	}
 
-	unpacker := availableExtractors.GetUnpackFunction(header, ext)
+	unpacker := availableExtractors.GetUnpackFunction(header, name)
 	if unpacker != nil {
 		err := unpacker(ctx, t, dst, reader, cfg)
 		if err != nil {
@@ -84,4 +84,9 @@ func UnpackTo(ctx context.Context, t Target, dst string, src io.Reader, cfg *Con
 	}
 
 	return ErrNoExtractorFound
+}
+
+// HasKnownArchiveExtension returns true if the given name has a known archive extension.
+func HasKnownArchiveExtension(name string) bool {
+	return availableExtractors.GetUnpackFunctionByFileName(name) != nil
 }

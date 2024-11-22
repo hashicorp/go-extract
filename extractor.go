@@ -83,10 +83,10 @@ func (e extractors) getUnpackFunction(data []byte) unpackFunc {
 	return nil
 }
 
-// getUnpackFunctionByFileName identifies the correct extractor based on file extension.
-func (e extractors) getUnpackFunctionByFileName(ext string) unpackFunc {
+// GetUnpackFunctionByFileName identifies the correct extractor based on file extension.
+func (e extractors) GetUnpackFunctionByFileName(name string) unpackFunc {
 	// get file extension from file name
-	ext = strings.ToLower(ext)
+	ext := strings.ToLower(name)
 	if strings.Contains(ext, ".") {
 		ext = filepath.Ext(ext)
 		ext = strings.Replace(ext, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
@@ -108,7 +108,7 @@ func (e extractors) GetUnpackFunction(header []byte, ext string) unpackFunc {
 	}
 
 	// find extractor by file extension
-	if unpacker := e.getUnpackFunctionByFileName(ext); unpacker != nil {
+	if unpacker := e.GetUnpackFunctionByFileName(ext); unpacker != nil {
 		return unpacker
 	}
 
