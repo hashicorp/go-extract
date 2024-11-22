@@ -1310,6 +1310,11 @@ func TestHasKnownArchiveExtension(t *testing.T) {
 			fileName: "test.tar.lz4",
 			expected: true,
 		},
+		{
+			name:     "invalid archive name (tar.txt)",
+			fileName: "test.tar.txt",
+			expected: false,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
