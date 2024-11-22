@@ -139,7 +139,7 @@ func ExampleHasKnownArchiveExtension() {
 		fmt.Println("test file is an archive")
 	}
 	// Output:
-	// source is an archive
+	// test file is an archive
 }
 
 // Demonstrates how to extract an "example.zip" source archive to an "output" directory on
