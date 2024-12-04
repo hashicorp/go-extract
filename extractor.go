@@ -346,30 +346,34 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 			}
 
 			// open file inm archive
-			fin, err := ae.Open()
-			if err != nil {
-				return handleError(cfg, td, "failed to open file", err)
-			}
-			defer fin.Close()
+			err, fileCreated := func() (error, bool) {
+				fin, err := ae.Open()
+				if err != nil {
+					return handleError(cfg, td, "failed to open file", err), false
+				}
+				defer fin.Close()
 
-			// create file
-			n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
-			extractionSize = extractionSize + n
-			td.ExtractionSize = extractionSize
-			if err != nil {
+				// create file
+				n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
+				extractionSize = extractionSize + n
+				td.ExtractionSize = extractionSize
+				if err != nil {
 
-				// increase error counter, set error and end if necessary
-				if err := handleError(cfg, td, "failed to create safe file", err); err != nil {
-					return err
+					// increase error counter, set error and end if necessary
+					return handleError(cfg, td, "failed to create safe file", err), false
 				}
 
 				// do not end on error
-				continue
+				return nil, true
+			}()
+			if err != nil {
+				return err
 			}
 
 			// store telemetry
-			td.ExtractedFiles++
-
+			if fileCreated {
+				td.ExtractedFiles++
+			}
 			continue
 
 		// its a symlink !!
