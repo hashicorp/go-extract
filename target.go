@@ -38,6 +38,9 @@ type Target interface {
 
 	// Stat see docs for os.Stat. Main purpose is to check if a symlink is pointing to a file or directory.
 	Stat(path string) (fs.FileInfo, error)
+
+	// Chmod see docs for os.Chmod. Main purpose is to set the file mode of a file or directory.
+	Chmod(name string, mode fs.FileMode) error
 }
 
 // createFile is a wrapper around the CreateFile function
@@ -73,7 +76,18 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 		return 0, fmt.Errorf("cannot create directory: %w", err)
 	}
 
-	return t.CreateFile(filepath.Join(dst, name), src, mode, cfg.Overwrite(), maxSize)
+	path := filepath.Join(dst, name)
+	n, err := t.CreateFile(path, src, mode, cfg.Overwrite(), maxSize)
+	if err != nil {
+		return n, fmt.Errorf("failed to create file: %w", err)
+	}
+	if cfg.PreserveFilemode() {
+		if err := t.Chmod(path, mode); err != nil {
+			return n, fmt.Errorf("failed to set file mode: %w", err)
+		}
+	}
+
+	return n, nil
 }
 
 // createDir is a wrapper around the CreateDir function
@@ -120,7 +134,17 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 	name = filepath.Join(parts...)
 	path := filepath.Join(dst, name)
 
-	return t.CreateDir(path, mode)
+	if err := t.CreateDir(path, mode); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	if cfg.PreserveFilemode() {
+		if err := t.Chmod(path, mode); err != nil {
+			return fmt.Errorf("failed to set file mode: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // createSymlink is a wrapper around the CreateSymlink function
@@ -191,7 +215,6 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 
 	// create symlink
 	return t.CreateSymlink(linkTarget, filepath.Join(dst, name), cfg.Overwrite())
-
 }
 
 // securityCheck checks if the targetDirectory contains path traversal

@@ -1325,6 +1325,56 @@ func TestHasKnownArchiveExtension(t *testing.T) {
 	}
 }
 
+func TestUnpackWithPreserveFilemode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test on windows systems")
+	}
+	testCases := []struct {
+		name        string
+		permissions fs.FileMode
+		cfg         *extract.Config
+		expectEq    bool
+	}{
+		{
+			name:        "file with permissions 0777, with applied umask",
+			permissions: 0777,
+			cfg:         extract.NewConfig(extract.WithPreserveFilemode(false)),
+			expectEq:    false,
+		},
+		{
+			name:        "file with permissions 0777, overwrite umask",
+			permissions: 0777,
+			cfg:         extract.NewConfig(extract.WithPreserveFilemode(true)),
+			expectEq:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				ctx = context.Background()
+				src = asIoReader(t, packTar(t, []archiveContent{{Name: "test", Content: []byte("hello world"), Mode: tc.permissions}}))
+				dst = t.TempDir()
+				cfg = tc.cfg
+			)
+			if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
+				t.Fatalf("error unpacking archive: %v", err)
+			}
+			var winPerm = fmt.Sprintf("%v", toWindowsFileMode(false, tc.permissions))
+			t.Logf("expected equal: %v ; archive file mode %s", tc.expectEq, winPerm)
+			stat, err := os.Stat(filepath.Join(dst, "test"))
+			if err != nil {
+				t.Fatalf("error getting file stats: %v", err)
+			}
+			eqPem := stat.Mode().Perm() == tc.permissions
+			if eqPem != tc.expectEq {
+				t.Fatalf("expected equal: %v ; archive file mode %s, got %s", tc.expectEq, tc.permissions, stat.Mode().Perm())
+			}
+		})
+	}
+
+}
+
 func compressBrotli(t *testing.T, data []byte) []byte {
 	t.Helper()
 	b := new(bytes.Buffer)

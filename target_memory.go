@@ -240,6 +240,22 @@ func (m *TargetMemory) Open(path string) (fs.File, error) {
 	return &fileEntry{memoryEntry: me, reader: bytes.NewReader(me.data)}, nil
 }
 
+// Chmod changes the mode of the file at the given path. If the file does not exist, an error is returned.
+func (m *TargetMemory) Chmod(path string, mode fs.FileMode) error {
+	if !fs.ValidPath(path) {
+		return &fs.PathError{Op: "Chmod", Path: path, Err: fs.ErrInvalid}
+	}
+	me, err := m.resolveEntry(path)
+	if err != nil {
+		return &fs.PathError{Op: "Chmod", Path: path, Err: err}
+	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	// inverse & with 0777 to remove the file mode bits and then or with the new mode bits
+	me.fileInfo.(*memoryFileInfo).mode = (me.fileInfo.(*memoryFileInfo).mode &^ 0777) | mode.Perm()
+	return nil
+}
+
 type dirEntry struct {
 	*memoryEntry
 	memory         *TargetMemory

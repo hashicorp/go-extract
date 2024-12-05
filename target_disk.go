@@ -108,3 +108,8 @@ func (d *TargetDisk) Lstat(name string) (fs.FileInfo, error) {
 func (d *TargetDisk) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
 }
+
+// Chmod changes the mode of the named file to mode.
+func (d *TargetDisk) Chmod(name string, mode fs.FileMode) error {
+	return os.Chmod(name, mode.Perm())
+}
