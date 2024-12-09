@@ -86,12 +86,9 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 		return 0, fmt.Errorf("cannot create directory: %w", err)
 	}
 
+	// create the file
 	path := filepath.Join(dst, name)
-	n, err := t.CreateFile(path, src, mode, cfg.Overwrite(), maxSize)
-	if err != nil {
-		return n, fmt.Errorf("failed to create file: %w", err)
-	}
-	return n, nil
+	return t.CreateFile(path, src, mode, cfg.Overwrite(), maxSize)
 }
 
 // createDir is a wrapper around the CreateDir function
@@ -129,20 +126,15 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 		return nil
 	}
 
+	// perform security check to ensure that the path is safe to write to
 	if err := securityCheck(t, dst, name, cfg); err != nil {
 		return fmt.Errorf("security check path failed: %w", err)
 	}
 
 	// combine the path
 	parts := strings.Split(name, "/")
-	name = filepath.Join(parts...)
-	path := filepath.Join(dst, name)
-
-	if err := t.CreateDir(path, mode); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-
-	return nil
+	path := filepath.Join(dst, filepath.Join(parts...))
+	return t.CreateDir(path, mode)
 }
 
 // createSymlink is a wrapper around the CreateSymlink function
