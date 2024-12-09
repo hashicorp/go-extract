@@ -76,7 +76,7 @@ Flags:
   -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
-      --preserve-filemode                  Preserve file mode and overwrite umask.
+  -p, --preserve-file-attributes           Preserve file attributes from archive (access and modification time, file permissions and owner/group).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
