@@ -5,11 +5,14 @@ package extract_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/fs"
+	"os"
 	p "path"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	extract "github.com/hashicorp/go-extract"
 )
@@ -710,6 +713,16 @@ func TestCreateFile(t *testing.T) {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
+	// create the same file, but fail bc it already exists#
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
+		t.Fatalf("CreateFile() failed: expected error, got nil")
+	}
+
+	// create the same file, but overwrite
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), true, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
 	// open the file
 	f, err := tm.Open(testPath)
 	if err != nil {
@@ -756,5 +769,150 @@ func TestCreateFile(t *testing.T) {
 	// create a file with the same name as the dir
 	if _, err := tm.CreateFile(testDir, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
 		t.Fatalf("CreateFile() failed: expected error, got nil")
+	}
+}
+
+// TestCreateSymlink tests the CreateSymlink method
+func TestCreateSymlink(t *testing.T) {
+	// instantiate a new memory
+	tm := extract.NewTargetMemory()
+
+	// test data
+	testPath := "test"
+	testLink := "link"
+	testContent := "test"
+	testPerm := 0644
+
+	// create a file
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// create a symlink
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+
+	// open the symlink
+	f, err := tm.Open(testLink)
+	if err != nil {
+		t.Fatalf("Open() failed: %s", err)
+	}
+
+	// stat the symlink (which is the link target)
+	stat, err := f.Stat()
+	if err != nil {
+		t.Fatalf("Stat() failed: %s", err)
+	}
+
+	// check name
+	if stat.Name() != testPath {
+		t.Fatalf("Name() returned unexpected value: expected %s, got %s", testLink, stat.Name())
+	}
+
+	// check mode
+	if int(stat.Mode().Perm()&fs.ModePerm) != testPerm {
+		t.Fatalf("Mode() returned unexpected value: expected %d, got %d", testPerm, stat.Mode().Perm())
+	}
+
+	// read the symlink
+	data, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll() failed: %s", err)
+	}
+	if !bytes.Equal(data, []byte(testContent)) {
+		t.Fatalf("unexpected file contents: expected %s, got %s", testContent, data)
+	}
+
+	// close the symlink
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close() failed: %s", err)
+	}
+
+	// overwrite the symlink, but fail
+	if err := tm.CreateSymlink(testPath, testLink, false); err == nil {
+		t.Fatalf("CreateSymlink() failed: expected error, got nil")
+	}
+
+	// overwrite the symlink
+	if err := tm.CreateSymlink(testPath, testLink, true); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+}
+
+func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
+	uid, gid := os.Geteuid(), os.Getegid()
+	baseTime := time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
+	testCases := []struct {
+		name        string
+		contents    []archiveContent
+		packer      func(*testing.T, []archiveContent) []byte
+		expectError bool
+	}{
+		{
+			name: "unpack tar with preserve file attributes",
+			contents: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+			},
+			packer: packTar,
+		},
+		{
+			name: "unpack zip with preserve file attributes",
+			contents: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+			},
+			packer: packZip,
+		},
+		{
+			name: "unpack rar with preserve file attributes",
+			contents: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
+				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
+				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
+			},
+			packer: packRar2,
+		},
+		{
+			name: "unpack z7 with preserve file attributes",
+			contents: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
+				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
+				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
+				{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
+			},
+			packer: pack7z2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				ctx = context.Background()
+				m   = extract.NewTargetMemory()
+				src = asIoReader(t, tc.packer(t, tc.contents))
+				cfg = extract.NewConfig(extract.WithPreserveFileAttributes(true))
+			)
+			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
+				t.Fatalf("error unpacking archive: %v", err)
+			}
+			for _, c := range tc.contents {
+				path := c.Name
+				stat, err := m.Lstat(path)
+				if err != nil {
+					t.Fatalf("error getting file stats: %v", err)
+				}
+				if !(c.Mode&fs.ModeSymlink != 0) { // skip symlink checks
+					if stat.Mode().Perm() != c.Mode.Perm() {
+						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), path)
+					}
+				}
+			}
+		})
 	}
 }

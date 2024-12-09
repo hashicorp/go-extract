@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"time"
 
 	"github.com/nwaples/rardecode"
 )
@@ -82,9 +83,9 @@ func (rw *rarWalker) Next() (archiveEntry, error) {
 		return nil, err
 	}
 	re := &rarEntry{fh, rw.r}
-	if re.IsSymlink() { // symlink not supported
-		return nil, unsupportedFile(re.Name())
-	}
+	// if re.IsSymlink() { // symlink not supported
+	// 	return nil, unsupportedFile(re.Name())
+	// }
 	return re, nil
 }
 
@@ -95,46 +96,71 @@ type rarEntry struct {
 }
 
 // Name returns the name of the file.
-func (re *rarEntry) Name() string {
-	return re.f.Name
+func (r *rarEntry) Name() string {
+	return r.f.Name
 }
 
 // Size returns the size of the file.
-func (re *rarEntry) Size() int64 {
-	return re.f.UnPackedSize
+func (r *rarEntry) Size() int64 {
+	return r.f.UnPackedSize
 }
 
 // Mode returns the mode of the file.
-func (z *rarEntry) Mode() os.FileMode {
-	return z.f.Mode()
+func (r *rarEntry) Mode() os.FileMode {
+	return r.f.Mode()
 }
 
 // Linkname symlinks are not supported.
-func (re *rarEntry) Linkname() string {
+func (r *rarEntry) Linkname() string {
 	return ""
 }
 
 // IsRegular returns true if the file is a regular file.
-func (re *rarEntry) IsRegular() bool {
-	return re.f.Mode().IsRegular()
+func (r *rarEntry) IsRegular() bool {
+	return r.f.Mode().IsRegular()
 }
 
 // IsDir returns true if the file is a directory.
-func (z *rarEntry) IsDir() bool {
-	return z.f.IsDir
+func (r *rarEntry) IsDir() bool {
+	return r.f.IsDir
 }
 
 // IsSymlink returns true if the file is a symlink.
-func (z *rarEntry) IsSymlink() bool {
-	return z.f.Mode()&fs.ModeSymlink != 0
+func (r *rarEntry) IsSymlink() bool {
+	return false
 }
 
 // Type returns the type of the file.
-func (z *rarEntry) Type() fs.FileMode {
-	return z.f.Mode().Type()
+func (r *rarEntry) Type() fs.FileMode {
+	return r.f.Mode().Type()
 }
 
 // Open returns a reader for the file.
-func (z *rarEntry) Open() (io.ReadCloser, error) {
-	return io.NopCloser(z.r), nil
+func (r *rarEntry) Open() (io.ReadCloser, error) {
+	return io.NopCloser(r.r), nil
+}
+
+// AccessTime returns the access time of the file.
+func (r *rarEntry) AccessTime() time.Time {
+	return r.f.AccessTime
+}
+
+// ModTime returns the modification time of the file.
+func (r *rarEntry) ModTime() time.Time {
+	return r.f.ModificationTime
+}
+
+// Sys returns the system information of the file.
+func (r *rarEntry) Sys() interface{} {
+	return r.f
+}
+
+// Gid returns the group ID of the file.
+func (r *rarEntry) Gid() int {
+	return os.Getgid()
+}
+
+// Uid returns the user ID of the file.
+func (r *rarEntry) Uid() int {
+	return os.Getuid()
 }

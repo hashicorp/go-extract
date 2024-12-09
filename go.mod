@@ -21,5 +21,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 )

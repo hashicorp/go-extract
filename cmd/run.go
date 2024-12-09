@@ -38,7 +38,7 @@ type CLI struct {
 	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
-	PreserveFilemode           bool             `help:"Preserve file mode and overwrite umask."`
+	PreserveFileAttributes     bool             `short:"p" help:"Preserve file attributes from archive (access and modification time, file permissions and owner/group)."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
 	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
@@ -98,7 +98,7 @@ func Run(version, commit, date string) {
 		extract.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		extract.WithOverwrite(cli.Overwrite),
 		extract.WithPatterns(cli.Pattern...),
-		extract.WithPreserveFilemode(cli.PreserveFilemode),
+		extract.WithPreserveFileAttributes(cli.PreserveFileAttributes),
 		extract.WithTelemetryHook(telemetryDataToLog),
 	)
 

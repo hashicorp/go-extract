@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"time"
 )
 
 // fileExtensionZip is the file extension for zip files.
@@ -153,4 +154,29 @@ func (z *zipEntry) Open() (io.ReadCloser, error) {
 // Type returns the type of the entry
 func (z *zipEntry) Type() fs.FileMode {
 	return z.zf.FileHeader.Mode().Type()
+}
+
+// AccessTime returns the access time of the entry
+func (z *zipEntry) AccessTime() time.Time {
+	return z.zf.FileHeader.FileInfo().ModTime()
+}
+
+// ModTime returns the modification time of the entry
+func (z *zipEntry) ModTime() time.Time {
+	return z.zf.FileHeader.FileInfo().ModTime()
+}
+
+// Sys returns the system information of the entry
+func (z *zipEntry) Sys() interface{} {
+	return z.zf.FileHeader
+}
+
+// Gid returns the group ID of the entry
+func (z *zipEntry) Gid() int {
+	return os.Getgid()
+}
+
+// Uid returns the user ID of the entry
+func (z *zipEntry) Uid() int {
+	return os.Getuid()
 }

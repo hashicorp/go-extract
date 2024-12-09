@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Target specifies all function that are needed to be implemented to extract contents from an archive
@@ -41,6 +42,15 @@ type Target interface {
 
 	// Chmod see docs for os.Chmod. Main purpose is to set the file mode of a file or directory.
 	Chmod(name string, mode fs.FileMode) error
+
+	// Chtimes see docs for os.Chtimes. Main purpose is to set the file times of a file or directory.
+	Chtimes(name string, atime, mtime time.Time) error
+
+	// Lchtimes see docs for os.Lchtimes. Main purpose is to set the file times of a file or directory.
+	Lchtimes(name string, atime, mtime time.Time) error
+
+	// Chown see docs for os.Chown. Main purpose is to set the file owner and group of a file or directory.
+	Chown(name string, uid, gid int) error
 }
 
 // createFile is a wrapper around the CreateFile function
@@ -81,12 +91,6 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 	if err != nil {
 		return n, fmt.Errorf("failed to create file: %w", err)
 	}
-	if cfg.PreserveFilemode() {
-		if err := t.Chmod(path, mode); err != nil {
-			return n, fmt.Errorf("failed to set file mode: %w", err)
-		}
-	}
-
 	return n, nil
 }
 
@@ -136,12 +140,6 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 
 	if err := t.CreateDir(path, mode); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
-	}
-
-	if cfg.PreserveFilemode() {
-		if err := t.Chmod(path, mode); err != nil {
-			return fmt.Errorf("failed to set file mode: %w", err)
-		}
 	}
 
 	return nil

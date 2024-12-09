@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"time"
 
 	"github.com/bodgit/sevenzip"
 )
@@ -122,9 +123,14 @@ func (z *sevenZipEntry) Mode() os.FileMode {
 }
 
 // Linkname returns the linkname of the 7zip entry
-// Remark: 7zip does not support symlinks
 func (z *sevenZipEntry) Linkname() string {
-	return ""
+	if !z.IsSymlink() {
+		return ""
+	}
+	f, _ := z.f.Open()
+	defer f.Close()
+	c, _ := io.ReadAll(f)
+	return string(c)
 }
 
 // IsRegular returns true if the 7zip entry is a regular file
@@ -140,7 +146,7 @@ func (z *sevenZipEntry) IsDir() bool {
 // IsSymlink returns true if the 7zip entry is a symlink
 // Remark: 7zip does not support symlinks
 func (z *sevenZipEntry) IsSymlink() bool {
-	return false
+	return (z.f.FileInfo().Mode()&os.ModeSymlink != 0)
 }
 
 // Open returns a reader for the 7zip entry
@@ -151,4 +157,30 @@ func (z *sevenZipEntry) Open() (io.ReadCloser, error) {
 // Type returns the type of the 7zip entry
 func (z *sevenZipEntry) Type() fs.FileMode {
 	return fs.FileMode(z.f.FileInfo().Mode())
+}
+
+// AccessTime returns the access time of the 7zip entry
+func (z *sevenZipEntry) AccessTime() time.Time {
+	return z.f.Accessed
+}
+
+// ModTime returns the modification time of the 7zip entry
+func (z *sevenZipEntry) ModTime() time.Time {
+	return z.f.Modified
+}
+
+// Sys returns the system information of the 7zip entry
+func (z *sevenZipEntry) Sys() interface{} {
+	return z.f.FileInfo().Sys()
+}
+
+// Gid returns the group ID of the 7zip entry
+func (z *sevenZipEntry) Gid() int {
+	return os.Getgid()
+}
+
+// Uid returns the user ID of the 7zip entry
+func (z *sevenZipEntry) Uid() int {
+	// get current uid
+	return os.Getuid()
 }

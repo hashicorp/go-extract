@@ -77,8 +77,8 @@ type Config struct {
 	// patterns is a list of file patterns to match files to extract
 	patterns []string
 
-	// preserveFilemode is a flag to preserve the file mode of the extracted files
-	preserveFilemode bool
+	// preserveFileAttributes is a flag to preserve the file attributes of the extracted files
+	preserveFileAttributes bool
 }
 
 // ContinueOnError returns true if the extraction should continue on error.
@@ -204,10 +204,9 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
-// PreserveFilemode returns true if the file mode of the extracted files should be preserved and
-// not adjusted to the umask.
-func (c *Config) PreserveFilemode() bool {
-	return c.preserveFilemode
+// PreserveFileAttributes returns true if the file attributes of the extracted files should be preserved.
+func (c *Config) PreserveFileAttributes() bool {
+	return c.preserveFileAttributes
 }
 
 // SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
@@ -240,7 +239,7 @@ const (
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
-	defaultPreserveFilemode           = false         // do not preserve file mode
+	defaultPreserveFileAttributes     = false         // do not preserve file attributes
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
 )
@@ -276,7 +275,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		telemetryHook:              defaultTelemetryHook,
 		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
-		preserveFilemode:           defaultPreserveFilemode,
+		preserveFileAttributes:     defaultPreserveFileAttributes,
 	}
 
 	// Loop through each option
@@ -416,10 +415,10 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// WithPreserveFilemode options pattern function to preserve the file mode of the extracted files.
-func WithPreserveFilemode(preserve bool) ConfigOption {
+// WithPreserveFileAttributes options pattern function to preserve the file attributes of the extracted files.
+func WithPreserveFileAttributes(preserve bool) ConfigOption {
 	return func(c *Config) {
-		c.preserveFilemode = preserve
+		c.preserveFileAttributes = preserve
 	}
 }
 

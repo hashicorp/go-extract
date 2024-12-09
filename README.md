@@ -88,8 +88,6 @@ Flags:
 When calling the `extract.Unpack(..)` function, we need to provide `config` object that contains all available configuration.
 
 ```golang
-  // process cli params
-
   cfg := extract.NewConfig(
     extract.WithContinueOnError(..),
     extract.WithContinueOnUnsupportedFiles(..),
@@ -106,7 +104,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
     extract.WithNoUntarAfterDecompression(..),
     extract.WithOverwrite(..),
     extract.WithPatterns(..),
-    extract.WithPreserveFilemode(..),
+    extract.WithPreserveFileAttributes(..),
     extract.WithTelemetryHook(..),
   )
 
@@ -135,18 +133,18 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 
 ```json
 {
-  "LastExtractionError": "",
-  "ExtractedDirs": 51,
-  "ExtractionDuration": 48598584,
-  "ExtractionErrors": 0,
-  "ExtractedFiles": 241,
-  "ExtractionSize": 539085,
-  "ExtractedSymlinks": 0,
-  "ExtractedType": "tar+gzip",
-  "InputSize": 81477,
-  "PatternMismatches": 0,
-  "UnsupportedFiles": 0,
-  "LastUnsupportedFile": ""
+  "last_extraction_error": "",
+  "extracted_dirs": 51,
+  "extraction_duration": 55025584,
+  "extraction_errors": 0,
+  "extracted_files": 241,
+  "extraction_size": 539085,
+  "extracted_symlinks": 0,
+  "extracted_type": "tar.gz",
+  "input_size": 81477,
+  "pattern_mismatches": 0,
+  "unsupported_files": 0,
+  "last_unsupported_file": ""
 }
 ```
 

@@ -270,6 +270,27 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	var fileCounter int64
 	var extractionSize int64
 
+	// check if attributes should be preserved, but as non-root user
+	if _, ok := t.(*TargetDisk); ok {
+		if cfg.PreserveFileAttributes() && os.Geteuid() != 0 {
+			cfg.Logger().Warn("cannot fully preserve file attributes as non-root user: cannot set file ownership", "uid", os.Geteuid())
+		}
+	}
+
+	// set attributes after all modification are done to ensure that
+	// the timestamps are set correctly
+	var extractedEntries []archiveEntry
+	if cfg.PreserveFileAttributes() {
+		defer func() {
+			for _, ae := range extractedEntries {
+				path := filepath.Join(dst, ae.Name())
+				if err := setFileAttributes(t, path, ae); err != nil {
+					cfg.Logger().Error("failed to set file attributes", "path", path, "error", err)
+				}
+			}
+		}()
+	}
+
 	for {
 		// check if context is canceled
 		if ctx.Err() != nil {
@@ -332,10 +353,12 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				// do not end on error
 				continue
 			}
+			if cfg.PreserveFileAttributes() {
+				extractedEntries = append(extractedEntries, ae)
+			}
 
 			// store telemetry and continue
 			td.ExtractedDirs++
-			continue
 
 		// if it's a file create it
 		case ae.IsRegular():
@@ -373,8 +396,10 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 			// store telemetry
 			if fileCreated {
 				td.ExtractedFiles++
+				if cfg.PreserveFileAttributes() {
+					extractedEntries = append(extractedEntries, ae)
+				}
 			}
-			continue
 
 		// its a symlink !!
 		case ae.IsSymlink():
@@ -402,10 +427,12 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				// do not end on error
 				continue
 			}
+			if cfg.PreserveFileAttributes() {
+				extractedEntries = append(extractedEntries, ae)
+			}
 
 			// store telemetry and continue
 			td.ExtractedSymlinks++
-			continue
 
 		default:
 
@@ -424,6 +451,26 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 			continue
 		}
 	}
+}
+
+// setFileAttributes sets the file attributes for the given path and archive entry.
+func setFileAttributes(t Target, path string, ae archiveEntry) error {
+	if ae.IsSymlink() { // only time attributes are supported for symlinks
+		if err := t.Lchtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
+			return fmt.Errorf("failed to lchtimes symlink: %w", err)
+		}
+		return nil
+	}
+	if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
+		return fmt.Errorf("failed to chown file: %w", err)
+	}
+	if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
+		return fmt.Errorf("failed to chmod file: %w", err)
+	}
+	if err := t.Chtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
+		return fmt.Errorf("failed to chtimes file: %w", err)
+	}
+	return nil
 }
 
 // readerToReaderAtSeeker converts an io.Reader to an io.ReaderAt and io.Seeker
