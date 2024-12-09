@@ -401,7 +401,7 @@ func (m *TargetMemory) resolveEntry(path string) (*memoryEntry, error) {
 	dir := p.Dir(path)
 	existingEntry, err := m.resolvePath(dir)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, fs.ErrNotExist
+		return nil, err
 	}
 	if err != nil {
 		return nil, &fs.PathError{Op: "resolveEntry", Path: path, Err: err}

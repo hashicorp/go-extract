@@ -86,7 +86,10 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 		return 0, fmt.Errorf("cannot create directory: %w", err)
 	}
 
-	// create the file
+	// ensure that if the file exist that it is not a symlink
+	if err := securityCheck(t, dst, name, cfg); err != nil {
+		return 0, fmt.Errorf("security check path failed: %w", err)
+	}
 	path := filepath.Join(dst, name)
 	return t.CreateFile(path, src, mode, cfg.Overwrite(), maxSize)
 }

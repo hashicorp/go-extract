@@ -1,8 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-//go:build darwin || dragonfly || freebsd || linux || netbsd || openbsd
-// +build darwin dragonfly freebsd linux netbsd openbsd
+//go:build linux && (amd64 || arm64)
+// +build linux
+// +build amd64 arm64
 
 package extract
 
@@ -17,8 +18,8 @@ import (
 func Lchtimes(path string, atime, mtime time.Time) error {
 
 	return unix.Lutimes(path, []unix.Timeval{
-		{Sec: atime.Unix(), Usec: int32(atime.Nanosecond() / 1e6 % 1e6)},
-		{Sec: mtime.Unix(), Usec: int32(mtime.Nanosecond() / 1e6 % 1e6)},
+		{Sec: atime.Unix(), Usec: int64(atime.Nanosecond() / 1e6 % 1e6)},
+		{Sec: mtime.Unix(), Usec: int64(mtime.Nanosecond() / 1e6 % 1e6)},
 	})
 }
 

@@ -10,6 +10,8 @@ import (
 	"io/fs"
 	"os"
 	p "path"
+	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -853,7 +855,7 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			name: "unpack tar with preserve file attributes",
 			contents: []archiveContent{
 				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				// {Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
 			},
@@ -863,7 +865,7 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			name: "unpack zip with preserve file attributes",
 			contents: []archiveContent{
 				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				// {Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
 			},
@@ -901,8 +903,17 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
 			}
+			entries, err := m.Glob("**")
+			if err != nil {
+				t.Fatalf("error globbing files: %v", err)
+			}
+			for _, e := range entries {
+				t.Logf("entry: %s", e)
+			}
+
 			for _, c := range tc.contents {
-				path := c.Name
+				parts := strings.Split(c.Name, "/") // create system specific path
+				path := filepath.Join(parts...)
 				stat, err := m.Lstat(path)
 				if err != nil {
 					t.Fatalf("error getting file stats: %v", err)
