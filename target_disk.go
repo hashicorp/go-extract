@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"time"
 )
 
 // TargetDisk is the struct type that holds all information for interacting with the filesystem
@@ -107,4 +108,30 @@ func (d *TargetDisk) Lstat(name string) (fs.FileInfo, error) {
 // If there is an error, it will be of type *PathError.
 func (d *TargetDisk) Stat(name string) (os.FileInfo, error) {
 	return os.Stat(name)
+}
+
+// Chmod changes the mode of the named file to mode.
+func (d *TargetDisk) Chmod(name string, mode fs.FileMode) error {
+	return os.Chmod(name, mode.Perm())
+}
+
+// Chtimes changes the access and modification times of the named file.
+func (d *TargetDisk) Chtimes(name string, atime, mtime time.Time) error {
+	return os.Chtimes(name, atime, mtime)
+}
+
+// Chown changes the numeric uid and gid of the named file.
+func (d *TargetDisk) Chown(name string, uid, gid int) error {
+	if os.Geteuid() != 0 {
+		return nil
+	}
+	return os.Lchown(name, uid, gid)
+}
+
+// Lchtimes changes the access and modification times of the named file.
+func (d *TargetDisk) Lchtimes(name string, atime, mtime time.Time) error {
+	if CanMaintainSymlinkTimestamps() {
+		return Lchtimes(name, atime, mtime)
+	}
+	return nil
 }

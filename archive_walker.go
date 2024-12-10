@@ -6,6 +6,7 @@ package extract
 import (
 	"io"
 	"io/fs"
+	"time"
 )
 
 // archiveWalker is an interface that represents a file walker in an archive
@@ -16,13 +17,18 @@ type archiveWalker interface {
 
 // archiveEntry is an interface that represents a file in an archive
 type archiveEntry interface {
-	Mode() fs.FileMode
-	Type() fs.FileMode
-	Name() string
-	Linkname() string
-	Size() int64
-	Open() (io.ReadCloser, error)
+	AccessTime() time.Time
+	Gid() int
 	IsRegular() bool
 	IsDir() bool
 	IsSymlink() bool
+	Linkname() string
+	Mode() fs.FileMode
+	ModTime() time.Time
+	Name() string
+	Open() (io.ReadCloser, error)
+	Size() int64
+	Sys() interface{}
+	Type() fs.FileMode
+	Uid() int
 }
