@@ -130,8 +130,8 @@ func (d *TargetDisk) Chown(name string, uid, gid int) error {
 
 // Lchtimes changes the access and modification times of the named file.
 func (d *TargetDisk) Lchtimes(name string, atime, mtime time.Time) error {
-	if CanMaintainSymlinkTimestamps() {
-		return Lchtimes(name, atime, mtime)
+	if canMaintainSymlinkTimestamps() {
+		return lchtimes(name, atime, mtime)
 	}
 	return nil
 }
