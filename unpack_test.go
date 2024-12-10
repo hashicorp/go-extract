@@ -1655,10 +1655,10 @@ func pack7z(t *testing.T, _ []archiveContent) []byte {
 // -rw-r--r--  1 503  20    27B  6 Dez 14:12 sub/test
 // lrwxr-xr-x  1 503  20     8B  6 Dez 14:12 link@ -> sub/test
 var contents7z2 = []archiveContent{
-	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 42, 315443500, time.Local), Uid: 503, Gid: 20},
-	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 49, 378600200, time.Local), Uid: 503, Gid: 20},
-	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 49, 378790200, time.Local), Uid: 503, Gid: 20},
-	{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 54, 532031200, time.Local), Uid: 503, Gid: 20},
+	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 42, 315443500, time.UTC), Uid: 503, Gid: 20},
+	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 49, 378600200, time.UTC), Uid: 503, Gid: 20},
+	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 49, 378790200, time.UTC), Uid: 503, Gid: 20},
+	{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 54, 532031200, time.UTC), Uid: 503, Gid: 20},
 }
 
 func pack7z2(t *testing.T, _ []archiveContent) []byte {

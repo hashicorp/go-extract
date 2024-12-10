@@ -895,13 +895,6 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
 			}
-			// entries, err := m.Glob("**")
-			// if err != nil {
-			// 	t.Fatalf("error globbing files: %v", err)
-			// }
-			// for _, e := range entries {
-			// 	t.Logf("entry: %s", e)
-			// }
 
 			for _, c := range tc.contents {
 				parts := strings.Split(c.Name, "/") // create system specific path
