@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //go:build linux && 386
-// +build linux,386
 
 package extract
 

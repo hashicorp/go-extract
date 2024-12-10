@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //go:build linux && (amd64 || arm64)
-// +build linux
-// +build amd64 arm64
 
 package extract
 
