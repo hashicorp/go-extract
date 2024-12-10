@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-//go:build linux && (amd64 || arm64)
+//go:build unix
 
 package extract
 
@@ -14,11 +14,18 @@ import (
 // Lchtimes modifies the access and modified timestamps on a target path
 // This capability is only available on unix as of now.
 func Lchtimes(path string, atime, mtime time.Time) error {
-
 	return unix.Lutimes(path, []unix.Timeval{
-		{Sec: atime.Unix(), Usec: int64(atime.Nanosecond() / 1e3 % 1e6)},
-		{Sec: mtime.Unix(), Usec: int64(mtime.Nanosecond() / 1e3 % 1e6)},
+		unixTimeval(atime),
+		unixTimeval(mtime),
 	})
+}
+
+// unixTimeval converts a time.Time to a unix.Timeval. Note that it always rounds
+// up to the nearest microsecond, so even one nanosecond past the previous nanosecond
+// will be rounded up to the next microsecond.
+// See the implementation of unix.NsecToTimeval for details on how this happens.
+func unixTimeval(t time.Time) unix.Timeval {
+	return unix.NsecToTimeval(t.UnixNano())
 }
 
 // CanMaintainSymlinkTimestamps determines whether is is possible to change
