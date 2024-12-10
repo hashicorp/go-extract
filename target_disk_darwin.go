@@ -14,10 +14,9 @@ import (
 // Lchtimes modifies the access and modified timestamps on a target path
 // This capability is only available on unix as of now.
 func Lchtimes(path string, atime, mtime time.Time) error {
-
 	return unix.Lutimes(path, []unix.Timeval{
-		{Sec: atime.Unix(), Usec: int32(atime.Nanosecond() / 1e6 % 1e6)},
-		{Sec: mtime.Unix(), Usec: int32(mtime.Nanosecond() / 1e6 % 1e6)},
+		{Sec: atime.Unix(), Usec: int32(atime.Nanosecond() / 1e3 % 1e6)},
+		{Sec: mtime.Unix(), Usec: int32(mtime.Nanosecond() / 1e3 % 1e6)},
 	})
 }
 

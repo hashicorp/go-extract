@@ -16,8 +16,8 @@ import (
 func Lchtimes(path string, atime, mtime time.Time) error {
 
 	return unix.Lutimes(path, []unix.Timeval{
-		{Sec: atime.Unix(), Usec: int64(atime.Nanosecond() / 1e6 % 1e6)},
-		{Sec: mtime.Unix(), Usec: int64(mtime.Nanosecond() / 1e6 % 1e6)},
+		{Sec: atime.Unix(), Usec: int64(atime.Nanosecond() / 1e3 % 1e6)},
+		{Sec: mtime.Unix(), Usec: int64(mtime.Nanosecond() / 1e3 % 1e6)},
 	})
 }
 

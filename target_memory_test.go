@@ -8,7 +8,6 @@ import (
 	"context"
 	"io"
 	"io/fs"
-	"os"
 	p "path"
 	"path/filepath"
 	"strings"
@@ -843,13 +842,14 @@ func TestCreateSymlink(t *testing.T) {
 }
 
 func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
-	uid, gid := os.Geteuid(), os.Getegid()
+	uid, gid := 503, 20
 	baseTime := time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
 	testCases := []struct {
-		name        string
-		contents    []archiveContent
-		packer      func(*testing.T, []archiveContent) []byte
-		expectError bool
+		name                  string
+		contents              []archiveContent
+		packer                func(*testing.T, []archiveContent) []byte
+		doesNotSupportModTime bool
+		expectError           bool
 	}{
 		{
 			name: "unpack tar with preserve file attributes",
@@ -872,23 +872,15 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			packer: packZip,
 		},
 		{
-			name: "unpack rar with preserve file attributes",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-			},
-			packer: packRar2,
+			name:                  "unpack rar with preserve file attributes",
+			contents:              contentsRar2,
+			doesNotSupportModTime: true,
+			packer:                packRar2,
 		},
 		{
-			name: "unpack z7 with preserve file attributes",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-			},
-			packer: pack7z2,
+			name:     "unpack z7 with preserve file attributes",
+			contents: contents7z2,
+			packer:   pack7z2,
 		},
 	}
 
@@ -903,13 +895,13 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
 			}
-			entries, err := m.Glob("**")
-			if err != nil {
-				t.Fatalf("error globbing files: %v", err)
-			}
-			for _, e := range entries {
-				t.Logf("entry: %s", e)
-			}
+			// entries, err := m.Glob("**")
+			// if err != nil {
+			// 	t.Fatalf("error globbing files: %v", err)
+			// }
+			// for _, e := range entries {
+			// 	t.Logf("entry: %s", e)
+			// }
 
 			for _, c := range tc.contents {
 				parts := strings.Split(c.Name, "/") // create system specific path
@@ -922,6 +914,14 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 					if stat.Mode().Perm() != c.Mode.Perm() {
 						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), path)
 					}
+				}
+				if tc.doesNotSupportModTime {
+					continue
+				}
+				// calculate the time difference
+				modTimeDiff := abs(stat.ModTime().Sub(c.ModTime).Nanoseconds())
+				if modTimeDiff > int64(time.Microsecond) {
+					t.Fatalf("expected file modtime %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), path, modTimeDiff)
 				}
 			}
 		})

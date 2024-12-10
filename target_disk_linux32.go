@@ -15,8 +15,8 @@ import (
 // This capability is only available on unix as of now.
 func Lchtimes(path string, atime, mtime time.Time) error {
 	return unix.Lutimes(path, []unix.Timeval{
-		{Sec: int32(atime.Unix()), Usec: int32(atime.Nanosecond() / 1e6 % 1e6)},
-		{Sec: int32(mtime.Unix()), Usec: int32(mtime.Nanosecond() / 1e6 % 1e6)}},
+		{Sec: int32(atime.Unix()), Usec: int32(atime.Nanosecond() / 1e3 % 1e6)},
+		{Sec: int32(mtime.Unix()), Usec: int32(mtime.Nanosecond() / 1e3 % 1e6)}},
 	)
 }
 

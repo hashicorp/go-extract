@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1326,18 +1327,23 @@ func TestHasKnownArchiveExtension(t *testing.T) {
 	}
 }
 
+func abs(v int64) int64 {
+	return int64(math.Abs(float64(v)))
+}
+
 func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping test on windows systems")
 	}
 
-	uid, gid := os.Geteuid(), os.Getegid()
+	uid, gid := 503, 20
 	baseTime := time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
 	testCases := []struct {
-		name        string
-		contents    []archiveContent
-		packer      func(*testing.T, []archiveContent) []byte
-		expectError bool
+		name                  string
+		contents              []archiveContent
+		packer                func(*testing.T, []archiveContent) []byte
+		doesNotSupportModTime bool
+		expectError           bool
 	}{
 		{
 			name: "tar",
@@ -1360,23 +1366,15 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 			packer: packZip,
 		},
 		{
-			name: "rar",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-			},
-			packer: packRar2,
+			name:                  "rar",
+			contents:              contentsRar2,
+			packer:                packRar2,
+			doesNotSupportModTime: true,
 		},
 		{
-			name: "7z",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-				{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: uid, Gid: gid},
-			},
-			packer: pack7z2,
+			name:     "7z",
+			contents: contents7z2,
+			packer:   pack7z2,
 		},
 	}
 
@@ -1401,6 +1399,13 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 					if stat.Mode().Perm() != c.Mode.Perm() {
 						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), c.Name)
 					}
+				}
+				if tc.doesNotSupportModTime {
+					continue
+				}
+				modTimeDiff := abs(stat.ModTime().Sub(c.ModTime).Nanoseconds())
+				if modTimeDiff > int64(time.Microsecond) {
+					t.Fatalf("expected mod time %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), c.Name, modTimeDiff)
 				}
 			}
 		})
@@ -1649,6 +1654,13 @@ func pack7z(t *testing.T, _ []archiveContent) []byte {
 // drwxr-xr-x  3 503  20    96B  6 Dez 14:12 sub/
 // -rw-r--r--  1 503  20    27B  6 Dez 14:12 sub/test
 // lrwxr-xr-x  1 503  20     8B  6 Dez 14:12 link@ -> sub/test
+var contents7z2 = []archiveContent{
+	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 42, 315443500, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 49, 378600200, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 49, 378790200, time.Local), Uid: 503, Gid: 20},
+	{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 12, 54, 532031200, time.Local), Uid: 503, Gid: 20},
+}
+
 func pack7z2(t *testing.T, _ []archiveContent) []byte {
 	t.Helper()
 	b, err := hex.DecodeString("377abcaf271c00042d5fc057b50000000000000022000000000000004e8d3aa1e0003d00285d00399d486415d3bb7a709d8c05b9a4f8a601c485ca32a1ba56fbed0277df127ac8b5849a02ef89b000000000813307ae0fd100d43ca090a0775ec540189123d516c0a4234b6046777137a236d0c100afd4540a63bac5dbcdd5f4954e1321f89bc2fee32eda1ffebe24d8ec7f5495f31cb107f418f1a438bedfa190f8d5e9bd34f41831a3e85fb8590ee2d3eb6854856ce91c64623e7b1bec5c6bf403f9b195d06eb0810540f173e9abd2005e6a00001706300109808500070b01000123030101055d001000000c80ae0a01d53cb2d70000")
@@ -1676,6 +1688,12 @@ func packRar(t *testing.T, _ []archiveContent) []byte {
 // -rw-r--r--  1 503  20    27B  6 Dez 14:07 test
 // drwxr-xr-x  3 503  20    96B  6 Dez 14:08 sub/
 // -rw-r--r--  1 503  20    27B  6 Dez 14:08 sub/test
+var contentsRar2 = []archiveContent{
+	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: 503, Gid: 20},
+}
+
 func packRar2(t *testing.T, _ []archiveContent) []byte {
 	t.Helper()
 	b, err := hex.DecodeString("526172211a0701003392b5e50a010506000501018080003afe2e322202030b9b00049b00a48302032d6c9680000104746573740a03132ff752678a911e136861736869207361797320686920746f2074686520776f726c640a7db74f802602030b9b00049b00a48302032d6c96800001087375622f746573740a031334f752672333f02b6861736869207361797320686920746f2074686520776f726c640a5311ba9e1b02030b000100ed8301800001037375620a031334f752673549ed2b1d77565103050400")
