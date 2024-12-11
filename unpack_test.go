@@ -1403,8 +1403,8 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 				if tc.doesNotSupportModTime {
 					continue
 				}
-				modTimeDiff := abs(stat.ModTime().Sub(c.ModTime).Nanoseconds())
-				if modTimeDiff > int64(time.Microsecond) {
+				modTimeDiff := abs(stat.ModTime().UnixNano() - c.ModTime.UnixNano())
+				if modTimeDiff >= int64(time.Microsecond) {
 					t.Fatalf("expected mod time %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), c.Name, modTimeDiff)
 				}
 			}
