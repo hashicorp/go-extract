@@ -127,9 +127,15 @@ func (z *sevenZipEntry) Linkname() string {
 	if !z.IsSymlink() {
 		return ""
 	}
-	f, _ := z.f.Open()
+	f, err := z.f.Open()
+	if err != nil {
+		return ""
+	}
 	defer f.Close()
-	c, _ := io.ReadAll(f)
+	c, err := io.ReadAll(f)
+	if err != nil {
+		return ""
+	}
 	return string(c)
 }
 
