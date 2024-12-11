@@ -912,8 +912,7 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 					continue
 				}
 				// calculate the time difference
-				modTimeDiff := abs(stat.ModTime().Sub(c.ModTime).Nanoseconds())
-				if modTimeDiff > int64(time.Microsecond) {
+				if stat.ModTime().UnixMicro() != c.ModTime.UnixMIcro() {
 					t.Fatalf("expected file modtime %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), path, modTimeDiff)
 				}
 			}
