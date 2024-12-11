@@ -30,6 +30,13 @@ jobs:
       run: |
         make test
 
+    - name: Test (as root)
+      id: sudo-test
+      run: |
+        make sudo_test
+
+    
+
   fuzzing:
 
     strategy:

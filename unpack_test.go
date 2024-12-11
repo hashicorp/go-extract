@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1343,12 +1344,13 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 		contents              []archiveContent
 		packer                func(*testing.T, []archiveContent) []byte
 		doesNotSupportModTime bool
+		doesNotSupportOwner   bool
 		expectError           bool
 	}{
 		{
 			name: "tar",
 			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: 0, Gid: 0},
 				{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
@@ -1363,7 +1365,8 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
 				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
 			},
-			packer: packZip,
+			doesNotSupportOwner: true,
+			packer:              packZip,
 		},
 		{
 			name:                  "rar",
@@ -1372,9 +1375,10 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 			doesNotSupportModTime: true,
 		},
 		{
-			name:     "7z",
-			contents: contents7z2,
-			packer:   pack7z2,
+			name:                "7z",
+			contents:            contents7z2,
+			doesNotSupportOwner: true,
+			packer:              pack7z2,
 		},
 	}
 
@@ -1406,6 +1410,12 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 				modTimeDiff := abs(stat.ModTime().UnixNano() - c.ModTime.UnixNano())
 				if modTimeDiff >= int64(time.Microsecond) {
 					t.Fatalf("expected mod time %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), c.Name, modTimeDiff)
+				}
+				if os.Getuid() != 0 || tc.doesNotSupportOwner {
+					continue
+				}
+				if stat.Sys().(*syscall.Stat_t).Uid != uint32(c.Uid) {
+					t.Fatalf("expected uid %d, got %d, file %s", c.Uid, stat.Sys().(*syscall.Stat_t).Uid, c.Name)
 				}
 			}
 		})
