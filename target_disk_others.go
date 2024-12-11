@@ -24,6 +24,4 @@ func lchtimes(_ string, _, _ time.Time) error {
 // packages (Chmod and Chtimes) are not capable of changing symlink info
 // because those methods follow the symlinks. However, a platform-dependent option
 // is provided for unix (see Lchtimes)
-func canMaintainSymlinkTimestamps() bool {
-	return false
-}
+const canMaintainSymlinkTimestamps = false
