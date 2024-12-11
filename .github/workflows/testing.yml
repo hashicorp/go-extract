@@ -30,6 +30,14 @@ jobs:
       run: |
         make test
 
+    - name: Test (as root)
+      if: matrix.os != 'windows-latest'
+      id: sudo-test
+      run: |
+        make sudo_test
+
+    
+
   fuzzing:
 
     strategy:

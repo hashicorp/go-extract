@@ -76,6 +76,9 @@ type Config struct {
 
 	// patterns is a list of file patterns to match files to extract
 	patterns []string
+
+	// preserveFileAttributes is a flag to preserve the file attributes of the extracted files
+	preserveFileAttributes bool
 }
 
 // ContinueOnError returns true if the extraction should continue on error.
@@ -201,6 +204,11 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
+// PreserveFileAttributes returns true if the file attributes of the extracted files should be preserved.
+func (c *Config) PreserveFileAttributes() bool {
+	return c.preserveFileAttributes
+}
+
 // SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
 // are not untared after decompression.
 func (c *Config) SetNoUntarAfterDecompression(b bool) {
@@ -231,6 +239,7 @@ const (
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
+	defaultPreserveFileAttributes     = false         // do not preserve file attributes
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
 )
@@ -252,6 +261,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 	config := &Config{
 		cacheInMemory:              defaultCacheInMemory,
 		continueOnError:            defaultContinueOnError,
+		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
 		createDestination:          defaultCreateDestination,
 		customCreateDirMode:        defaultCustomCreateDirMode,
 		customDecompressFileMode:   defaultCustomDecompressFileMode,
@@ -265,7 +275,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		telemetryHook:              defaultTelemetryHook,
 		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
-		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
+		preserveFileAttributes:     defaultPreserveFileAttributes,
 	}
 
 	// Loop through each option
@@ -402,6 +412,13 @@ func WithOverwrite(enable bool) ConfigOption {
 func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
 		c.patterns = append(c.patterns, pattern...)
+	}
+}
+
+// WithPreserveFileAttributes options pattern function to preserve the file attributes of the extracted files.
+func WithPreserveFileAttributes(preserve bool) ConfigOption {
+	return func(c *Config) {
+		c.preserveFileAttributes = preserve
 	}
 }
 
