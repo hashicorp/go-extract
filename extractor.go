@@ -364,7 +364,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				// do not end on error
 				continue
 			}
-			if cfg.PreserveFileAttributes() {
+			if cfg.PreserveFileAttributes() || cfg.PreserveFileOwnership() {
 				extractedEntries = append(extractedEntries, ae)
 			}
 
@@ -407,7 +407,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 			// store telemetry
 			if fileCreated {
 				td.ExtractedFiles++
-				if cfg.PreserveFileAttributes() {
+				if cfg.PreserveFileAttributes() || cfg.PreserveFileOwnership() {
 					extractedEntries = append(extractedEntries, ae)
 				}
 			}
@@ -438,7 +438,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				// do not end on error
 				continue
 			}
-			if cfg.PreserveFileAttributes() {
+			if cfg.PreserveFileAttributes() || cfg.PreserveFileOwnership() {
 				extractedEntries = append(extractedEntries, ae)
 			}
 
