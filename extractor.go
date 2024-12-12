@@ -272,8 +272,8 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 
 	// check if attributes should be preserved, but as non-root user
 	if _, ok := t.(*TargetDisk); ok {
-		if cfg.PreserveFileAttributes() && os.Geteuid() != 0 {
-			cfg.Logger().Warn("cannot fully preserve file attributes as non-root user: cannot set file ownership", "uid", os.Geteuid())
+		if cfg.PreserveFileOwnership() && os.Geteuid() != 0 {
+			return fmt.Errorf("cannot preserve file ownership as non-root user (uid: %d)", os.Geteuid())
 		}
 	}
 
@@ -286,6 +286,17 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 				path := filepath.Join(dst, ae.Name())
 				if err := setFileAttributes(t, path, ae); err != nil {
 					cfg.Logger().Error("failed to set file attributes", "path", path, "error", err)
+				}
+			}
+		}()
+	}
+
+	if cfg.PreserveFileOwnership() {
+		defer func() {
+			for _, ae := range extractedEntries {
+				path := filepath.Join(dst, ae.Name())
+				if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
+					cfg.Logger().Error("failed to chown file", "path", path, "error", err)
 				}
 			}
 		}()
@@ -460,9 +471,6 @@ func setFileAttributes(t Target, path string, ae archiveEntry) error {
 			return fmt.Errorf("failed to lchtimes symlink: %w", err)
 		}
 		return nil
-	}
-	if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
-		return fmt.Errorf("failed to chown file: %w", err)
 	}
 	if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
 		return fmt.Errorf("failed to chmod file: %w", err)
