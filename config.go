@@ -124,10 +124,8 @@ func (c *Config) CheckExtractionSize(fileSize int64) error {
 }
 
 // ContinueOnUnsupportedFiles returns true if unsupported files, e.g., FIFO, block or
-// character devices, should be skipped.
-//
-// If symlinks are not allowed and a symlink is found, it is considered an unsupported
-// file.
+// character devices, should be skipped. Unsupported files also includes files that
+// are configured not to be extracted by this configuration, e.g. via [config.DenySymlinkExtraction].
 func (c *Config) ContinueOnUnsupportedFiles() bool {
 	return c.continueOnUnsupportedFiles
 }
@@ -139,7 +137,7 @@ func (c *Config) CreateDestination() bool {
 }
 
 // CustomCreateDirMode returns the file mode for created directories,
-// that are not defined in the archive. (respecting umask)
+// that are not defined in the archive, respecting umask.
 func (c *Config) CustomCreateDirMode() fs.FileMode {
 	return c.customCreateDirMode
 }
@@ -277,8 +275,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 	return config
 }
 
-// WithCacheInMemory options pattern function to enable/disable caching in memory.
-// This applies only to the extraction of zip archives, which are provided as a stream.
+// WithCacheInMemory enables caching in memory.
+// This is only relevant to the extraction of zip archives, which are provided as a stream.
 //
 // If set to false, the cache is stored on disk to avoid memory exhaustion.
 func WithCacheInMemory(cache bool) ConfigOption {
@@ -287,56 +285,54 @@ func WithCacheInMemory(cache bool) ConfigOption {
 	}
 }
 
-// WithContinueOnError options pattern function to continue on error during extraction. If set to true,
-// the error is logged and the extraction continues. If set to false, the extraction stops and returns the error.
+// WithContinueOnError allows continuing the extraction even when errors are encountered.
+// If set to true, the error is logged and the extraction continues.
+// If set to false, the extraction stops and returns the error.
 func WithContinueOnError(yes bool) ConfigOption {
 	return func(c *Config) {
 		c.continueOnError = yes
 	}
 }
 
-// WithContinueOnUnsupportedFiles options pattern function to
-// enable/disable skipping unsupported files. An unsupported file is a file
-// that is not supported by the extraction algorithm. If symlinks are not allowed
-// and a symlink is found, it is considered an unsupported file.
+// WithContinueOnUnsupportedFiles enables skipping unsupported files, for example FIFO, block or
+// character devices. Unsupported files also includes objects that are configured not to be extracted
+// by this configuration, e.g. via [config.DenySymlinkExtraction].
 func WithContinueOnUnsupportedFiles(ctd bool) ConfigOption {
 	return func(c *Config) {
 		c.continueOnUnsupportedFiles = ctd
 	}
 }
 
-// WithCreateDestination options pattern function to create
-// destination directory if it does not exist.
+// WithCreateDestination enables creating the destination directory if it does not exist.
 func WithCreateDestination(create bool) ConfigOption {
 	return func(c *Config) {
 		c.createDestination = create
 	}
 }
 
-// WithCustomCreateDirMode options pattern function to set the file mode
-// for created directories, that are not defined in the archive. (respecting umask)
+// WithCustomCreateDirMode options sets the file mode for created directories
+// that are not defined in the archive, respecting umask.
 func WithCustomCreateDirMode(mode fs.FileMode) ConfigOption {
 	return func(c *Config) {
 		c.customCreateDirMode = mode
 	}
 }
 
-// WithCustomDecompressFileMode options pattern function to set the file mode for a
-// decompressed file. (respecting umask)
+// WithCustomDecompressFileMode sets the file mode for a decompressed file, respecting umask.
 func WithCustomDecompressFileMode(mode fs.FileMode) ConfigOption {
 	return func(c *Config) {
 		c.customDecompressFileMode = mode
 	}
 }
 
-// WithDenySymlinkExtraction options pattern function to deny symlink extraction.
+// WithDenySymlinkExtraction denies the extraction of symlinks.
 func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	return func(c *Config) {
 		c.denySymlinkExtraction = deny
 	}
 }
 
-// WithExtractType options pattern function to set the extraction type in the [Config].
+// WithExtractType sets the extraction type.
 func WithExtractType(extractionType string) ConfigOption {
 	return func(c *Config) {
 		if len(extractionType) > 0 {
@@ -345,59 +341,58 @@ func WithExtractType(extractionType string) ConfigOption {
 	}
 }
 
-// WithInsecureTraverseSymlinks options pattern function to traverse symlinks during extraction.
+// WithInsecureTraverseSymlinks enables traversing symlinks during extraction.
 func WithInsecureTraverseSymlinks(traverse bool) ConfigOption {
 	return func(c *Config) {
 		c.traverseSymlinks = traverse
 	}
 }
 
-// WithLogger options pattern function to set a custom logger.
+// WithLogger sets a custom logger.
 func WithLogger(logger logger) ConfigOption {
 	return func(c *Config) {
 		c.logger = logger
 	}
 }
 
-// WithMaxExtractionSize options pattern function to set maximum size over all decompressed
-//
-//	and extracted files. (-1 to disable check)
+// WithMaxExtractionSize sets the maximum size of all decompressed and extracted files.
+// The value (-1) means there is no limit.
 func WithMaxExtractionSize(maxExtractionSize int64) ConfigOption {
 	return func(c *Config) {
 		c.maxExtractionSize = maxExtractionSize
 	}
 }
 
-// WithMaxFiles options pattern function to set maximum number of extracted, files, directories
-// and symlinks during the extraction. (-1 to disable check)
+// WithMaxFiles sets the maximum number of extracted, files, directories and symlinks during the extraction.
+// The value -1 means there is no limit.
 func WithMaxFiles(maxFiles int64) ConfigOption {
 	return func(c *Config) {
 		c.maxFiles = maxFiles
 	}
 }
 
-// WithMaxInputSize options pattern function to set MaxInputSize for extraction input file. (-1 to disable check)
+// WithMaxInputSize sets the maximum size of the input file, -1 means no limit.
 func WithMaxInputSize(maxInputSize int64) ConfigOption {
 	return func(c *Config) {
 		c.maxInputSize = maxInputSize
 	}
 }
 
-// WithNoUntarAfterDecompression options pattern function to enable/disable combined tar.gz extraction.
+// WithNoUntarAfterDecompression disables combined tar.gz extraction.
 func WithNoUntarAfterDecompression(disable bool) ConfigOption {
 	return func(c *Config) {
 		c.noUntarAfterDecompression = disable
 	}
 }
 
-// WithOverwrite options pattern function specify if files should be overwritten in the destination.
+// WithOverwrite specifies if existing files should be overwritten in the destination.
 func WithOverwrite(enable bool) ConfigOption {
 	return func(c *Config) {
 		c.overwrite = enable
 	}
 }
 
-// WithPatterns options pattern function to set filepath pattern, that files need to match to be extracted.
+// WithPatterns sets the filepath pattern that files need to match to be extracted.
 // Patterns are matched using [pkg/path/filepath.Match].
 func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
@@ -405,7 +400,7 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// WithTelemetryHook options pattern function to set a [telemetry.TelemetryHook], which is called after extraction.
+// WithTelemetryHook sets a [telemetry.TelemetryHook], which is called after extraction.
 func WithTelemetryHook(hook TelemetryHook) ConfigOption {
 	return func(c *Config) {
 		c.telemetryHook = hook
