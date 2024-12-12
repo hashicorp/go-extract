@@ -434,7 +434,7 @@ func WithPreserveFileAttributes(preserve bool) ConfigOption {
 		c.preserveFileAttributes = preserve
 	}
 }
-i
+
 // WithPreserveFileOwnership means preserve the ownership UID/GID of the extracted files.
 // This option is only available on Unix systems and requires root privileges.
 // If either of these requirements are not met, this will result in an error.
