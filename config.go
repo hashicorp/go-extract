@@ -79,6 +79,9 @@ type Config struct {
 
 	// preserveFileAttributes is a flag to preserve the file attributes of the extracted files
 	preserveFileAttributes bool
+
+	// preserveFileOwnership is a flag to preserve the file ownership of the extracted files.
+	preserveFileOwnership bool
 }
 
 // ContinueOnError returns true if the extraction should continue on error.
@@ -207,6 +210,11 @@ func (c *Config) Patterns() []string {
 // PreserveFileAttributes returns true if the file attributes of the extracted files should be preserved.
 func (c *Config) PreserveFileAttributes() bool {
 	return c.preserveFileAttributes
+}
+
+// PreserveFileOwnership returns true if the file ownership of the extracted files should be preserved.
+func (c *Config) PreserveFileOwnership() bool {
+	return c.preserveFileOwnership
 }
 
 // SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
@@ -415,10 +423,22 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// WithPreserveFileAttributes options pattern function to preserve the file attributes of the extracted files.
+// WithPreserveFileAttributes means preserve the attributes of the extracted files.
+// This includes the file mode, access and modified times, but does not include ownership UID/GID.
+//
+// This option is only available on Unix systems.
 func WithPreserveFileAttributes(preserve bool) ConfigOption {
 	return func(c *Config) {
 		c.preserveFileAttributes = preserve
+	}
+}
+i
+// WithPreserveFileOwnership means preserve the ownership UID/GID of the extracted files.
+// This option is only available on Unix systems and requires root privileges.
+// If either of these requirements are not met, this will result in an error.
+func WithPreserveFileOwnership(preserve bool) ConfigOption {
+	return func(c *Config) {
+		c.preserveFileOwnership = preserve
 	}
 }
 
