@@ -248,6 +248,7 @@ const (
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
 	defaultPreserveFileAttributes     = false         // do not preserve file attributes
+	defaultPreserveFileOwnership      = false         // do not preserve file ownership
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
 )
@@ -284,6 +285,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
 		preserveFileAttributes:     defaultPreserveFileAttributes,
+		preserveFileOwnership:      defaultPreserveFileOwnership,
 	}
 
 	// Loop through each option
