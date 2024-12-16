@@ -373,7 +373,10 @@ func TestUnpackArchive(t *testing.T) {
 					ctx = context.Background()
 					dst = t.TempDir()
 					src = cacheFunction(t, tc.src)
-					cfg = extract.NewConfig(extract.WithCreateDestination(true), extract.WithContinueOnUnsupportedFiles(true))
+					cfg = extract.NewConfig(
+						extract.WithCreateDestination(true),
+						extract.WithContinueOnUnsupportedFiles(true),
+					)
 				)
 
 				if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
@@ -701,10 +704,20 @@ func TestUnpackWithConfig(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "unpack with overwrite enabled",
+			name: "unpack with overwrite enabled (files)",
 			testArchive: []archiveContent{
 				{Name: "test", Content: []byte("hello world"), Mode: 0644},
 				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+			},
+			cfg:         extract.NewConfig(extract.WithOverwrite(true)),
+			expectError: false,
+		},
+		{
+			name: "unpack with overwrite enabled (symlink)",
+			testArchive: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "test"},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "test"},
 			},
 			cfg:         extract.NewConfig(extract.WithOverwrite(true)),
 			expectError: false,
@@ -1327,6 +1340,136 @@ func TestHasKnownArchiveExtension(t *testing.T) {
 	}
 }
 
+func TestWithCustomMode(t *testing.T) {
+	umask := sniffUmask(t)
+
+	tests := []struct {
+		name        string
+		data        []byte
+		dst         string
+		cfg         *extract.Config
+		expected    map[string]fs.FileMode
+		expectError bool
+	}{
+		{
+			name: "dir with 0755 and file with 0644",
+			data: compressGzip(t, packTar(t, []archiveContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0644), // 420
+				},
+			})),
+			cfg: extract.NewConfig(
+				extract.WithCustomCreateDirMode(fs.FileMode(0755)), // 493
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0755), // 493
+				"sub/file": fs.FileMode(0644), // 420
+			},
+		},
+		{
+			name: "decompress with custom mode",
+			data: compressGzip(t, []byte("foobar content")),
+			dst:  "out", // specify decompressed file name
+			cfg: extract.NewConfig(
+				extract.WithCustomDecompressFileMode(fs.FileMode(0666)), // 438
+			),
+			expected: map[string]fs.FileMode{
+				"out": fs.FileMode(0666), // 438
+			},
+		},
+		{
+			name: "dir with 0755 and file with 0777",
+			data: compressGzip(t, []byte("foobar content")),
+			dst:  "foo/out",
+			cfg: extract.NewConfig(
+				extract.WithCreateDestination(true),                     // create destination^
+				extract.WithCustomCreateDirMode(fs.FileMode(0750)),      // 488
+				extract.WithCustomDecompressFileMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"foo":     fs.FileMode(0750), // 488
+				"foo/out": fs.FileMode(0777), // 511
+			},
+		},
+		{
+			name: "dir with 0777 and file with 0777",
+			data: compressGzip(t, packTar(t, []archiveContent{
+				{
+					Name: "sub/file",
+					Mode: fs.FileMode(0777), // 511
+				},
+			})),
+			cfg: extract.NewConfig(
+				extract.WithCustomCreateDirMode(fs.FileMode(0777)), // 511
+			),
+			expected: map[string]fs.FileMode{
+				"sub":      fs.FileMode(0777), // 511
+				"sub/file": fs.FileMode(0777), // 511
+			},
+		},
+		{
+			name: "file with 0000 permissions",
+			data: compressGzip(t, packTar(t, []archiveContent{
+				{
+					Name: "file",
+					Mode: fs.FileMode(0000), // 0
+				},
+				{
+					Name: "dir/",
+					Mode: fs.ModeDir, // 000 permission
+				},
+			})),
+			cfg: extract.NewConfig(),
+			expected: map[string]fs.FileMode{
+				"file": fs.FileMode(0000), // 0
+				"dir":  fs.FileMode(0000), // 0
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if test.cfg == nil {
+				test.cfg = extract.NewConfig()
+			}
+			var (
+				ctx = context.Background()
+				tmp = t.TempDir()
+				dst = filepath.Join(tmp, test.dst)
+				src = asIoReader(t, test.data)
+				cfg = test.cfg
+			)
+			err := extract.Unpack(ctx, dst, src, cfg)
+			if test.expectError && err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !test.expectError && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			for name, expectedMode := range test.expected {
+				stat, err := os.Stat(filepath.Join(tmp, name))
+				if err != nil {
+					t.Fatalf("error getting file stats: %s", err)
+				}
+
+				if runtime.GOOS == "windows" {
+					if stat.IsDir() {
+						continue // Skip directory checks on Windows
+					}
+					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
+				} else {
+					expectedMode &= ^umask // Adjust for umask on non-Windows systems
+				}
+
+				if stat.Mode().Perm() != expectedMode.Perm() {
+					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
+				}
+			}
+		})
+	}
+}
+
 func abs(v int64) int64 {
 	return int64(math.Abs(float64(v)))
 }
@@ -1735,136 +1878,6 @@ func asIoReader(t *testing.T, b []byte) io.Reader {
 		}
 	}()
 	return r
-}
-
-func TestWithCustomMode(t *testing.T) {
-	umask := sniffUmask(t)
-
-	tests := []struct {
-		name        string
-		data        []byte
-		dst         string
-		cfg         *extract.Config
-		expected    map[string]fs.FileMode
-		expectError bool
-	}{
-		{
-			name: "dir with 0755 and file with 0644",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "sub/file",
-					Mode: fs.FileMode(0644), // 420
-				},
-			})),
-			cfg: extract.NewConfig(
-				extract.WithCustomCreateDirMode(fs.FileMode(0755)), // 493
-			),
-			expected: map[string]fs.FileMode{
-				"sub":      fs.FileMode(0755), // 493
-				"sub/file": fs.FileMode(0644), // 420
-			},
-		},
-		{
-			name: "decompress with custom mode",
-			data: compressGzip(t, []byte("foobar content")),
-			dst:  "out", // specify decompressed file name
-			cfg: extract.NewConfig(
-				extract.WithCustomDecompressFileMode(fs.FileMode(0666)), // 438
-			),
-			expected: map[string]fs.FileMode{
-				"out": fs.FileMode(0666), // 438
-			},
-		},
-		{
-			name: "dir with 0755 and file with 0777",
-			data: compressGzip(t, []byte("foobar content")),
-			dst:  "foo/out",
-			cfg: extract.NewConfig(
-				extract.WithCreateDestination(true),                     // create destination^
-				extract.WithCustomCreateDirMode(fs.FileMode(0750)),      // 488
-				extract.WithCustomDecompressFileMode(fs.FileMode(0777)), // 511
-			),
-			expected: map[string]fs.FileMode{
-				"foo":     fs.FileMode(0750), // 488
-				"foo/out": fs.FileMode(0777), // 511
-			},
-		},
-		{
-			name: "dir with 0777 and file with 0777",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "sub/file",
-					Mode: fs.FileMode(0777), // 511
-				},
-			})),
-			cfg: extract.NewConfig(
-				extract.WithCustomCreateDirMode(fs.FileMode(0777)), // 511
-			),
-			expected: map[string]fs.FileMode{
-				"sub":      fs.FileMode(0777), // 511
-				"sub/file": fs.FileMode(0777), // 511
-			},
-		},
-		{
-			name: "file with 0000 permissions",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "file",
-					Mode: fs.FileMode(0000), // 0
-				},
-				{
-					Name: "dir/",
-					Mode: fs.ModeDir, // 000 permission
-				},
-			})),
-			cfg: extract.NewConfig(),
-			expected: map[string]fs.FileMode{
-				"file": fs.FileMode(0000), // 0
-				"dir":  fs.FileMode(0000), // 0
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.cfg == nil {
-				test.cfg = extract.NewConfig()
-			}
-			var (
-				ctx = context.Background()
-				tmp = t.TempDir()
-				dst = filepath.Join(tmp, test.dst)
-				src = asIoReader(t, test.data)
-				cfg = test.cfg
-			)
-			err := extract.Unpack(ctx, dst, src, cfg)
-			if test.expectError && err == nil {
-				t.Fatalf("expected error, got nil")
-			}
-			if !test.expectError && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			for name, expectedMode := range test.expected {
-				stat, err := os.Stat(filepath.Join(tmp, name))
-				if err != nil {
-					t.Fatalf("error getting file stats: %s", err)
-				}
-
-				if runtime.GOOS == "windows" {
-					if stat.IsDir() {
-						continue // Skip directory checks on Windows
-					}
-					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
-				} else {
-					expectedMode &= ^umask // Adjust for umask on non-Windows systems
-				}
-
-				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
-				}
-			}
-		})
-	}
 }
 
 // sniffUmask is a helper function to get the umask
