@@ -25,3 +25,8 @@ func lchtimes(_ string, _, _ time.Time) error {
 // because those methods follow the symlinks. However, a platform-dependent option
 // is provided for unix (see Lchtimes)
 const canMaintainSymlinkTimestamps = false
+
+// Chown changes the numeric uid and gid of the named file.
+func (d *TargetDisk) Chown(name string, uid, gid int) error {
+	return fmt.Errorf("Chown is not supported on this platform (%s)", runtime.GOOS)
+}

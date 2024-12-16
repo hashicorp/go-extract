@@ -120,14 +120,6 @@ func (d *TargetDisk) Chtimes(name string, atime, mtime time.Time) error {
 	return os.Chtimes(name, atime, mtime)
 }
 
-// Chown changes the numeric uid and gid of the named file.
-func (d *TargetDisk) Chown(name string, uid, gid int) error {
-	if os.Geteuid() != 0 {
-		return nil
-	}
-	return os.Lchown(name, uid, gid)
-}
-
 // Lchtimes changes the access and modification times of the named file.
 func (d *TargetDisk) Lchtimes(name string, atime, mtime time.Time) error {
 	if canMaintainSymlinkTimestamps {

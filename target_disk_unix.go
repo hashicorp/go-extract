@@ -6,10 +6,19 @@
 package extract
 
 import (
+	"os"
 	"time"
 
 	"golang.org/x/sys/unix"
 )
+
+// Chown changes the numeric uid and gid of the named file.
+func (d *TargetDisk) Chown(name string, uid, gid int) error {
+	if os.Geteuid() != 0 {
+		return nil
+	}
+	return os.Lchown(name, uid, gid)
+}
 
 // lchtimes modifies the access and modified timestamps on a target path
 // This capability is only available on unix as of now.
