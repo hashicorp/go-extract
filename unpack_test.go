@@ -1622,6 +1622,55 @@ func packRar2(t *testing.T, _ []archiveContent) []byte {
 	return b
 }
 
+var (
+	uid, gid = 503, 20
+	baseTime = time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
+)
+
+var testCases = []struct {
+	name                  string
+	contents              []archiveContent
+	packer                func(*testing.T, []archiveContent) []byte
+	doesNotSupportModTime bool
+	doesNotSupportOwner   bool
+	expectError           bool
+}{
+	{
+		name: "tar",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: 0, Gid: 0},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+		},
+		packer: packTar,
+	},
+	{
+		name: "zip",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+		},
+		doesNotSupportOwner: true,
+		packer:              packZip,
+	},
+	{
+		name:                  "rar",
+		contents:              contentsRar2,
+		doesNotSupportOwner:   true,
+		doesNotSupportModTime: true,
+		packer:                packRar2,
+	},
+	{
+		name:                "7z",
+		contents:            contents7z2,
+		doesNotSupportOwner: true,
+		packer:              pack7z2,
+	},
+}
+
 // openFile is a helper function to "open" a file,
 // but it returns an in-memory reader for example purposes.
 func openFile(_ string) io.ReadCloser {
