@@ -52,8 +52,9 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 		{
 			name:                  "rar",
 			contents:              contentsRar2,
-			packer:                packRar2,
 			doesNotSupportModTime: true,
+			doesNotSupportOwner:   true,
+			packer:                packRar2,
 		},
 		{
 			name:                "7z",
