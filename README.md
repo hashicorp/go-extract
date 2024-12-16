@@ -76,7 +76,8 @@ Flags:
   -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
-  -p, --preserve-file-attributes           Preserve file attributes from archive (access and modification time, file permissions and owner/group).
+  -p, --preserve-file-attributes           Preserve file attributes from archive (access and modification time & file permissions).
+  -o, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
@@ -105,6 +106,7 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
     extract.WithOverwrite(..),
     extract.WithPatterns(..),
     extract.WithPreserveFileAttributes(..),
+    extract.WithPreserveOwner(..),
     extract.WithTelemetryHook(..),
   )
 

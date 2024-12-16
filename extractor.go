@@ -270,205 +270,212 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	var fileCounter int64
 	var extractionSize int64
 
-	// check if attributes should be preserved, but as non-root user
-	if _, ok := t.(*TargetDisk); ok {
-		if cfg.PreserveFileAttributes() && os.Geteuid() != 0 {
-			cfg.Logger().Warn("cannot fully preserve file attributes as non-root user: cannot set file ownership", "uid", os.Geteuid())
+	// collect extracted entries if file attributes should be preserved
+	collectEntries := cfg.PreserveFileAttributes() || cfg.PreserveOwner()
+	var extractedEntries []archiveEntry
+
+	// iterate over all files in archive
+	err := func() error {
+		for {
+			// check if context is canceled
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+
+			// get next file
+			ae, err := src.Next()
+
+			switch {
+
+			// if no more files are found exit loop
+			case err == io.EOF:
+				// extraction finished
+				return nil
+
+			// handle other errors and end extraction or continue
+			case err != nil:
+				if err := handleError(cfg, td, "error reading", err); err != nil {
+					return err
+				}
+				continue
+
+			// if the header is nil, just skip it (not sure how this happens)
+			case ae == nil:
+				continue
+			}
+
+			// check for to many files (including folder and symlinks) in archive
+			fileCounter++
+
+			// check if maximum of files (including folder and symlinks) is exceeded
+			if err := cfg.CheckMaxFiles(fileCounter); err != nil {
+				return handleError(cfg, td, "max objects check failed", err)
+			}
+
+			// check if file needs to match patterns
+			match, err := checkPatterns(cfg.Patterns(), ae.Name())
+			if err != nil {
+				return handleError(cfg, td, "cannot check pattern", err)
+			}
+			if !match {
+				cfg.Logger().Info("skipping file (pattern mismatch)", "name", ae.Name())
+				td.PatternMismatches++
+				continue
+			}
+
+			cfg.Logger().Debug("extract", "name", ae.Name())
+			switch {
+
+			// if its a dir and it doesn't exist create it
+			case ae.IsDir():
+
+				// handle directory
+				if err := createDir(t, dst, ae.Name(), ae.Mode(), cfg); err != nil {
+					if err := handleError(cfg, td, "failed to create safe directory", err); err != nil {
+						return err
+					}
+
+					// do not end on error
+					continue
+				}
+				if collectEntries {
+					extractedEntries = append(extractedEntries, ae)
+				}
+
+				// store telemetry and continue
+				td.ExtractedDirs++
+
+			// if it's a file create it
+			case ae.IsRegular():
+
+				// check extraction size forecast
+				if err := cfg.CheckExtractionSize(extractionSize + ae.Size()); err != nil {
+					return handleError(cfg, td, "max extraction size exceeded", err)
+				}
+
+				// open file inm archive
+				err, fileCreated := func() (error, bool) {
+					fin, err := ae.Open()
+					if err != nil {
+						return handleError(cfg, td, "failed to open file", err), false
+					}
+					defer fin.Close()
+
+					// create file
+					n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
+					extractionSize = extractionSize + n
+					td.ExtractionSize = extractionSize
+					if err != nil {
+
+						// increase error counter, set error and end if necessary
+						return handleError(cfg, td, "failed to create safe file", err), false
+					}
+
+					// do not end on error
+					return nil, true
+				}()
+				if err != nil {
+					return err
+				}
+
+				// store telemetry
+				if fileCreated {
+					td.ExtractedFiles++
+					if collectEntries {
+						extractedEntries = append(extractedEntries, ae)
+					}
+				}
+
+			// its a symlink !!
+			case ae.IsSymlink():
+
+				// check if symlinks are allowed
+				if cfg.DenySymlinkExtraction() {
+
+					err := unsupportedFile(ae.Name())
+					if err := handleError(cfg, td, "symlink extraction disabled", err); err != nil {
+						return err
+					}
+
+					// do not end on error
+					continue
+				}
+
+				// create link
+				if err := createSymlink(t, dst, ae.Name(), ae.Linkname(), cfg); err != nil {
+
+					// increase error counter, set error and end if necessary
+					if err := handleError(cfg, td, "failed to create safe symlink", err); err != nil {
+						return err
+					}
+
+					// do not end on error
+					continue
+				}
+				if collectEntries {
+					extractedEntries = append(extractedEntries, ae)
+				}
+
+				// store telemetry and continue
+				td.ExtractedSymlinks++
+
+			default:
+
+				// tar specific: check for git comment file `pax_global_header` from type `67` and skip
+				if ae.Type()&tar.TypeXGlobalHeader == tar.TypeXGlobalHeader && ae.Name() == "pax_global_header" {
+					continue
+				}
+
+				err := unsupportedFile(ae.Name())
+				msg := fmt.Sprintf("unsupported filetype in archive (%x)", ae.Mode())
+				if err := handleError(cfg, td, msg, err); err != nil {
+					return err
+				}
+
+				// do not end on error
+				continue
+			}
 		}
+	}()
+	if err != nil {
+		return err
 	}
 
 	// set attributes after all modification are done to ensure that
 	// the timestamps are set correctly
-	var extractedEntries []archiveEntry
-	if cfg.PreserveFileAttributes() {
-		defer func() {
-			for _, ae := range extractedEntries {
-				path := filepath.Join(dst, ae.Name())
-				if err := setFileAttributes(t, path, ae); err != nil {
-					cfg.Logger().Error("failed to set file attributes", "path", path, "error", err)
-				}
+	if collectEntries {
+		for _, ae := range extractedEntries {
+			path := filepath.Join(dst, ae.Name())
+			if err := setFileAttributesAndOwner(t, path, ae, cfg.PreserveFileAttributes(), cfg.PreserveOwner()); err != nil {
+				return fmt.Errorf("failed to set file attributes: %w", err)
 			}
-		}()
-	}
-
-	for {
-		// check if context is canceled
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-
-		// get next file
-		ae, err := src.Next()
-
-		switch {
-
-		// if no more files are found exit loop
-		case err == io.EOF:
-			// extraction finished
-			return nil
-
-		// handle other errors and end extraction or continue
-		case err != nil:
-			if err := handleError(cfg, td, "error reading", err); err != nil {
-				return err
-			}
-			continue
-
-		// if the header is nil, just skip it (not sure how this happens)
-		case ae == nil:
-			continue
-		}
-
-		// check for to many files (including folder and symlinks) in archive
-		fileCounter++
-
-		// check if maximum of files (including folder and symlinks) is exceeded
-		if err := cfg.CheckMaxFiles(fileCounter); err != nil {
-			return handleError(cfg, td, "max objects check failed", err)
-		}
-
-		// check if file needs to match patterns
-		match, err := checkPatterns(cfg.Patterns(), ae.Name())
-		if err != nil {
-			return handleError(cfg, td, "cannot check pattern", err)
-		}
-		if !match {
-			cfg.Logger().Info("skipping file (pattern mismatch)", "name", ae.Name())
-			td.PatternMismatches++
-			continue
-		}
-
-		cfg.Logger().Debug("extract", "name", ae.Name())
-		switch {
-
-		// if its a dir and it doesn't exist create it
-		case ae.IsDir():
-
-			// handle directory
-			if err := createDir(t, dst, ae.Name(), ae.Mode(), cfg); err != nil {
-				if err := handleError(cfg, td, "failed to create safe directory", err); err != nil {
-					return err
-				}
-
-				// do not end on error
-				continue
-			}
-			if cfg.PreserveFileAttributes() {
-				extractedEntries = append(extractedEntries, ae)
-			}
-
-			// store telemetry and continue
-			td.ExtractedDirs++
-
-		// if it's a file create it
-		case ae.IsRegular():
-
-			// check extraction size forecast
-			if err := cfg.CheckExtractionSize(extractionSize + ae.Size()); err != nil {
-				return handleError(cfg, td, "max extraction size exceeded", err)
-			}
-
-			// open file inm archive
-			err, fileCreated := func() (error, bool) {
-				fin, err := ae.Open()
-				if err != nil {
-					return handleError(cfg, td, "failed to open file", err), false
-				}
-				defer fin.Close()
-
-				// create file
-				n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
-				extractionSize = extractionSize + n
-				td.ExtractionSize = extractionSize
-				if err != nil {
-
-					// increase error counter, set error and end if necessary
-					return handleError(cfg, td, "failed to create safe file", err), false
-				}
-
-				// do not end on error
-				return nil, true
-			}()
-			if err != nil {
-				return err
-			}
-
-			// store telemetry
-			if fileCreated {
-				td.ExtractedFiles++
-				if cfg.PreserveFileAttributes() {
-					extractedEntries = append(extractedEntries, ae)
-				}
-			}
-
-		// its a symlink !!
-		case ae.IsSymlink():
-
-			// check if symlinks are allowed
-			if cfg.DenySymlinkExtraction() {
-
-				err := unsupportedFile(ae.Name())
-				if err := handleError(cfg, td, "symlink extraction disabled", err); err != nil {
-					return err
-				}
-
-				// do not end on error
-				continue
-			}
-
-			// create link
-			if err := createSymlink(t, dst, ae.Name(), ae.Linkname(), cfg); err != nil {
-
-				// increase error counter, set error and end if necessary
-				if err := handleError(cfg, td, "failed to create safe symlink", err); err != nil {
-					return err
-				}
-
-				// do not end on error
-				continue
-			}
-			if cfg.PreserveFileAttributes() {
-				extractedEntries = append(extractedEntries, ae)
-			}
-
-			// store telemetry and continue
-			td.ExtractedSymlinks++
-
-		default:
-
-			// tar specific: check for git comment file `pax_global_header` from type `67` and skip
-			if ae.Type()&tar.TypeXGlobalHeader == tar.TypeXGlobalHeader && ae.Name() == "pax_global_header" {
-				continue
-			}
-
-			err := unsupportedFile(ae.Name())
-			msg := fmt.Sprintf("unsupported filetype in archive (%x)", ae.Mode())
-			if err := handleError(cfg, td, msg, err); err != nil {
-				return err
-			}
-
-			// do not end on error
-			continue
 		}
 	}
+
+	// extraction finished
+	return nil
 }
 
-// setFileAttributes sets the file attributes for the given path and archive entry.
-func setFileAttributes(t Target, path string, ae archiveEntry) error {
-	if ae.IsSymlink() { // only time attributes are supported for symlinks
-		if err := t.Lchtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
-			return fmt.Errorf("failed to lchtimes symlink: %w", err)
+// setFileAttributesAndOwner sets the file attributes for the given path and archive entry.
+func setFileAttributesAndOwner(t Target, path string, ae archiveEntry, fileAttributes bool, owner bool) error {
+	if fileAttributes {
+		if ae.IsSymlink() { // only time attributes are supported for symlinks
+			if err := t.Lchtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
+				return fmt.Errorf("failed to lchtimes symlink: %w", err)
+			}
+			return nil
 		}
-		return nil
+		if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
+			return fmt.Errorf("failed to chmod file: %w", err)
+		}
+		if err := t.Chtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
+			return fmt.Errorf("failed to chtimes file: %w", err)
+		}
 	}
-	if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
-		return fmt.Errorf("failed to chown file: %w", err)
-	}
-	if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
-		return fmt.Errorf("failed to chmod file: %w", err)
-	}
-	if err := t.Chtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
-		return fmt.Errorf("failed to chtimes file: %w", err)
+	if owner {
+		if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
+			return fmt.Errorf("failed to chown file: %w", err)
+		}
 	}
 	return nil
 }

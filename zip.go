@@ -171,12 +171,14 @@ func (z *zipEntry) Sys() interface{} {
 	return z.zf.FileHeader
 }
 
-// Gid returns the group ID of the entry
+// Gid is not supported for zip files. The used library does not provide
+// this information. The function returns the group ID of the current process.
 func (z *zipEntry) Gid() int {
-	return os.Getgid()
+	return 0
 }
 
-// Uid returns the user ID of the entry
+// Uid is not supported for zip files. The used library does not provide
+// this information. The function returns the user ID of the current process.
 func (z *zipEntry) Uid() int {
-	return os.Getuid()
+	return 0
 }

@@ -6,6 +6,7 @@
 package extract
 
 import (
+	"io/fs"
 	"os"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 // Chown changes the numeric uid and gid of the named file.
 func (d *TargetDisk) Chown(name string, uid, gid int) error {
 	if os.Geteuid() != 0 {
-		return nil
+		return &fs.PathError{Op: "chown", Path: name, Err: os.ErrPermission}
 	}
 	return os.Lchown(name, uid, gid)
 }

@@ -180,13 +180,15 @@ func (z *sevenZipEntry) Sys() interface{} {
 	return z.f.FileInfo().Sys()
 }
 
-// Gid returns the group ID of the 7zip entry
+// Gid is not supported for 7zip files. The used library does not provide
+// this information. The function returns the group ID of the current process.
 func (z *sevenZipEntry) Gid() int {
-	return os.Getgid()
+	return 0
 }
 
-// Uid returns the user ID of the 7zip entry
+// Uid is not supported for 7zip files. The used library does not provide
+// this information. The function returns the user ID of the current process.
 func (z *sevenZipEntry) Uid() int {
 	// get current uid
-	return os.Getuid()
+	return 0
 }

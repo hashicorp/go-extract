@@ -155,11 +155,11 @@ func (r *rarEntry) Sys() interface{} {
 // Gid is not supported for Rar files. The used library does not provide
 // this information. The function returns the group ID of the current process.
 func (r *rarEntry) Gid() int {
-	return os.Getgid()
+	return 0
 }
 
 // Uid is not supported for Rar files. The used library does not provide
 // this information. The function returns the user ID of the current process.
 func (r *rarEntry) Uid() int {
-	return os.Getuid()
+	return 0
 }

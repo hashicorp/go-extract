@@ -841,56 +841,21 @@ func TestCreateSymlink(t *testing.T) {
 	}
 }
 
-func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
-	uid, gid := 503, 20
-	baseTime := time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
-	testCases := []struct {
-		name                  string
-		contents              []archiveContent
-		packer                func(*testing.T, []archiveContent) []byte
-		doesNotSupportModTime bool
-		expectError           bool
-	}{
-		{
-			name: "unpack tar with preserve file attributes",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				// {Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
-			},
-			packer: packTar,
-		},
-		{
-			name: "unpack zip with preserve file attributes",
-			contents: []archiveContent{
-				{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				// {Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-				{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
-			},
-			packer: packZip,
-		},
-		{
-			name:                  "unpack rar with preserve file attributes",
-			contents:              contentsRar2,
-			doesNotSupportModTime: true,
-			packer:                packRar2,
-		},
-		{
-			name:     "unpack z7 with preserve file attributes",
-			contents: contents7z2,
-			packer:   pack7z2,
-		},
+func TestUnpackToMemoryWithPreserveFileAttributesAndOwner(t *testing.T) {
+	type ownershipAccessor interface {
+		Uid() int
+		Gid() int
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var (
 				ctx = context.Background()
 				m   = extract.NewTargetMemory()
 				src = asIoReader(t, tc.packer(t, tc.contents))
-				cfg = extract.NewConfig(extract.WithPreserveFileAttributes(true))
+				cfg = extract.NewConfig(
+					extract.WithPreserveFileAttributes(true),
+					extract.WithPreserveOwner(true),
+				)
 			)
 			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
@@ -908,13 +873,22 @@ func TestUnpackToMemoryWithPreserveFileAttributes(t *testing.T) {
 						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), path)
 					}
 				}
-				if tc.doesNotSupportModTime {
-					continue
+				if !tc.doesNotSupportModTime {
+					// calculate the time difference
+					modTimeDiff := abs(stat.ModTime().UnixNano() - c.ModTime.UnixNano())
+					if modTimeDiff >= int64(time.Microsecond) {
+						t.Fatalf("expected file modtime %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), path, modTimeDiff)
+					}
 				}
-				// calculate the time difference
-				modTimeDiff := abs(stat.ModTime().UnixNano() - c.ModTime.UnixNano())
-				if modTimeDiff >= int64(time.Microsecond) {
-					t.Fatalf("expected file modtime %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), path, modTimeDiff)
+				if !tc.doesNotSupportOwner {
+					if oa, ok := stat.(ownershipAccessor); ok {
+						if oa.Uid() != c.Uid {
+							t.Fatalf("expected file uid %v, got %v, file %s", c.Uid, oa.Uid(), path)
+						}
+						if oa.Gid() != c.Gid {
+							t.Fatalf("expected file gid %v, got %v, file %s", c.Gid, oa.Gid(), path)
+						}
+					}
 				}
 			}
 		})

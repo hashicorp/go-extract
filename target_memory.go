@@ -524,6 +524,8 @@ func (m *TargetMemory) Lstat(path string) (fs.FileInfo, error) {
 		mode:       mfi.Mode(),
 		accessTime: mfi.AccessTime(),
 		modTime:    mfi.ModTime(),
+		gid:        mfi.Gid(),
+		uid:        mfi.Uid(),
 	}, nil
 }
 

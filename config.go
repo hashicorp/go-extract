@@ -79,6 +79,9 @@ type Config struct {
 
 	// preserveFileAttributes is a flag to preserve the file attributes of the extracted files
 	preserveFileAttributes bool
+
+	// preserveOwner is a flag to preserve the owner of the extracted files
+	preserveOwner bool
 }
 
 // ContinueOnError returns true if the extraction should continue on error.
@@ -209,6 +212,11 @@ func (c *Config) PreserveFileAttributes() bool {
 	return c.preserveFileAttributes
 }
 
+// PreserveOwner returns true if the owner of the extracted files should be preserved.
+func (c *Config) PreserveOwner() bool {
+	return c.preserveOwner
+}
+
 // SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
 // are not untared after decompression.
 func (c *Config) SetNoUntarAfterDecompression(b bool) {
@@ -240,6 +248,7 @@ const (
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
 	defaultPreserveFileAttributes     = false         // do not preserve file attributes
+	defaultPreserveOwner              = false         // do not preserve owner
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
 )
@@ -276,6 +285,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
 		preserveFileAttributes:     defaultPreserveFileAttributes,
+		preserveOwner:              defaultPreserveOwner,
 	}
 
 	// Loop through each option
@@ -419,6 +429,13 @@ func WithPatterns(pattern ...string) ConfigOption {
 func WithPreserveFileAttributes(preserve bool) ConfigOption {
 	return func(c *Config) {
 		c.preserveFileAttributes = preserve
+	}
+}
+
+// WithPreserveOwner options pattern function to preserve the owner of the extracted files.
+func WithPreserveOwner(preserve bool) ConfigOption {
+	return func(c *Config) {
+		c.preserveOwner = preserve
 	}
 }
 
