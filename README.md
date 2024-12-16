@@ -77,7 +77,7 @@ Flags:
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
   -p, --preserve-file-attributes           Preserve file attributes from archive (access and modification time & file permissions).
-  -o, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems).
+  -o, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.

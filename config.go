@@ -212,7 +212,9 @@ func (c *Config) PreserveFileAttributes() bool {
 	return c.preserveFileAttributes
 }
 
-// PreserveOwner returns true if the owner of the extracted files should be preserved.
+// PreserveOwner returns true if the owner of the extracted files should
+// be preserved. This option is only available on Unix systems requiring
+// root privileges and tar archives as input.
 func (c *Config) PreserveOwner() bool {
 	return c.preserveOwner
 }
@@ -425,14 +427,17 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// WithPreserveFileAttributes options pattern function to preserve the file attributes of the extracted files.
+// WithPreserveFileAttributes options pattern function to preserve the
+// file attributes of the extracted files.
 func WithPreserveFileAttributes(preserve bool) ConfigOption {
 	return func(c *Config) {
 		c.preserveFileAttributes = preserve
 	}
 }
 
-// WithPreserveOwner options pattern function to preserve the owner of the extracted files.
+// WithPreserveOwner options pattern function to preserve the owner of
+// the extracted files. This option is only available on Unix systems
+// requiring root privileges and tar archives as input.
 func WithPreserveOwner(preserve bool) ConfigOption {
 	return func(c *Config) {
 		c.preserveOwner = preserve

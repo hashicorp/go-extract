@@ -39,7 +39,7 @@ type CLI struct {
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
 	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	PreserveFileAttributes     bool             `short:"p" help:"Preserve file attributes from archive (access and modification time & file permissions)."`
-	PreserveOwner              bool             `short:"o" help:"Preserve owner and group of files from archive (only root/uid:0 on unix systems)."`
+	PreserveOwner              bool             `short:"o" help:"Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files)."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
 	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
