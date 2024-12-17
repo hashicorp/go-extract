@@ -1760,20 +1760,3 @@ func sniffUmask(t *testing.T) fs.FileMode {
 	// return the umask
 	return umask
 }
-
-// toWindowsFileMode converts a fs.FileMode to a windows file mode
-func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
-
-	// handle special case
-	if isDir {
-		return fs.FileMode(0777)
-	}
-
-	// check for write permission
-	if mode&0200 != 0 {
-		return fs.FileMode(0666)
-	}
-
-	// return the mode
-	return fs.FileMode(0444)
-}

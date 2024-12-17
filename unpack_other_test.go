@@ -59,8 +59,6 @@ func TestWithCustomMode(t *testing.T) {
 		t.Skip("test only runs on Windows")
 	}
 
-	umask := sniffUmask(t)
-
 	tests := []struct {
 		name        string
 		data        []byte
@@ -170,20 +168,28 @@ func TestWithCustomMode(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error getting file stats: %s", err)
 				}
-
-				if runtime.GOOS == "windows" {
-					if stat.IsDir() {
-						continue // Skip directory checks on Windows
-					}
-					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
-				} else {
-					expectedMode &= ^umask // Adjust for umask on non-Windows systems
-				}
-
+				expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				if stat.Mode().Perm() != expectedMode.Perm() {
 					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})
 	}
+}
+
+// toWindowsFileMode converts a fs.FileMode to a windows file mode
+func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
+
+	// handle special case
+	if isDir {
+		return fs.FileMode(0777)
+	}
+
+	// check for write permission
+	if mode&0200 != 0 {
+		return fs.FileMode(0666)
+	}
+
+	// return the mode
+	return fs.FileMode(0444)
 }
