@@ -15,10 +15,10 @@ import (
 
 // Chown changes the numeric uid and gid of the named file.
 func (d *TargetDisk) Chown(name string, uid, gid int) error {
-	if os.Geteuid() != 0 {
-		return &fs.PathError{Op: "chown", Path: name, Err: os.ErrPermission}
+	if err := os.Lchown(name, uid, gid); err != nil {
+		return &fs.PathError{Op: "chown", Path: name, Err: err}
 	}
-	return os.Lchown(name, uid, gid)
+	return nil
 }
 
 // lchtimes modifies the access and modified timestamps on a target path
