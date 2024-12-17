@@ -170,7 +170,7 @@ func TestWithCustomMode(t *testing.T) {
 				}
 				expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
 				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
+					t.Fatalf("expected %s to have mode %s, but got: %s", name, expectedMode.Perm(), stat.Mode().Perm())
 				}
 			}
 		})
