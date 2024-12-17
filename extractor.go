@@ -271,7 +271,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	var extractionSize int64
 
 	// collect extracted entries if file attributes should be preserved
-	collectEntries := cfg.PreserveFileAttributes() || cfg.PreserveOwner()
+	collectEntries := (!cfg.NoPreserveFileAttributes()) || cfg.PreserveOwner()
 	var extractedEntries []archiveEntry
 
 	if cfg.PreserveOwner() && src.Type() != fileExtensionTar {
@@ -450,7 +450,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	if collectEntries {
 		for _, ae := range extractedEntries {
 			path := filepath.Join(dst, ae.Name())
-			if err := setFileAttributesAndOwner(t, path, ae, cfg.PreserveFileAttributes(), cfg.PreserveOwner()); err != nil {
+			if err := setFileAttributesAndOwner(t, path, ae, (!cfg.NoPreserveFileAttributes()), cfg.PreserveOwner()); err != nil {
 				return fmt.Errorf("failed to set file attributes: %w", err)
 			}
 		}

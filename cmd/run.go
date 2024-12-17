@@ -35,10 +35,10 @@ type CLI struct {
 	MaxExtractionSize          int64            `optional:"" default:"${default_max_extraction_size}" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
 	MaxExtractionTime          int64            `optional:"" default:"${default_max_extraction_time}" help:"Maximum time that an extraction should take (in seconds). (disable check: -1)"`
 	MaxInputSize               int64            `optional:"" default:"${default_max_input_size}" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
+	NoPreserveFileAttributes   bool             `short:"P" help:"Do not preserve file attributes (mode, modtime, access time)."`
 	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
-	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
-	PreserveFileAttributes     bool             `short:"p" help:"Preserve file attributes from archive (access and modification time & file permissions)."`
+	Pattern                    []string         `optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
 	PreserveOwner              bool             `short:"o" help:"Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files)."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
 	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
@@ -96,10 +96,10 @@ func Run(version, commit, date string) {
 		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
 		extract.WithMaxFiles(cli.MaxFiles),
 		extract.WithMaxInputSize(cli.MaxInputSize),
+		extract.WithNoPreserveFileAttributes(cli.NoPreserveFileAttributes),
 		extract.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		extract.WithOverwrite(cli.Overwrite),
 		extract.WithPatterns(cli.Pattern...),
-		extract.WithPreserveFileAttributes(cli.PreserveFileAttributes),
 		extract.WithPreserveOwner(cli.PreserveOwner),
 		extract.WithTelemetryHook(telemetryDataToLog),
 	)

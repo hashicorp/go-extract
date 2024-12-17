@@ -68,6 +68,9 @@ type Config struct {
 	// Important: do not adjust this value after extraction started
 	telemetryHook TelemetryHook
 
+	// noPreserveFileAttributes is a flag to not preserve the file attributes of the extracted files
+	noPreserveFileAttributes bool
+
 	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
 	noUntarAfterDecompression bool
 
@@ -76,9 +79,6 @@ type Config struct {
 
 	// patterns is a list of file patterns to match files to extract
 	patterns []string
-
-	// preserveFileAttributes is a flag to preserve the file attributes of the extracted files
-	preserveFileAttributes bool
 
 	// preserveOwner is a flag to preserve the owner of the extracted files
 	preserveOwner bool
@@ -207,9 +207,9 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
-// PreserveFileAttributes returns true if the file attributes of the extracted files should be preserved.
-func (c *Config) PreserveFileAttributes() bool {
-	return c.preserveFileAttributes
+// NoPreserveFileAttributes returns true if the file attributes of the extracted files should *NOT* be preserved.
+func (c *Config) NoPreserveFileAttributes() bool {
+	return c.noPreserveFileAttributes
 }
 
 // PreserveOwner returns true if the owner of the extracted files should
@@ -249,7 +249,7 @@ const (
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
-	defaultPreserveFileAttributes     = false         // do not preserve file attributes
+	defaultNoPreserveFileAttributes   = false         // dont preserve file attributes from archive (inverse wording)
 	defaultPreserveOwner              = false         // do not preserve owner
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
@@ -285,8 +285,8 @@ func NewConfig(opts ...ConfigOption) *Config {
 		overwrite:                  defaultOverwrite,
 		telemetryHook:              defaultTelemetryHook,
 		traverseSymlinks:           defaultTraverseSymlinks,
+		noPreserveFileAttributes:   defaultNoPreserveFileAttributes,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
-		preserveFileAttributes:     defaultPreserveFileAttributes,
 		preserveOwner:              defaultPreserveOwner,
 	}
 
@@ -427,11 +427,11 @@ func WithPatterns(pattern ...string) ConfigOption {
 	}
 }
 
-// WithPreserveFileAttributes options pattern function to preserve the
+// WithNoPreserveFileAttributes options pattern function to not preserve the
 // file attributes of the extracted files.
-func WithPreserveFileAttributes(preserve bool) ConfigOption {
+func WithNoPreserveFileAttributes(noPreserve bool) ConfigOption {
 	return func(c *Config) {
-		c.preserveFileAttributes = preserve
+		c.noPreserveFileAttributes = noPreserve
 	}
 }
 

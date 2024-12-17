@@ -172,12 +172,6 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 	// Check if link target is absolute path
 	if filepath.IsAbs(linkTarget) {
 
-		// continue on error?
-		if cfg.ContinueOnError() {
-			cfg.Logger().Info("skip link target with absolute path", "link target", linkTarget)
-			return nil
-		}
-
 		// return error
 		return fmt.Errorf("symlink with absolute path as target: %s", linkTarget)
 	}
