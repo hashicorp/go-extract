@@ -1766,8 +1766,9 @@ func packRar2(t *testing.T, _ []archiveContent) []byte {
 }
 
 var (
-	uid, gid = 503, 20
-	baseTime = time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
+	testDataUid, testDataGid          = 1337, 42
+	testDataRootUid, testDataWheelGid = 0, 0
+	baseTime                          = time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
 )
 
 var testCases = []struct {
@@ -1777,31 +1778,51 @@ var testCases = []struct {
 	doesNotSupportModTime bool
 	doesNotSupportOwner   bool
 	expectError           bool
+	uid                   int
+	gid                   int
 }{
 	{
 		name: "tar",
 		contents: []archiveContent{
-			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: 0, Gid: 0},
-			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
 		},
+		uid:    testDataUid,
+		gid:    testDataGid,
+		packer: packTar,
+	},
+	{
+		name: "root-tar",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+		},
+		uid:    testDataRootUid,
+		gid:    testDataWheelGid,
 		packer: packTar,
 	},
 	{
 		name: "zip",
 		contents: []archiveContent{
-			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-			{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: uid, Gid: gid},
-			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime},
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
 		},
+		uid:                 os.Getgid(),
+		gid:                 os.Getgid(),
 		doesNotSupportOwner: true,
 		packer:              packZip,
 	},
 	{
 		name:                  "rar",
 		contents:              contentsRar2,
+		uid:                   os.Getuid(),
+		gid:                   os.Getgid(),
 		doesNotSupportOwner:   true,
 		doesNotSupportModTime: true,
 		packer:                packRar2,
@@ -1809,6 +1830,8 @@ var testCases = []struct {
 	{
 		name:                "7z",
 		contents:            contents7z2,
+		uid:                 os.Getuid(),
+		gid:                 os.Getgid(),
 		doesNotSupportOwner: true,
 		packer:              pack7z2,
 	},

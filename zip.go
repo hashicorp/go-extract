@@ -174,11 +174,11 @@ func (z *zipEntry) Sys() interface{} {
 // Gid is not supported for zip files. The used library does not provide
 // this information. The function returns the group ID of the current process.
 func (z *zipEntry) Gid() int {
-	return 0
+	return os.Getegid()
 }
 
 // Uid is not supported for zip files. The used library does not provide
 // this information. The function returns the user ID of the current process.
 func (z *zipEntry) Uid() int {
-	return 0
+	return os.Getuid()
 }

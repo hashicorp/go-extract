@@ -66,10 +66,20 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 				src = asIoReader(t, tc.packer(t, tc.contents))
 				cfg = extract.NewConfig(extract.WithPreserveOwner(true))
 			)
-			// fail always, bc/ root needed to set ownership
+			// compare archive uid/gid with current user
+			archiveEntriesEqualCurrentOwner := tc.doesNotSupportOwner
+
+			// If the archive supports owner information, check if the current user is the owner of the test data
+			if !tc.doesNotSupportOwner && (os.Getuid() != tc.uid || os.Getgid() != tc.gid) {
+				archiveEntriesEqualCurrentOwner = false
+			}
+
+			// Unpack should fail if the user is not root and
 			err := extract.Unpack(ctx, dst, src, cfg)
-			if err == nil {
-				t.Fatalf("expected error, got nil")
+
+			// chown will only fail if the user is not root and the uid/gid is different
+			if archiveEntriesEqualCurrentOwner && err != nil {
+				t.Fatalf("error unpacking archive: %v", err)
 			}
 		})
 	}

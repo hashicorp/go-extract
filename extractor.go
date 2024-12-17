@@ -274,6 +274,10 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	collectEntries := cfg.PreserveFileAttributes() || cfg.PreserveOwner()
 	var extractedEntries []archiveEntry
 
+	if cfg.PreserveOwner() && src.Type() != fileExtensionTar {
+		cfg.Logger().Info("owner preservation is only supported for tar archives", "type", src.Type())
+	}
+
 	// iterate over all files in archive
 	err := func() error {
 		for {
@@ -463,13 +467,13 @@ func setFileAttributesAndOwner(t Target, path string, ae archiveEntry, fileAttri
 			if err := t.Lchtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
 				return fmt.Errorf("failed to lchtimes symlink: %w", err)
 			}
-			return nil
-		}
-		if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
-			return fmt.Errorf("failed to chmod file: %w", err)
-		}
-		if err := t.Chtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
-			return fmt.Errorf("failed to chtimes file: %w", err)
+		} else {
+			if err := t.Chmod(path, ae.Mode().Perm()); err != nil {
+				return fmt.Errorf("failed to chmod file: %w", err)
+			}
+			if err := t.Chtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
+				return fmt.Errorf("failed to chtimes file: %w", err)
+			}
 		}
 	}
 	if owner {
