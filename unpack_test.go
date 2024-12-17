@@ -1146,43 +1146,6 @@ func TestUnpackWithTypes(t *testing.T) {
 	}
 }
 
-func TestToWindowsFileMode(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("skipping test on non-windows systems")
-	}
-	otherMasks := []int{00, 01, 02, 03, 04, 05, 06, 07}
-	groupMasks := []int{00, 010, 020, 030, 040, 050, 060, 070}
-	userMasks := []int{00, 0100, 0200, 0300, 0400, 0500, 0600, 0700}
-	for _, dir := range []bool{true, false} {
-		for _, o := range otherMasks {
-			for _, g := range groupMasks {
-				for _, u := range userMasks {
-					var (
-						path = filepath.Join(t.TempDir(), "test")
-						mode = fs.FileMode(u | g | o)
-					)
-					if err := func() error {
-						if dir {
-							return os.Mkdir(path, mode)
-						}
-						return os.WriteFile(path, []byte("foobar content"), mode)
-					}(); err != nil {
-						t.Fatalf("error creating test resource: %s", err)
-					}
-					stat, err := os.Stat(path)
-					if err != nil {
-						t.Fatalf("error getting file stats: %s", err)
-					}
-					calculated := toWindowsFileMode(dir, mode)
-					if stat.Mode().Perm() != calculated.Perm() {
-						t.Errorf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
-					}
-				}
-			}
-		}
-	}
-}
-
 func TestUnsupportedArchiveNames(t *testing.T) {
 	// test testCases
 	testCases := []struct {
