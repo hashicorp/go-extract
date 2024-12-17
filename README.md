@@ -73,10 +73,10 @@ Flags:
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
+  -P, --no-preserve-file-attributes        Do not preserve file attributes (mode, modtime, access time).
   -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
   -O, --overwrite                          Overwrite if exist.
-  -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
-  -p, --preserve-file-attributes           Preserve file attributes from archive (access and modification time & file permissions).
+      --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
   -o, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
@@ -102,10 +102,10 @@ When calling the `extract.Unpack(..)` function, we need to provide `config` obje
     extract.WithMaxExtractionSize(..),
     extract.WithMaxFiles(..),
     extract.WithMaxInputSize(..),
+    extract.WithNoPreserveFileAttributes(..),
     extract.WithNoUntarAfterDecompression(..),
     extract.WithOverwrite(..),
     extract.WithPatterns(..),
-    extract.WithPreserveFileAttributes(..),
     extract.WithPreserveOwner(..),
     extract.WithTelemetryHook(..),
   )
