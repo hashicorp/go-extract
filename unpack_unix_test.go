@@ -74,7 +74,9 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 				archiveEntriesEqualCurrentOwner = false
 			}
 
-			// Unpack should fail if the user is not root and
+			// Unpack should fail if the user is not root and the uid/gid
+			// in the archive is different from the current user (only
+			// if the archive supports owner information)
 			err := extract.Unpack(ctx, dst, src, cfg)
 
 			// chown will only fail if the user is not root and the uid/gid is different
