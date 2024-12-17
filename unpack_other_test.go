@@ -182,7 +182,10 @@ func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
 
 	// handle special case
 	if isDir {
-		return fs.FileMode(0777)
+		if mode&0222 > 0 { // drop write permission if not set
+			return fs.FileMode(0777)
+		}
+		return fs.FileMode(0777 & ^fs.FileMode(0222))
 	}
 
 	// check for write permission
