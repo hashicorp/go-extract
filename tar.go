@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"time"
 )
 
 // fileExtensionTar is the file extension for tar files
@@ -117,4 +118,29 @@ func (t *tarEntry) Open() (io.ReadCloser, error) {
 // Type returns the type of the entry
 func (t *tarEntry) Type() fs.FileMode {
 	return fs.FileMode(t.hdr.Typeflag)
+}
+
+// AccessTime returns the access time of the entry
+func (t *tarEntry) AccessTime() time.Time {
+	return t.hdr.AccessTime
+}
+
+// ModTime returns the modification time of the entry
+func (t *tarEntry) ModTime() time.Time {
+	return t.hdr.ModTime
+}
+
+// Sys returns the system information of the entry
+func (t *tarEntry) Sys() interface{} {
+	return t.hdr
+}
+
+// Gid returns the group id of the entry
+func (t *tarEntry) Gid() int {
+	return t.hdr.Gid
+}
+
+// Uid returns the user id of the entry
+func (t *tarEntry) Uid() int {
+	return t.hdr.Uid
 }

@@ -5,11 +5,15 @@ package extract_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/fs"
 	p "path"
+	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	extract "github.com/hashicorp/go-extract"
 )
@@ -710,6 +714,16 @@ func TestCreateFile(t *testing.T) {
 		t.Fatalf("CreateFile() failed: %s", err)
 	}
 
+	// create the same file, but fail bc it already exists#
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
+		t.Fatalf("CreateFile() failed: expected error, got nil")
+	}
+
+	// create the same file, but overwrite
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), true, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
 	// open the file
 	f, err := tm.Open(testPath)
 	if err != nil {
@@ -756,5 +770,127 @@ func TestCreateFile(t *testing.T) {
 	// create a file with the same name as the dir
 	if _, err := tm.CreateFile(testDir, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err == nil {
 		t.Fatalf("CreateFile() failed: expected error, got nil")
+	}
+}
+
+// TestCreateSymlink tests the CreateSymlink method
+func TestCreateSymlink(t *testing.T) {
+	// instantiate a new memory
+	tm := extract.NewTargetMemory()
+
+	// test data
+	testPath := "test"
+	testLink := "link"
+	testContent := "test"
+	testPerm := 0644
+
+	// create a file
+	if _, err := tm.CreateFile(testPath, bytes.NewReader([]byte(testContent)), fs.FileMode(testPerm), false, -1); err != nil {
+		t.Fatalf("CreateFile() failed: %s", err)
+	}
+
+	// create a symlink
+	if err := tm.CreateSymlink(testPath, testLink, false); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+
+	// open the symlink
+	f, err := tm.Open(testLink)
+	if err != nil {
+		t.Fatalf("Open() failed: %s", err)
+	}
+
+	// stat the symlink (which is the link target)
+	stat, err := f.Stat()
+	if err != nil {
+		t.Fatalf("Stat() failed: %s", err)
+	}
+
+	// check name
+	if stat.Name() != testPath {
+		t.Fatalf("Name() returned unexpected value: expected %s, got %s", testLink, stat.Name())
+	}
+
+	// check mode
+	if int(stat.Mode().Perm()&fs.ModePerm) != testPerm {
+		t.Fatalf("Mode() returned unexpected value: expected %d, got %d", testPerm, stat.Mode().Perm())
+	}
+
+	// read the symlink
+	data, err := io.ReadAll(f)
+	if err != nil {
+		t.Fatalf("ReadAll() failed: %s", err)
+	}
+	if !bytes.Equal(data, []byte(testContent)) {
+		t.Fatalf("unexpected file contents: expected %s, got %s", testContent, data)
+	}
+
+	// close the symlink
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close() failed: %s", err)
+	}
+
+	// overwrite the symlink, but fail
+	if err := tm.CreateSymlink(testPath, testLink, false); err == nil {
+		t.Fatalf("CreateSymlink() failed: expected error, got nil")
+	}
+
+	// overwrite the symlink
+	if err := tm.CreateSymlink(testPath, testLink, true); err != nil {
+		t.Fatalf("CreateSymlink() failed: %s", err)
+	}
+}
+
+func TestUnpackToMemoryWithPreserveFileAttributesAndOwner(t *testing.T) {
+	type ownershipAccessor interface {
+		Uid() int
+		Gid() int
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var (
+				ctx = context.Background()
+				m   = extract.NewTargetMemory()
+				src = asIoReader(t, tc.packer(t, tc.contents))
+				cfg = extract.NewConfig(
+					extract.WithDropFileAttributes(false),
+					extract.WithPreserveOwner(true),
+				)
+			)
+			if err := extract.UnpackTo(ctx, m, "", src, cfg); err != nil {
+				t.Fatalf("error unpacking archive: %v", err)
+			}
+
+			for _, c := range tc.contents {
+				parts := strings.Split(c.Name, "/") // create system specific path
+				path := filepath.Join(parts...)
+				stat, err := m.Lstat(path)
+				if err != nil {
+					t.Fatalf("error getting file stats: %v", err)
+				}
+				if !(c.Mode&fs.ModeSymlink != 0) { // skip symlink checks
+					if stat.Mode().Perm() != c.Mode.Perm() {
+						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), path)
+					}
+				}
+				if !tc.doesNotSupportModTime {
+					// calculate the time difference
+					modTimeDiff := abs(stat.ModTime().UnixNano() - c.ModTime.UnixNano())
+					if modTimeDiff >= int64(time.Microsecond) {
+						t.Fatalf("expected file modtime %v, got %v, file %s, diff %v", c.ModTime, stat.ModTime(), path, modTimeDiff)
+					}
+				}
+				if !tc.doesNotSupportOwner {
+					if oa, ok := stat.(ownershipAccessor); ok {
+						if oa.Uid() != c.Uid {
+							t.Fatalf("expected file uid %v, got %v, file %s", c.Uid, oa.Uid(), path)
+						}
+						if oa.Gid() != c.Gid {
+							t.Fatalf("expected file gid %v, got %v, file %s", c.Gid, oa.Gid(), path)
+						}
+					}
+				}
+			}
+		})
 	}
 }

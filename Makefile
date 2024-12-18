@@ -24,6 +24,11 @@ clean:
 test:
 	go test ./...
 
+sudo_test:
+	sudo -E go test ./...
+
+
+
 test_coverage:
 	go test ./... -coverprofile=coverage.out
 

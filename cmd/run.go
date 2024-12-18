@@ -30,6 +30,7 @@ type CLI struct {
 	CustomDecompressFileMode   int              `optional:"" default:"640" help:"File mode for decompressed files. (respecting umask)"`
 	DenySymlinks               bool             `short:"D" help:"Deny symlink extraction."`
 	Destination                string           `arg:"" name:"destination" default:"." help:"Output directory/file."`
+	DropFileAttributes         bool             `short:"d" help:"Drop file attributes (mode, modtime, access time)."`
 	InsecureTraverseSymlinks   bool             `help:"Traverse symlinks to directories during extraction."`
 	MaxFiles                   int64            `optional:"" default:"${default_max_files}" help:"Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)"`
 	MaxExtractionSize          int64            `optional:"" default:"${default_max_extraction_size}" help:"Maximum extraction size that allowed is (in bytes). (disable check: -1)"`
@@ -37,7 +38,8 @@ type CLI struct {
 	MaxInputSize               int64            `optional:"" default:"${default_max_input_size}" help:"Maximum input size that allowed is (in bytes). (disable check: -1)"`
 	NoUntarAfterDecompression  bool             `short:"N" optional:"" default:"false" help:"Disable combined extraction of tar.gz."`
 	Overwrite                  bool             `short:"O" help:"Overwrite if exist."`
-	Pattern                    []string         `short:"P" optional:"" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
+	Pattern                    []string         `optional:"" short:"P" name:"pattern" help:"Extracted objects need to match shell file name pattern."`
+	PreserveOwner              bool             `short:"p" help:"Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files)."`
 	Telemetry                  bool             `short:"T" optional:"" default:"false" help:"Print telemetry data to log after extraction."`
 	Type                       string           `short:"t" optional:"" default:"${default_type}" name:"type" help:"Type of archive. (${valid_types})"`
 	Verbose                    bool             `short:"v" optional:"" help:"Verbose logging."`
@@ -94,9 +96,11 @@ func Run(version, commit, date string) {
 		extract.WithMaxExtractionSize(cli.MaxExtractionSize),
 		extract.WithMaxFiles(cli.MaxFiles),
 		extract.WithMaxInputSize(cli.MaxInputSize),
+		extract.WithDropFileAttributes(cli.DropFileAttributes),
 		extract.WithNoUntarAfterDecompression(cli.NoUntarAfterDecompression),
 		extract.WithOverwrite(cli.Overwrite),
 		extract.WithPatterns(cli.Pattern...),
+		extract.WithPreserveOwner(cli.PreserveOwner),
 		extract.WithTelemetryHook(telemetryDataToLog),
 	)
 

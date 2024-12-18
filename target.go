@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Target specifies all function that are needed to be implemented to extract contents from an archive
@@ -38,6 +39,18 @@ type Target interface {
 
 	// Stat see docs for os.Stat. Main purpose is to check if a symlink is pointing to a file or directory.
 	Stat(path string) (fs.FileInfo, error)
+
+	// Chmod see docs for os.Chmod. Main purpose is to set the file mode of a file or directory.
+	Chmod(name string, mode fs.FileMode) error
+
+	// Chtimes see docs for os.Chtimes. Main purpose is to set the file times of a file or directory.
+	Chtimes(name string, atime, mtime time.Time) error
+
+	// Lchtimes see docs for os.Lchtimes. Main purpose is to set the file times of a file or directory.
+	Lchtimes(name string, atime, mtime time.Time) error
+
+	// Chown see docs for os.Chown. Main purpose is to set the file owner and group of a file or directory.
+	Chown(name string, uid, gid int) error
 }
 
 // createFile is a wrapper around the CreateFile function
@@ -73,7 +86,12 @@ func createFile(t Target, dst string, name string, src io.Reader, mode fs.FileMo
 		return 0, fmt.Errorf("cannot create directory: %w", err)
 	}
 
-	return t.CreateFile(filepath.Join(dst, name), src, mode, cfg.Overwrite(), maxSize)
+	// ensure that if the file exist that it is not a symlink
+	if err := securityCheck(t, dst, name, cfg); err != nil {
+		return 0, fmt.Errorf("security check path failed: %w", err)
+	}
+	path := filepath.Join(dst, name)
+	return t.CreateFile(path, src, mode, cfg.Overwrite(), maxSize)
 }
 
 // createDir is a wrapper around the CreateDir function
@@ -111,15 +129,14 @@ func createDir(t Target, dst string, name string, mode fs.FileMode, cfg *Config)
 		return nil
 	}
 
+	// perform security check to ensure that the path is safe to write to
 	if err := securityCheck(t, dst, name, cfg); err != nil {
 		return fmt.Errorf("security check path failed: %w", err)
 	}
 
 	// combine the path
 	parts := strings.Split(name, "/")
-	name = filepath.Join(parts...)
-	path := filepath.Join(dst, name)
-
+	path := filepath.Join(dst, filepath.Join(parts...))
 	return t.CreateDir(path, mode)
 }
 
@@ -155,12 +172,6 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 	// Check if link target is absolute path
 	if filepath.IsAbs(linkTarget) {
 
-		// continue on error?
-		if cfg.ContinueOnError() {
-			cfg.Logger().Info("skip link target with absolute path", "link target", linkTarget)
-			return nil
-		}
-
 		// return error
 		return fmt.Errorf("symlink with absolute path as target: %s", linkTarget)
 	}
@@ -191,7 +202,6 @@ func createSymlink(t Target, dst string, name string, linkTarget string, cfg *Co
 
 	// create symlink
 	return t.CreateSymlink(linkTarget, filepath.Join(dst, name), cfg.Overwrite())
-
 }
 
 // securityCheck checks if the targetDirectory contains path traversal
