@@ -16,7 +16,7 @@ import (
 // Chown changes the numeric uid and gid of the named file.
 func (d *TargetDisk) Chown(name string, uid, gid int) error {
 	if err := os.Lchown(name, uid, gid); err != nil {
-		return &fs.PathError{Op: "chown", Path: name, Err: err}
+		return fmt.Errorf("chown failed: %w", err)
 	}
 	return nil
 }
