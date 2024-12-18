@@ -65,22 +65,19 @@ Flags:
   -C, --continue-on-error                  Continue extraction on error.
   -S, --continue-on-unsupported-files      Skip extraction of unsupported files.
   -c, --create-destination                 Create destination directory if it does not exist.
-      --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive.
-                                           (respecting umask)
+      --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive. (respecting umask)
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
   -d, --drop-file-attributes               Drop file attributes (mode, modtime, access time).
       --insecure-traverse-symlinks         Traverse symlinks to directories during extraction.
-      --max-files=100000                   Maximum files (including folder and symlinks) that are extracted before stop.
-                                           (disable check: -1)
+      --max-files=100000                   Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
   -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
-  -o, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix
-                                           systems for tar files).
+  -p, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
