@@ -357,7 +357,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 					return handleError(cfg, td, "max extraction size exceeded", err)
 				}
 
-				// open file inm archive
+				// open file in archive
 				err, fileCreated := func() (error, bool) {
 					fin, err := ae.Open()
 					if err != nil {

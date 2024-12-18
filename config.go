@@ -239,19 +239,19 @@ const (
 	defaultCacheInMemory              = false         // cache on disk
 	defaultContinueOnError            = false         // stop on error and return error
 	defaultContinueOnUnsupportedFiles = false         // stop on unsupported files and return error
-	defaultCreateDestination          = false         // do not create destination directory
+	defaultCreateDestination          = false         // don't create destination directory
 	defaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
 	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
 	defaultDenySymlinkExtraction      = false         // allow symlink extraction
 	defaultDropFileAttributes         = false         // drop file attributes from archive
-	defaultExtractionType             = ""            // do not limit extraction type
+	defaultExtractionType             = ""            // don't limit extraction type
 	defaultMaxFiles                   = 100000        // 100k files
 	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
-	defaultOverwrite                  = false         // do not overwrite existing files
-	defaultPreserveOwner              = false         // do not preserve owner
-	defaultTraverseSymlinks           = false         // do not traverse symlinks
+	defaultOverwrite                  = false         // don't overwrite existing files
+	defaultPreserveOwner              = false         // don't preserve owner
+	defaultTraverseSymlinks           = false         // don't traverse symlinks
 
 )
 
