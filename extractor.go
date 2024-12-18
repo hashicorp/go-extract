@@ -271,7 +271,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	var extractionSize int64
 
 	// collect extracted entries if file attributes should be preserved
-	collectEntries := (!cfg.NoPreserveFileAttributes()) || cfg.PreserveOwner()
+	collectEntries := (!cfg.DropFileAttributes()) || cfg.PreserveOwner()
 	var extractedEntries []archiveEntry
 
 	if cfg.PreserveOwner() && src.Type() != fileExtensionTar {
@@ -450,7 +450,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 	if collectEntries {
 		for _, ae := range extractedEntries {
 			path := filepath.Join(dst, ae.Name())
-			if err := setFileAttributesAndOwner(t, path, ae, (!cfg.NoPreserveFileAttributes()), cfg.PreserveOwner()); err != nil {
+			if err := setFileAttributesAndOwner(t, path, ae, cfg.DropFileAttributes(), cfg.PreserveOwner()); err != nil {
 				return fmt.Errorf("failed to set file attributes: %w", err)
 			}
 		}
@@ -461,8 +461,8 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 }
 
 // setFileAttributesAndOwner sets the file attributes for the given path and archive entry.
-func setFileAttributesAndOwner(t Target, path string, ae archiveEntry, fileAttributes bool, owner bool) error {
-	if fileAttributes {
+func setFileAttributesAndOwner(t Target, path string, ae archiveEntry, dropFileAttributes bool, owner bool) error {
+	if !dropFileAttributes { // preserve file attributes
 		if ae.IsSymlink() { // only time attributes are supported for symlinks
 			if err := t.Lchtimes(path, ae.AccessTime(), ae.ModTime()); err != nil {
 				return fmt.Errorf("failed to lchtimes symlink: %w", err)
@@ -476,7 +476,7 @@ func setFileAttributesAndOwner(t Target, path string, ae archiveEntry, fileAttri
 			}
 		}
 	}
-	if owner {
+	if owner { // preserve owner and group
 		if err := t.Chown(path, ae.Uid(), ae.Gid()); err != nil {
 			return fmt.Errorf("failed to chown file: %w", err)
 		}

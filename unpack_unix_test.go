@@ -24,7 +24,7 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 				ctx = context.Background()
 				dst = t.TempDir()
 				src = asIoReader(t, tc.packer(t, tc.contents))
-				cfg = extract.NewConfig(extract.WithNoPreserveFileAttributes(false))
+				cfg = extract.NewConfig()
 			)
 			if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
@@ -219,7 +219,7 @@ func TestWithCustomMode(t *testing.T) {
 					Mode: fs.ModeDir | 0777, // 511
 				},
 			})),
-			cfg: extract.NewConfig(extract.WithNoPreserveFileAttributes(true)),
+			cfg: extract.NewConfig(extract.WithDropFileAttributes(true)),
 			expected: map[string]fs.FileMode{
 				"file": fs.FileMode(0777 & ^umask), // 438
 				"dir":  fs.FileMode(0777 & ^umask), // 438

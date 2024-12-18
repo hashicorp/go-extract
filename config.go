@@ -43,6 +43,9 @@ type Config struct {
 	// denySymlinkExtraction offers the option to enable/disable the extraction of symlinks
 	denySymlinkExtraction bool
 
+	// dropFileAttributes is a flag drop the file attributes of the extracted files
+	dropFileAttributes bool
+
 	// extractionType is the type of extraction algorithm
 	extractionType string
 
@@ -67,9 +70,6 @@ type Config struct {
 	// telemetryHook is a function to consume telemetry data after finished extraction
 	// Important: do not adjust this value after extraction started
 	telemetryHook TelemetryHook
-
-	// noPreserveFileAttributes is a flag to not preserve the file attributes of the extracted files
-	noPreserveFileAttributes bool
 
 	// noUntarAfterDecompression offers the option to enable/disable combined tar.gz extraction
 	noUntarAfterDecompression bool
@@ -161,6 +161,11 @@ func (c *Config) DenySymlinkExtraction() bool {
 	return c.denySymlinkExtraction
 }
 
+// DropFileAttributes returns true if the file attributes should be dropped.
+func (c *Config) DropFileAttributes() bool {
+	return c.dropFileAttributes
+}
+
 // ExtractType returns the specified extraction type.
 func (c *Config) ExtractType() string {
 	return c.extractionType
@@ -207,11 +212,6 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
-// NoPreserveFileAttributes returns true if the file attributes of the extracted files should *NOT* be preserved.
-func (c *Config) NoPreserveFileAttributes() bool {
-	return c.noPreserveFileAttributes
-}
-
 // PreserveOwner returns true if the owner of the extracted files should
 // be preserved. This option is only available on Unix systems requiring
 // root privileges and tar archives as input.
@@ -243,13 +243,13 @@ const (
 	defaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
 	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
 	defaultDenySymlinkExtraction      = false         // allow symlink extraction
+	defaultDropFileAttributes         = false         // drop file attributes from archive
 	defaultExtractionType             = ""            // do not limit extraction type
 	defaultMaxFiles                   = 100000        // 100k files
 	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
 	defaultOverwrite                  = false         // do not overwrite existing files
-	defaultNoPreserveFileAttributes   = false         // dont preserve file attributes from archive (inverse wording)
 	defaultPreserveOwner              = false         // do not preserve owner
 	defaultTraverseSymlinks           = false         // do not traverse symlinks
 
@@ -277,6 +277,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		customCreateDirMode:        defaultCustomCreateDirMode,
 		customDecompressFileMode:   defaultCustomDecompressFileMode,
 		denySymlinkExtraction:      defaultDenySymlinkExtraction,
+		dropFileAttributes:         defaultDropFileAttributes,
 		extractionType:             defaultExtractionType,
 		logger:                     defaultLogger,
 		maxFiles:                   defaultMaxFiles,
@@ -285,7 +286,6 @@ func NewConfig(opts ...ConfigOption) *Config {
 		overwrite:                  defaultOverwrite,
 		telemetryHook:              defaultTelemetryHook,
 		traverseSymlinks:           defaultTraverseSymlinks,
-		noPreserveFileAttributes:   defaultNoPreserveFileAttributes,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
 		preserveOwner:              defaultPreserveOwner,
 	}
@@ -358,6 +358,14 @@ func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	}
 }
 
+// WithDropFileAttributes options pattern function to drop the
+// file attributes of the extracted files.
+func WithDropFileAttributes(drop bool) ConfigOption {
+	return func(c *Config) {
+		c.dropFileAttributes = drop
+	}
+}
+
 // WithExtractType options pattern function to set the extraction type in the [Config].
 func WithExtractType(extractionType string) ConfigOption {
 	return func(c *Config) {
@@ -424,14 +432,6 @@ func WithOverwrite(enable bool) ConfigOption {
 func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
 		c.patterns = append(c.patterns, pattern...)
-	}
-}
-
-// WithNoPreserveFileAttributes options pattern function to not preserve the
-// file attributes of the extracted files.
-func WithNoPreserveFileAttributes(noPreserve bool) ConfigOption {
-	return func(c *Config) {
-		c.noPreserveFileAttributes = noPreserve
 	}
 }
 

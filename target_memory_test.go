@@ -853,7 +853,7 @@ func TestUnpackToMemoryWithPreserveFileAttributesAndOwner(t *testing.T) {
 				m   = extract.NewTargetMemory()
 				src = asIoReader(t, tc.packer(t, tc.contents))
 				cfg = extract.NewConfig(
-					extract.WithNoPreserveFileAttributes(false),
+					extract.WithDropFileAttributes(false),
 					extract.WithPreserveOwner(true),
 				)
 			)
