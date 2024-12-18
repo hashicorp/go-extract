@@ -6,7 +6,7 @@
 package extract
 
 import (
-	"io/fs"
+	"fmt"
 	"os"
 	"time"
 
