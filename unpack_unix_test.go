@@ -125,12 +125,11 @@ func TestWithCustomMode(t *testing.T) {
 	// expectedMode &= ^umask // Adjust for umask on non-Windows systems
 
 	tests := []struct {
-		name        string
-		data        []byte
-		dst         string
-		cfg         *extract.Config
-		expected    map[string]fs.FileMode
-		expectError bool
+		name     string
+		data     []byte
+		dst      string
+		cfg      *extract.Config
+		expected map[string]fs.FileMode
 	}{
 		{
 			name: "dir with 0755 and file with 0644",
@@ -240,10 +239,7 @@ func TestWithCustomMode(t *testing.T) {
 				cfg = test.cfg
 			)
 			err := extract.Unpack(ctx, dst, src, cfg)
-			if test.expectError && err == nil {
-				t.Fatalf("expected error, got nil")
-			}
-			if !test.expectError && err != nil {
+			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			for name, expectedMode := range test.expected {
