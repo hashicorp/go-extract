@@ -1611,6 +1611,7 @@ var testCases = []struct {
 	packer                func(*testing.T, []archiveContent) []byte
 	doesNotSupportModTime bool
 	doesNotSupportOwner   bool
+	invalidUidGid         bool
 }{
 	{
 		name: "tar",
@@ -1630,7 +1631,8 @@ var testCases = []struct {
 			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
 			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
 		},
-		packer: packTar,
+		packer:        packTar,
+		invalidUidGid: true,
 	},
 	{
 		name: "root-tar",

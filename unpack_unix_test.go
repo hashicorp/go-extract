@@ -113,13 +113,15 @@ func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {
 			}
 
 			// check ownership of files
+			expectUidMatch := !tc.invalidUidGid
 			for _, c := range tc.contents {
 				path := filepath.Join(dst, c.Name)
 				stat, err := os.Lstat(path)
 				if err != nil {
 					t.Fatalf("error getting file stats: %v", err)
 				}
-				if stat.Sys().(*syscall.Stat_t).Uid != uint32(c.Uid) {
+				uidMatch := stat.Sys().(*syscall.Stat_t).Uid != uint32(c.Uid)
+				if expectUidMatch != uidMatch {
 					t.Fatalf("expected uid %d, got %d, file %s", c.Uid, stat.Sys().(*syscall.Stat_t).Uid, c.Name)
 				}
 			}
