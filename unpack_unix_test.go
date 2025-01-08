@@ -122,7 +122,6 @@ func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {
 
 func TestWithCustomMode(t *testing.T) {
 	umask := sniffUmask(t)
-	// expectedMode &= ^umask // Adjust for umask on non-Windows systems
 
 	tests := []struct {
 		name     string
