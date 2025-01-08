@@ -71,23 +71,12 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 				dst = t.TempDir()
 				src = asIoReader(t, tc.packer(t, tc.contents))
 				cfg = extract.NewConfig(extract.WithPreserveOwner(true))
-
-				// check if the archive contains files with different ownership
-				expectChown = containsDifferentOwnerThenCurrentUser(t, tc.contents)
 			)
 
 			// Unpack should fail if the user is not root and the uid/gid
 			// in the archive is different from the current user (only
 			// if the archive supports owner information)
 			err := extract.Unpack(ctx, dst, src, cfg)
-
-			// unpack should succeed if the archive does not store ownership
-			if !expectChown {
-				if err != nil {
-					t.Fatalf("error unpacking archive: %v", err)
-				}
-				return
-			}
 
 			// chown will only fail if the user is not root and the
 			// uid/gid in the archive is different from the current user
@@ -96,18 +85,6 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 			}
 		})
 	}
-}
-
-// containsDifferentOwnerThenCurrentUser returns true if the ownership of the files in the
-// archive is different from the current user.
-func containsDifferentOwnerThenCurrentUser(t *testing.T, a []archiveContent) bool {
-	t.Helper()
-	for _, c := range a {
-		if c.Uid != os.Getuid() || c.Gid != os.Getgid() {
-			return true
-		}
-	}
-	return false
 }
 
 func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {

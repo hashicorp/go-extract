@@ -1601,7 +1601,7 @@ func packRar2(t *testing.T, _ []archiveContent) []byte {
 var (
 	testDataUid, testDataGid               = 1337, 42
 	testDataRootUid, testDataWheelGid      = 0, 0
-	testDataCurrentUid, testDataCurrentGid = os.Getuid(), os.Getgid()
+	testDataInvalidUid, testDataInvalidGid = -1, -2
 	baseTime                               = time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
 )
 
@@ -1623,12 +1623,12 @@ var testCases = []struct {
 		packer: packTar,
 	},
 	{
-		name: "current-user-tar",
+		name: "invalid-uid-tar",
 		contents: []archiveContent{
-			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataCurrentUid, Gid: testDataCurrentGid},
-			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataCurrentUid, Gid: testDataCurrentGid},
-			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataCurrentUid, Gid: testDataCurrentGid},
-			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataCurrentUid, Gid: testDataCurrentGid},
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
 		},
 		packer: packTar,
 	},
