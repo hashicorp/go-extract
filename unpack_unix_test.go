@@ -120,7 +120,7 @@ func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error getting file stats: %v", err)
 				}
-				uidMatch := stat.Sys().(*syscall.Stat_t).Uid != uint32(c.Uid)
+				uidMatch := c.Uid == int(stat.Sys().(*syscall.Stat_t).Uid)
 				if expectUidMatch != uidMatch {
 					t.Fatalf("expected uid %d, got %d, file %s", c.Uid, stat.Sys().(*syscall.Stat_t).Uid, c.Name)
 				}
