@@ -1611,8 +1611,6 @@ var testCases = []struct {
 	doesNotSupportModTime bool
 	doesNotSupportOwner   bool
 	expectError           bool
-	uid                   int
-	gid                   int
 }{
 	{
 		name: "tar",
@@ -1622,8 +1620,6 @@ var testCases = []struct {
 			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
 			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
 		},
-		uid:    testDataUid,
-		gid:    testDataGid,
 		packer: packTar,
 	},
 	{
@@ -1634,8 +1630,6 @@ var testCases = []struct {
 			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
 			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
 		},
-		uid:    testDataRootUid,
-		gid:    testDataWheelGid,
 		packer: packTar,
 	},
 	{
@@ -1646,16 +1640,12 @@ var testCases = []struct {
 			{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
 			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
 		},
-		uid:                 os.Getgid(), // bc/ of the way zip works, we can't set the uid and the created files are owned by the user running the test
-		gid:                 os.Getgid(), // bc/ of the way zip works, we can't set the gid and the created files are owned by the user running the test
 		doesNotSupportOwner: true,
 		packer:              packZip,
 	},
 	{
 		name:                  "rar",
 		contents:              contentsRar2,
-		uid:                   os.Getuid(), // bc/ of the way rar works, we can't set the uid and the created files are owned by the user running the test
-		gid:                   os.Getgid(), // bc/ of the way rar works, we can't set the gid and the created files are owned by the user running the test
 		doesNotSupportOwner:   true,
 		doesNotSupportModTime: true,
 		packer:                packRar2,
@@ -1663,8 +1653,6 @@ var testCases = []struct {
 	{
 		name:                "7z",
 		contents:            contents7z2,
-		uid:                 os.Getuid(), // bc/ of the way 7z works, we can't set the uid and the created files are owned by the user running the test
-		gid:                 os.Getgid(), // bc/ of the way 7z works, we can't set the gid and the created files are owned by the user running the test
 		doesNotSupportOwner: true,
 		packer:              pack7z2,
 	},
