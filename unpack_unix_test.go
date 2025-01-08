@@ -60,11 +60,20 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// skip test if the archive does not store ownership information
+			if tc.doesNotSupportOwner {
+				t.Skipf("archive %s does not store ownership information", tc.name)
+			}
+
 			var (
 				ctx = context.Background()
 				dst = t.TempDir()
 				src = asIoReader(t, tc.packer(t, tc.contents))
 				cfg = extract.NewConfig(extract.WithPreserveOwner(true))
+
+				// check if the archive contains files with different ownership
+				expectChown = containsDifferentOwnerThenCurrentUser(t, tc.contents)
 			)
 
 			// Unpack should fail if the user is not root and the uid/gid
@@ -72,13 +81,35 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 			// if the archive supports owner information)
 			err := extract.Unpack(ctx, dst, src, cfg)
 
-			// chown will only fail if the user is not root
-			if !tc.doesNotSupportOwner && err == nil {
+			// unpack should succeed if the archive does not store ownership
+			if !expectChown {
+				if err != nil {
+					t.Fatalf("error unpacking archive: %v", err)
+				}
+				return
+			}
+
+			// chown will only fail if the user is not root and the
+			// uid/gid in the archive is different from the current user
+			if err == nil {
 				t.Fatalf("error unpacking archive: %v", err)
 			}
 		})
 	}
 }
+
+// containsDifferentOwnerThenCurrentUser returns true if the ownership of the files in the
+// archive is different from the current user.
+func containsDifferentOwnerThenCurrentUser(t *testing.T, a []archiveContent) bool {
+	t.Helper()
+	for _, c := range a {
+		if c.Uid != os.Getuid() || c.Gid != os.Getgid() {
+			return true
+		}
+	}
+	return false
+}
+
 func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {
 
 	if os.Getuid() != 0 {
@@ -87,18 +118,24 @@ func TestUnpackWithPreserveOwnershipAsRoot(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+
+			// skip test if the archive does not store ownership information
+			if tc.doesNotSupportOwner {
+				t.Skipf("archive type %s does not store ownership information", tc.name)
+			}
+
 			var (
 				ctx = context.Background()
 				dst = t.TempDir()
 				src = asIoReader(t, tc.packer(t, tc.contents))
 				cfg = extract.NewConfig(extract.WithPreserveOwner(true))
 			)
+
 			if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
 				t.Fatalf("error unpacking archive: %v", err)
 			}
-			if tc.doesNotSupportOwner {
-				t.Skipf("archive type %s does not store ownership information", tc.name)
-			}
+
+			// check ownership of files
 			for _, c := range tc.contents {
 				path := filepath.Join(dst, c.Name)
 				stat, err := os.Lstat(path)
