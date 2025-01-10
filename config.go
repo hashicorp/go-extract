@@ -43,6 +43,9 @@ type Config struct {
 	// denySymlinkExtraction offers the option to enable/disable the extraction of symlinks
 	denySymlinkExtraction bool
 
+	// dropFileAttributes is a flag drop the file attributes of the extracted files
+	dropFileAttributes bool
+
 	// extractionType is the type of extraction algorithm
 	extractionType string
 
@@ -76,6 +79,9 @@ type Config struct {
 
 	// patterns is a list of file patterns to match files to extract
 	patterns []string
+
+	// preserveOwner is a flag to preserve the owner of the extracted files
+	preserveOwner bool
 }
 
 // ContinueOnError returns true if the extraction should continue on error.
@@ -155,6 +161,11 @@ func (c *Config) DenySymlinkExtraction() bool {
 	return c.denySymlinkExtraction
 }
 
+// DropFileAttributes returns true if the file attributes should be dropped.
+func (c *Config) DropFileAttributes() bool {
+	return c.dropFileAttributes
+}
+
 // ExtractType returns the specified extraction type.
 func (c *Config) ExtractType() string {
 	return c.extractionType
@@ -201,6 +212,13 @@ func (c *Config) Patterns() []string {
 	return c.patterns
 }
 
+// PreserveOwner returns true if the owner of the extracted files should
+// be preserved. This option is only available on Unix systems requiring
+// root privileges and tar archives as input.
+func (c *Config) PreserveOwner() bool {
+	return c.preserveOwner
+}
+
 // SetNoUntarAfterDecompression sets the noUntarAfterDecompression flag. If true, tar.gz files
 // are not untared after decompression.
 func (c *Config) SetNoUntarAfterDecompression(b bool) {
@@ -221,17 +239,19 @@ const (
 	defaultCacheInMemory              = false         // cache on disk
 	defaultContinueOnError            = false         // stop on error and return error
 	defaultContinueOnUnsupportedFiles = false         // stop on unsupported files and return error
-	defaultCreateDestination          = false         // do not create destination directory
+	defaultCreateDestination          = false         // don't create destination directory
 	defaultCustomCreateDirMode        = 0750          // default directory permissions rwxr-x---
 	defaultCustomDecompressFileMode   = 0640          // default decompression permissions rw-r-----
 	defaultDenySymlinkExtraction      = false         // allow symlink extraction
-	defaultExtractionType             = ""            // do not limit extraction type
+	defaultDropFileAttributes         = false         // drop file attributes from archive
+	defaultExtractionType             = ""            // don't limit extraction type
 	defaultMaxFiles                   = 100000        // 100k files
 	defaultMaxExtractionSize          = 1 << (10 * 3) // 1 Gb
 	defaultMaxInputSize               = 1 << (10 * 3) // 1 Gb
 	defaultNoUntarAfterDecompression  = false         // untar after decompression
-	defaultOverwrite                  = false         // do not overwrite existing files
-	defaultTraverseSymlinks           = false         // do not traverse symlinks
+	defaultOverwrite                  = false         // don't overwrite existing files
+	defaultPreserveOwner              = false         // don't preserve owner
+	defaultTraverseSymlinks           = false         // don't traverse symlinks
 
 )
 
@@ -252,10 +272,12 @@ func NewConfig(opts ...ConfigOption) *Config {
 	config := &Config{
 		cacheInMemory:              defaultCacheInMemory,
 		continueOnError:            defaultContinueOnError,
+		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
 		createDestination:          defaultCreateDestination,
 		customCreateDirMode:        defaultCustomCreateDirMode,
 		customDecompressFileMode:   defaultCustomDecompressFileMode,
 		denySymlinkExtraction:      defaultDenySymlinkExtraction,
+		dropFileAttributes:         defaultDropFileAttributes,
 		extractionType:             defaultExtractionType,
 		logger:                     defaultLogger,
 		maxFiles:                   defaultMaxFiles,
@@ -265,7 +287,7 @@ func NewConfig(opts ...ConfigOption) *Config {
 		telemetryHook:              defaultTelemetryHook,
 		traverseSymlinks:           defaultTraverseSymlinks,
 		noUntarAfterDecompression:  defaultNoUntarAfterDecompression,
-		continueOnUnsupportedFiles: defaultContinueOnUnsupportedFiles,
+		preserveOwner:              defaultPreserveOwner,
 	}
 
 	// Loop through each option
@@ -336,6 +358,14 @@ func WithDenySymlinkExtraction(deny bool) ConfigOption {
 	}
 }
 
+// WithDropFileAttributes options pattern function to drop the
+// file attributes of the extracted files.
+func WithDropFileAttributes(drop bool) ConfigOption {
+	return func(c *Config) {
+		c.dropFileAttributes = drop
+	}
+}
+
 // WithExtractType options pattern function to set the extraction type in the [Config].
 func WithExtractType(extractionType string) ConfigOption {
 	return func(c *Config) {
@@ -402,6 +432,15 @@ func WithOverwrite(enable bool) ConfigOption {
 func WithPatterns(pattern ...string) ConfigOption {
 	return func(c *Config) {
 		c.patterns = append(c.patterns, pattern...)
+	}
+}
+
+// WithPreserveOwner options pattern function to preserve the owner of
+// the extracted files. This option is only available on Unix systems
+// requiring root privileges and tar archives as input.
+func WithPreserveOwner(preserve bool) ConfigOption {
+	return func(c *Config) {
+		c.preserveOwner = preserve
 	}
 }
 

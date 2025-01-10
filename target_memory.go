@@ -100,7 +100,7 @@ func (m *TargetMemory) createFile(path string, mode fs.FileMode, src io.Reader, 
 
 	// create entry
 	m.files.Store(path, &memoryEntry{
-		fileInfo: &memoryFileInfo{name: name, size: n, mode: mode.Perm(), modTime: time.Now()},
+		fileInfo: &memoryFileInfo{name: name, size: n, mode: mode.Perm(), accessTime: time.Now(), modTime: time.Now()},
 		data:     buf.Bytes(),
 		lock:     sync.RWMutex{},
 	})
@@ -240,6 +240,73 @@ func (m *TargetMemory) Open(path string) (fs.File, error) {
 	return &fileEntry{memoryEntry: me, reader: bytes.NewReader(me.data)}, nil
 }
 
+// Chmod changes the mode of the file at the given path. If the file does not exist, an error is returned.
+func (m *TargetMemory) Chmod(path string, mode fs.FileMode) error {
+	if !fs.ValidPath(path) {
+		return &fs.PathError{Op: "Chmod", Path: path, Err: fs.ErrInvalid}
+	}
+	me, err := m.resolveEntry(path)
+	if err != nil {
+		return &fs.PathError{Op: "Chmod", Path: path, Err: err}
+	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	// inverse & with 0777 to remove the file mode bits and then or with the new mode bits
+	me.fileInfo.(*memoryFileInfo).mode = (me.fileInfo.(*memoryFileInfo).mode &^ 0777) | mode.Perm()
+	return nil
+}
+
+// Chtime changes the access and modification times of the file at the given path.
+// If the file does not exist, an error is returned.
+func (m *TargetMemory) Chtimes(path string, atime time.Time, mtime time.Time) error {
+	if !fs.ValidPath(path) {
+		return &fs.PathError{Op: "Chtimes", Path: path, Err: fs.ErrInvalid}
+	}
+	me, err := m.resolveEntry(path)
+	if err != nil {
+		return &fs.PathError{Op: "Chtimes", Path: path, Err: err}
+	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	me.fileInfo.(*memoryFileInfo).accessTime = atime
+	me.fileInfo.(*memoryFileInfo).modTime = mtime
+	return nil
+}
+
+// Chown changes the owner and group of the file at the given path.
+// If the file does not exist, an error is returned.
+func (m *TargetMemory) Chown(path string, uid, gid int) error {
+	if !fs.ValidPath(path) {
+		return &fs.PathError{Op: "Chtimes", Path: path, Err: fs.ErrInvalid}
+	}
+	me, err := m.resolveEntry(path)
+	if err != nil {
+		return &fs.PathError{Op: "Chtimes", Path: path, Err: err}
+	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	me.fileInfo.(*memoryFileInfo).uid = uid
+	me.fileInfo.(*memoryFileInfo).gid = gid
+	return nil
+}
+
+// Lchtimes changes the access and modification times of the file at the given path.
+// If the file does not exist, an error is returned.
+func (m *TargetMemory) Lchtimes(path string, atime time.Time, mtime time.Time) error {
+	if !fs.ValidPath(path) {
+		return &fs.PathError{Op: "Lchtimes", Path: path, Err: fs.ErrInvalid}
+	}
+	me, err := m.resolveEntry(path)
+	if err != nil {
+		return &fs.PathError{Op: "Lchtimes", Path: path, Err: err}
+	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	me.fileInfo.(*memoryFileInfo).accessTime = atime
+	me.fileInfo.(*memoryFileInfo).modTime = mtime
+	return nil
+}
+
 type dirEntry struct {
 	*memoryEntry
 	memory         *TargetMemory
@@ -334,7 +401,7 @@ func (m *TargetMemory) resolveEntry(path string) (*memoryEntry, error) {
 	dir := p.Dir(path)
 	existingEntry, err := m.resolvePath(dir)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, fs.ErrNotExist
+		return nil, err
 	}
 	if err != nil {
 		return nil, &fs.PathError{Op: "resolveEntry", Path: path, Err: err}
@@ -450,11 +517,15 @@ func (m *TargetMemory) Lstat(path string) (fs.FileInfo, error) {
 	}
 
 	// return file info copy
+	mfi := me.fileInfo.(*memoryFileInfo)
 	return &memoryFileInfo{
-		name:    me.fileInfo.Name(),
-		size:    me.fileInfo.Size(),
-		mode:    me.fileInfo.Mode(),
-		modTime: me.fileInfo.ModTime(),
+		name:       mfi.Name(),
+		size:       mfi.Size(),
+		mode:       mfi.Mode(),
+		accessTime: mfi.AccessTime(),
+		modTime:    mfi.ModTime(),
+		gid:        mfi.Gid(),
+		uid:        mfi.Uid(),
 	}, nil
 }
 
@@ -717,20 +788,28 @@ func (me *memoryEntry) Info() (fs.FileInfo, error) {
 
 // memoryFileInfo is a FileInfo implementation for the in-memory filesystem
 type memoryFileInfo struct {
-	name    string
-	size    int64
-	mode    fs.FileMode
-	modTime time.Time
+	accessTime time.Time
+	gid        int
+	name       string
+	mode       fs.FileMode
+	modTime    time.Time
+	size       int64
+	uid        int
 }
 
-// Name implements [io/fs.FileInfo] interface
-func (fi *memoryFileInfo) Name() string {
-	return fi.name
+// AccessTime returns the access time of the file
+func (fi *memoryFileInfo) AccessTime() time.Time {
+	return fi.accessTime
 }
 
-// Size implements [io/fs.FileInfo] interface
-func (fi *memoryFileInfo) Size() int64 {
-	return fi.size
+// Gid returns the group id of the file
+func (fi *memoryFileInfo) Gid() int {
+	return fi.gid
+}
+
+// IsDir implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) IsDir() bool {
+	return fi.mode.IsDir()
 }
 
 // Mode implements [io/fs.FileInfo] interface
@@ -743,12 +822,22 @@ func (fi *memoryFileInfo) ModTime() time.Time {
 	return fi.modTime
 }
 
-// IsDir implements [io/fs.FileInfo] interface
-func (fi *memoryFileInfo) IsDir() bool {
-	return fi.mode.IsDir()
+// Name implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) Name() string {
+	return fi.name
+}
+
+// Size implements [io/fs.FileInfo] interface
+func (fi *memoryFileInfo) Size() int64 {
+	return fi.size
 }
 
 // Sys implements [io/fs.FileInfo] interface, but returns always nil
 func (fi *memoryFileInfo) Sys() any {
 	return nil
+}
+
+// Uid returns the user id of the file
+func (fi *memoryFileInfo) Uid() int {
+	return fi.uid
 }

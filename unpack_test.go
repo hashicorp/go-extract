@@ -15,11 +15,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/andybalholm/brotli"
 	"github.com/dsnet/compress/bzip2"
@@ -371,7 +373,10 @@ func TestUnpackArchive(t *testing.T) {
 					ctx = context.Background()
 					dst = t.TempDir()
 					src = cacheFunction(t, tc.src)
-					cfg = extract.NewConfig(extract.WithCreateDestination(true), extract.WithContinueOnUnsupportedFiles(true))
+					cfg = extract.NewConfig(
+						extract.WithCreateDestination(true),
+						extract.WithContinueOnUnsupportedFiles(true),
+					)
 				)
 
 				if err := extract.Unpack(ctx, dst, src, cfg); err != nil {
@@ -604,8 +609,8 @@ func TestUnpackWithConfig(t *testing.T) {
 		},
 		{
 			Name:       "dir/link",
-			Linktarget: "../test",
 			Mode:       fs.ModeSymlink | 0755,
+			Linktarget: "../test",
 		},
 	}
 	canceledCtx, cancel := context.WithCancel(context.Background())
@@ -699,10 +704,20 @@ func TestUnpackWithConfig(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "unpack with overwrite enabled",
+			name: "unpack with overwrite enabled (files)",
 			testArchive: []archiveContent{
 				{Name: "test", Content: []byte("hello world"), Mode: 0644},
 				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+			},
+			cfg:         extract.NewConfig(extract.WithOverwrite(true)),
+			expectError: false,
+		},
+		{
+			name: "unpack with overwrite enabled (symlink)",
+			testArchive: []archiveContent{
+				{Name: "test", Content: []byte("hello world"), Mode: 0644},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "test"},
+				{Name: "link", Mode: fs.ModeSymlink | 0755, Linktarget: "test"},
 			},
 			cfg:         extract.NewConfig(extract.WithOverwrite(true)),
 			expectError: false,
@@ -1131,43 +1146,6 @@ func TestUnpackWithTypes(t *testing.T) {
 	}
 }
 
-func TestToWindowsFileMode(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Skip("skipping test on non-windows systems")
-	}
-	otherMasks := []int{00, 01, 02, 03, 04, 05, 06, 07}
-	groupMasks := []int{00, 010, 020, 030, 040, 050, 060, 070}
-	userMasks := []int{00, 0100, 0200, 0300, 0400, 0500, 0600, 0700}
-	for _, dir := range []bool{true, false} {
-		for _, o := range otherMasks {
-			for _, g := range groupMasks {
-				for _, u := range userMasks {
-					var (
-						path = filepath.Join(t.TempDir(), "test")
-						mode = fs.FileMode(u | g | o)
-					)
-					if err := func() error {
-						if dir {
-							return os.Mkdir(path, mode)
-						}
-						return os.WriteFile(path, []byte("foobar content"), mode)
-					}(); err != nil {
-						t.Fatalf("error creating test resource: %s", err)
-					}
-					stat, err := os.Stat(path)
-					if err != nil {
-						t.Fatalf("error getting file stats: %s", err)
-					}
-					calculated := toWindowsFileMode(dir, mode)
-					if stat.Mode().Perm() != calculated.Perm() {
-						t.Errorf("toWindowsFileMode(%t, %s) calculated mode mode %s, but actual windows mode: %s", dir, mode, calculated.Perm(), stat.Mode().Perm())
-					}
-				}
-			}
-		}
-	}
-}
-
 func TestUnsupportedArchiveNames(t *testing.T) {
 	// test testCases
 	testCases := []struct {
@@ -1325,6 +1303,10 @@ func TestHasKnownArchiveExtension(t *testing.T) {
 	}
 }
 
+func abs(v int64) int64 {
+	return int64(math.Abs(float64(v)))
+}
+
 func compressBrotli(t *testing.T, data []byte) []byte {
 	t.Helper()
 	b := new(bytes.Buffer)
@@ -1450,6 +1432,10 @@ type archiveContent struct {
 	Content    []byte
 	Linktarget string
 	Mode       fs.FileMode
+	AccessTime time.Time
+	ModTime    time.Time
+	Uid        int
+	Gid        int
 }
 
 // packTar creates a tar file with the given content
@@ -1484,9 +1470,17 @@ func packTar(t *testing.T, content []archiveContent) []byte {
 			Linkname: c.Linktarget,
 			Typeflag: tFlag,
 		}
+		header.Uid = c.Uid
+		header.Gid = c.Gid
+		header.AccessTime = c.AccessTime
+		header.ModTime = c.ModTime
 		if tFlag == tar.TypeXGlobalHeader {
 			header.Mode = 0
 			header.Size = 0
+			header.Uid = 0
+			header.Gid = 0
+			header.AccessTime = time.Time{}
+			header.ModTime = time.Time{}
 			header.Format = tar.FormatPAX
 			header.PAXRecords = map[string]string{}
 			header.PAXRecords["path"] = c.Name
@@ -1515,6 +1509,7 @@ func packZip(t *testing.T, content []archiveContent) []byte {
 			Name: c.Name,
 		}
 		h.SetMode(c.Mode)
+		h.Modified = c.ModTime
 		f, err := w.CreateHeader(h)
 		if err != nil {
 			t.Fatalf("error creating zip header: %v", err)
@@ -1549,6 +1544,27 @@ func pack7z(t *testing.T, _ []archiveContent) []byte {
 	return b
 }
 
+// pack7z2 creates always the same a 7z archive with following files:
+// -rw-r--r--  1 503  20    27B  6 Dez 14:12 test
+// drwxr-xr-x  3 503  20    96B  6 Dez 14:12 sub/
+// -rw-r--r--  1 503  20    27B  6 Dez 14:12 sub/test
+// lrwxr-xr-x  1 503  20     8B  6 Dez 14:12 link@ -> sub/test
+var contents7z2 = []archiveContent{
+	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 42, 315443500, time.UTC), Uid: 503, Gid: 20},
+	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 49, 378600200, time.UTC), Uid: 503, Gid: 20},
+	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 49, 378790200, time.UTC), Uid: 503, Gid: 20},
+	{Name: "link", Linktarget: "sub/test", Mode: fs.ModeSymlink | 0755, AccessTime: time.Date(2024, 12, 6, 14, 12, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 13, 12, 54, 532031200, time.UTC), Uid: 503, Gid: 20},
+}
+
+func pack7z2(t *testing.T, _ []archiveContent) []byte {
+	t.Helper()
+	b, err := hex.DecodeString("377abcaf271c00042d5fc057b50000000000000022000000000000004e8d3aa1e0003d00285d00399d486415d3bb7a709d8c05b9a4f8a601c485ca32a1ba56fbed0277df127ac8b5849a02ef89b000000000813307ae0fd100d43ca090a0775ec540189123d516c0a4234b6046777137a236d0c100afd4540a63bac5dbcdd5f4954e1321f89bc2fee32eda1ffebe24d8ec7f5495f31cb107f418f1a438bedfa190f8d5e9bd34f41831a3e85fb8590ee2d3eb6854856ce91c64623e7b1bec5c6bf403f9b195d06eb0810540f173e9abd2005e6a00001706300109808500070b01000123030101055d001000000c80ae0a01d53cb2d70000")
+	if err != nil {
+		t.Fatalf("error decoding 7z data: %v", err)
+	}
+	return b
+}
+
 // packRar creates always the same a rar archive with following files:
 // - dir			<- directory
 // - test			<- file with content 'hello world'
@@ -1561,6 +1577,97 @@ func packRar(t *testing.T, _ []archiveContent) []byte {
 		t.Fatalf("error decoding rar data: %v", err)
 	}
 	return b
+}
+
+// packRar2 creates always the same a rar archive with following files:
+// -rw-r--r--  1 503  20    27B  6 Dez 14:07 test
+// drwxr-xr-x  3 503  20    96B  6 Dez 14:08 sub/
+// -rw-r--r--  1 503  20    27B  6 Dez 14:08 sub/test
+var contentsRar2 = []archiveContent{
+	{Name: "test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 7, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub", Mode: fs.ModeDir | 0755, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 7, 8, 0, time.Local), Uid: 503, Gid: 20},
+	{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), ModTime: time.Date(2024, 12, 6, 14, 8, 0, 0, time.Local), Uid: 503, Gid: 20},
+}
+
+func packRar2(t *testing.T, _ []archiveContent) []byte {
+	t.Helper()
+	b, err := hex.DecodeString("526172211a0701003392b5e50a010506000501018080003afe2e322202030b9b00049b00a48302032d6c9680000104746573740a03132ff752678a911e136861736869207361797320686920746f2074686520776f726c640a7db74f802602030b9b00049b00a48302032d6c96800001087375622f746573740a031334f752672333f02b6861736869207361797320686920746f2074686520776f726c640a5311ba9e1b02030b000100ed8301800001037375620a031334f752673549ed2b1d77565103050400")
+	if err != nil {
+		t.Fatalf("error decoding rar data: %v", err)
+	}
+	return b
+}
+
+var (
+	testDataUid, testDataGid               = 1337, 42
+	testDataRootUid, testDataWheelGid      = 0, 0
+	testDataInvalidUid, testDataInvalidGid = -1, -2
+	baseTime                               = time.Date(2021, 1, 1, 0, 0, 0, 0, time.Local)
+)
+
+var testCases = []struct {
+	name                  string
+	contents              []archiveContent
+	packer                func(*testing.T, []archiveContent) []byte
+	doesNotSupportModTime bool
+	doesNotSupportOwner   bool
+	invalidUidGid         bool
+}{
+	{
+		name: "tar",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataUid, Gid: testDataGid},
+		},
+		packer: packTar,
+	},
+	{
+		name: "invalid-uid-tar",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataInvalidUid, Gid: testDataInvalidGid},
+		},
+		packer:        packTar,
+		invalidUidGid: true,
+	},
+	{
+		name: "root-tar",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: testDataRootUid, Gid: testDataWheelGid},
+		},
+		packer: packTar,
+	},
+	{
+		name: "zip",
+		contents: []archiveContent{
+			{Name: "test", Content: []byte("hello world"), Mode: 0777, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "sub", Mode: fs.ModeDir | 0777, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "sub/test", Content: []byte("hello world"), Mode: 0644, AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+			{Name: "link", Mode: fs.ModeSymlink | 0777, Linktarget: "sub/test", AccessTime: baseTime, ModTime: baseTime, Uid: os.Getuid(), Gid: os.Getgid()},
+		},
+		doesNotSupportOwner: true,
+		packer:              packZip,
+	},
+	{
+		name:                  "rar",
+		contents:              contentsRar2,
+		doesNotSupportOwner:   true,
+		doesNotSupportModTime: true,
+		packer:                packRar2,
+	},
+	{
+		name:                "7z",
+		contents:            contents7z2,
+		doesNotSupportOwner: true,
+		packer:              pack7z2,
+	},
 }
 
 // openFile is a helper function to "open" a file,
@@ -1629,136 +1736,6 @@ func asIoReader(t *testing.T, b []byte) io.Reader {
 	return r
 }
 
-func TestWithCustomMode(t *testing.T) {
-	umask := sniffUmask(t)
-
-	tests := []struct {
-		name        string
-		data        []byte
-		dst         string
-		cfg         *extract.Config
-		expected    map[string]fs.FileMode
-		expectError bool
-	}{
-		{
-			name: "dir with 0755 and file with 0644",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "sub/file",
-					Mode: fs.FileMode(0644), // 420
-				},
-			})),
-			cfg: extract.NewConfig(
-				extract.WithCustomCreateDirMode(fs.FileMode(0755)), // 493
-			),
-			expected: map[string]fs.FileMode{
-				"sub":      fs.FileMode(0755), // 493
-				"sub/file": fs.FileMode(0644), // 420
-			},
-		},
-		{
-			name: "decompress with custom mode",
-			data: compressGzip(t, []byte("foobar content")),
-			dst:  "out", // specify decompressed file name
-			cfg: extract.NewConfig(
-				extract.WithCustomDecompressFileMode(fs.FileMode(0666)), // 438
-			),
-			expected: map[string]fs.FileMode{
-				"out": fs.FileMode(0666), // 438
-			},
-		},
-		{
-			name: "dir with 0755 and file with 0777",
-			data: compressGzip(t, []byte("foobar content")),
-			dst:  "foo/out",
-			cfg: extract.NewConfig(
-				extract.WithCreateDestination(true),                     // create destination^
-				extract.WithCustomCreateDirMode(fs.FileMode(0750)),      // 488
-				extract.WithCustomDecompressFileMode(fs.FileMode(0777)), // 511
-			),
-			expected: map[string]fs.FileMode{
-				"foo":     fs.FileMode(0750), // 488
-				"foo/out": fs.FileMode(0777), // 511
-			},
-		},
-		{
-			name: "dir with 0777 and file with 0777",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "sub/file",
-					Mode: fs.FileMode(0777), // 511
-				},
-			})),
-			cfg: extract.NewConfig(
-				extract.WithCustomCreateDirMode(fs.FileMode(0777)), // 511
-			),
-			expected: map[string]fs.FileMode{
-				"sub":      fs.FileMode(0777), // 511
-				"sub/file": fs.FileMode(0777), // 511
-			},
-		},
-		{
-			name: "file with 0000 permissions",
-			data: compressGzip(t, packTar(t, []archiveContent{
-				{
-					Name: "file",
-					Mode: fs.FileMode(0000), // 0
-				},
-				{
-					Name: "dir/",
-					Mode: fs.ModeDir, // 000 permission
-				},
-			})),
-			cfg: extract.NewConfig(),
-			expected: map[string]fs.FileMode{
-				"file": fs.FileMode(0000), // 0
-				"dir":  fs.FileMode(0000), // 0
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.cfg == nil {
-				test.cfg = extract.NewConfig()
-			}
-			var (
-				ctx = context.Background()
-				tmp = t.TempDir()
-				dst = filepath.Join(tmp, test.dst)
-				src = asIoReader(t, test.data)
-				cfg = test.cfg
-			)
-			err := extract.Unpack(ctx, dst, src, cfg)
-			if test.expectError && err == nil {
-				t.Fatalf("expected error, got nil")
-			}
-			if !test.expectError && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			for name, expectedMode := range test.expected {
-				stat, err := os.Stat(filepath.Join(tmp, name))
-				if err != nil {
-					t.Fatalf("error getting file stats: %s", err)
-				}
-
-				if runtime.GOOS == "windows" {
-					if stat.IsDir() {
-						continue // Skip directory checks on Windows
-					}
-					expectedMode = toWindowsFileMode(stat.IsDir(), expectedMode)
-				} else {
-					expectedMode &= ^umask // Adjust for umask on non-Windows systems
-				}
-
-				if stat.Mode().Perm() != expectedMode.Perm() {
-					t.Fatalf("expected directory/file to have mode %s, but got: %s", expectedMode.Perm(), stat.Mode().Perm())
-				}
-			}
-		})
-	}
-}
-
 // sniffUmask is a helper function to get the umask
 func sniffUmask(t *testing.T) fs.FileMode {
 	t.Helper()
@@ -1782,21 +1759,4 @@ func sniffUmask(t *testing.T) fs.FileMode {
 
 	// return the umask
 	return umask
-}
-
-// toWindowsFileMode converts a fs.FileMode to a windows file mode
-func toWindowsFileMode(isDir bool, mode fs.FileMode) fs.FileMode {
-
-	// handle special case
-	if isDir {
-		return fs.FileMode(0777)
-	}
-
-	// check for write permission
-	if mode&0200 != 0 {
-		return fs.FileMode(0666)
-	}
-
-	// return the mode
-	return fs.FileMode(0444)
 }

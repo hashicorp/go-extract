@@ -34,6 +34,18 @@ go install github.com/hashicorp/go-extract/cmd/goextract@latest
 
 These examples demonstrate how to use [hashicorp/go-extract](https://github.com/hashicorp/go-extract) both as a library and as a command-line utility.
 
+### Library
+
+The simplest way to use the library is to call the `extract.Unpack` function with the default configuration. This function extracts the contents from an `io.Reader` to the specified destination on the local filesystem.
+
+```go
+// Unpack the archive
+if err := extract.Unpack(ctx, dst, archive, config.NewConfig()); err != nil {
+    // Handle error
+    log.Fatalf("Failed to unpack archive: %v", err)
+}
+```
+
 ### Command-line Utility
 
 The `goextract` command-line utility offers all available configuration options via dedicated flags.
@@ -56,30 +68,20 @@ Flags:
       --custom-create-dir-mode=750         File mode for created directories, which are not listed in the archive. (respecting umask)
       --custom-decompress-file-mode=640    File mode for decompressed files. (respecting umask)
   -D, --deny-symlinks                      Deny symlink extraction.
+  -d, --drop-file-attributes               Drop file attributes (mode, modtime, access time).
       --insecure-traverse-symlinks         Traverse symlinks to directories during extraction.
-      --max-files=1000                     Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
+      --max-files=100000                   Maximum files (including folder and symlinks) that are extracted before stop. (disable check: -1)
       --max-extraction-size=1073741824     Maximum extraction size that allowed is (in bytes). (disable check: -1)
       --max-extraction-time=60             Maximum time that an extraction should take (in seconds). (disable check: -1)
       --max-input-size=1073741824          Maximum input size that allowed is (in bytes). (disable check: -1)
   -N, --no-untar-after-decompression       Disable combined extraction of tar.gz.
   -O, --overwrite                          Overwrite if exist.
   -P, --pattern=PATTERN,...                Extracted objects need to match shell file name pattern.
+  -p, --preserve-owner                     Preserve owner and group of files from archive (only root/uid:0 on unix systems for tar files).
   -T, --telemetry                          Print telemetry data to log after extraction.
   -t, --type=""                            Type of archive. (7z, br, bz2, gz, lz4, rar, sz, tar, tgz, xz, zip, zst, zz)
   -v, --verbose                            Verbose logging.
   -V, --version                            Print release version information.
-```
-
-### Library
-
-The simplest way to use the library is to call the `extract.Unpack` function with the default configuration. This function extracts the contents from an `io.Reader` to the specified destination on the local filesystem.
-
-```go
-// Unpack the archive
-if err := extract.Unpack(ctx, dst, archive, config.NewConfig()); err != nil {
-    // Handle error
-    log.Fatalf("Failed to unpack archive: %v", err)
-}
 ```
 
 ## Configuration
@@ -87,24 +89,25 @@ if err := extract.Unpack(ctx, dst, archive, config.NewConfig()); err != nil {
 When calling the `extract.Unpack(..)` function, we need to provide `config` object that contains all available configuration.
 
 ```golang
-  // process cli params
-  cfg := config.NewConfig(
-    config.WithContinueOnError(..),
-    config.WithContinueOnUnsupportedFiles(..),
-    config.WithCreateDestination(..),
-    config.WithCustomCreateDirMode(..),
-    config.WithCustomDecompressFileMode(..),
-    config.WithDenySymlinkExtraction(..),
-    config.WithExtractType(..),
-    config.WithTraverseSymlinks(..),
-    config.WithLogger(..),
-    config.WithMaxExtractionSize(..),
-    config.WithMaxFiles(..),
-    config.WithMaxInputSize(..),
-    config.WithNoUntarAfterDecompression(..),
-    config.WithOverwrite(..),
-    config.WithPatterns(..),
-    config.WithTelemetryHook(..),
+  cfg := extract.NewConfig(
+    extract.WithContinueOnError(..),
+    extract.WithContinueOnUnsupportedFiles(..),
+    extract.WithCreateDestination(..),
+    extract.WithCustomCreateDirMode(..),
+    extract.WithCustomDecompressFileMode(..),
+    extract.WithDenySymlinkExtraction(..),
+    extract.WithDropFileAttributes(..),
+    extract.WithExtractType(..),
+    extract.WithInsecureTraverseSymlinks(..),
+    extract.WithLogger(..),
+    extract.WithMaxExtractionSize(..),
+    extract.WithMaxFiles(..),
+    extract.WithMaxInputSize(..),
+    extract.WithNoUntarAfterDecompression(..),
+    extract.WithOverwrite(..),
+    extract.WithPatterns(..),
+    extract.WithPreserveOwner(..),
+    extract.WithTelemetryHook(..),
   )
 
 [..]
@@ -132,18 +135,18 @@ Here is an example collected telemetry data for the extraction of [`terraform-aw
 
 ```json
 {
-  "LastExtractionError": "",
-  "ExtractedDirs": 51,
-  "ExtractionDuration": 48598584,
-  "ExtractionErrors": 0,
-  "ExtractedFiles": 241,
-  "ExtractionSize": 539085,
-  "ExtractedSymlinks": 0,
-  "ExtractedType": "tar+gzip",
-  "InputSize": 81477,
-  "PatternMismatches": 0,
-  "UnsupportedFiles": 0,
-  "LastUnsupportedFile": ""
+  "last_extraction_error": "",
+  "extracted_dirs": 51,
+  "extraction_duration": 55025584,
+  "extraction_errors": 0,
+  "extracted_files": 241,
+  "extraction_size": 539085,
+  "extracted_symlinks": 0,
+  "extracted_type": "tar.gz",
+  "input_size": 81477,
+  "pattern_mismatches": 0,
+  "unsupported_files": 0,
+  "last_unsupported_file": ""
 }
 ```
 
