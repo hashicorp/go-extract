@@ -81,7 +81,7 @@ func TestUnpackWithPreserveOwnershipAsNonRoot(t *testing.T) {
 			// chown will only fail if the user is not root and the
 			// uid/gid in the archive is different from the current user
 			if err == nil {
-				t.Fatalf("error unpacking archive: %v", err)
+				t.Fatalf("got nil error; want permissions error")
 			}
 		})
 	}
