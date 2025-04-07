@@ -3,7 +3,7 @@ module github.com/hashicorp/go-extract
 go 1.21
 
 require (
-	github.com/alecthomas/kong v1.6.1
+	github.com/alecthomas/kong v1.10.0
 	github.com/andybalholm/brotli v1.1.1
 	github.com/bodgit/sevenzip v1.6.0
 	github.com/dsnet/compress v0.0.1
