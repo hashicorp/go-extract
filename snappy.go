@@ -7,7 +7,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/golang/snappy"
+	"github.com/klauspost/compress/snappy"
 )
 
 // fileExtensionSnappy is the file extension for snappy files.

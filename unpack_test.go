@@ -25,8 +25,8 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/dsnet/compress/bzip2"
-	"github.com/golang/snappy"
 	"github.com/hashicorp/go-extract"
+	"github.com/klauspost/compress/snappy"
 	"github.com/klauspost/compress/zstd"
 	lz4 "github.com/pierrec/lz4/v4"
 	"github.com/ulikunitz/xz"
