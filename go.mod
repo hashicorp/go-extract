@@ -1,6 +1,7 @@
 module github.com/hashicorp/go-extract
 
 go 1.21
+toolchain go1.24.1
 
 require (
 	github.com/alecthomas/kong v1.6.1
@@ -8,7 +9,7 @@ require (
 	github.com/bodgit/sevenzip v1.6.0
 	github.com/dsnet/compress v0.0.1
 	github.com/golang/snappy v0.0.4
-	github.com/klauspost/compress v1.17.11
+	github.com/klauspost/compress v1.18.0
 	github.com/nwaples/rardecode v1.1.3
 	github.com/pierrec/lz4/v4 v4.1.22
 	github.com/ulikunitz/xz v0.5.12
