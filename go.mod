@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.2
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.11.0
 	github.com/andybalholm/brotli v1.1.1
 	github.com/bodgit/sevenzip v1.6.1
 	github.com/dsnet/compress v0.0.1
