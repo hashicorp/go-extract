@@ -12,7 +12,7 @@ require (
 	github.com/klauspost/compress v1.18.0
 	github.com/nwaples/rardecode v1.1.3
 	github.com/pierrec/lz4/v4 v4.1.22
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.13
 	golang.org/x/sys v0.34.0
 )
 
