@@ -1,6 +1,6 @@
 module github.com/hashicorp/go-extract
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.2
 
@@ -13,7 +13,7 @@ require (
 	github.com/nwaples/rardecode v1.1.3
 	github.com/pierrec/lz4/v4 v4.1.22
 	github.com/ulikunitz/xz v0.5.15
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.36.0
 )
 
 require (
