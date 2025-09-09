@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 # .goreleaser.yaml
+version: 2
+
 builds:
   # You can have multiple builds defined as a yaml list
   -
@@ -9,10 +11,19 @@ builds:
     # Notice: when used with `gomod.proxy`, this must be a package.
     #
     # Default is `.`.
-    main: ./cmd/extract
+    main: ./cmd/goextract
 
     # Binary name.
     # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
     #
     # Default: Project directory name
-    binary: extract
+    binary: goextract
+
+    # goos:
+    #   - darwin
+    #   - linux
+    #   - windows
+
+    # goarch:
+    #   - amd64
+    #   - arm64
