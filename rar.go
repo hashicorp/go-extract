@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/nwaples/rardecode"
+	"github.com/nwaples/rardecode/v2"
 )
 
 // fileExtensionRar is the file extension for Rar files.
@@ -50,7 +50,7 @@ func processRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 
 	// check if src is a file, instantiate reader from file
 	if s, ok := src.(*os.File); ok {
-		a, err := rardecode.OpenReader(s.Name(), "")
+		a, err := rardecode.OpenReader(s.Name())
 		if err != nil {
 			return handleError(cfg, td, "cannot create rar decoder", err)
 		}
@@ -59,7 +59,7 @@ func processRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 	}
 
 	// get bytes from reader
-	a, err := rardecode.NewReader(src, "")
+	a, err := rardecode.NewReader(src)
 	if err != nil {
 		return handleError(cfg, td, "cannot create rar decoder", err)
 	}
