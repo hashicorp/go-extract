@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/alecthomas/kong v1.14.0
-	github.com/andybalholm/brotli v1.2.0
+	github.com/andybalholm/brotli v1.2.1
 	github.com/bodgit/sevenzip v1.6.1
 	github.com/dsnet/compress v0.0.1
 	github.com/klauspost/compress v1.18.5
