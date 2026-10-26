@@ -10,7 +10,7 @@ require (
 	github.com/klauspost/compress v1.19.0
 	github.com/nwaples/rardecode/v2 v2.2.2
 	github.com/pierrec/lz4/v4 v4.1.33
-	github.com/ulikunitz/xz v0.5.15
+	github.com/ulikunitz/xz v0.5.17
 	golang.org/x/sys v0.49.0
 )
 
