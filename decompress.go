@@ -38,7 +38,7 @@ func decompress(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 	}
 	defer func() {
 		if closer, ok := decompressedStream.(io.Closer); ok {
-			closer.Close()
+			_ = closer.Close()
 		}
 	}()
 	// check if context is canceled

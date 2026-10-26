@@ -40,7 +40,7 @@ func TestMemoryOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// check the file permissions
 	stat, err := f.Stat()
@@ -87,7 +87,7 @@ func TestMemoryOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// read content of the symlink
 	data, err = io.ReadAll(f)
@@ -201,7 +201,7 @@ func TestMemoryOpen2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open() failed: %s", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// read the file
 	data, err := io.ReadAll(f)
@@ -868,7 +868,7 @@ func TestUnpackToMemoryWithPreserveFileAttributesAndOwner(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error getting file stats: %v", err)
 				}
-				if !(c.Mode&fs.ModeSymlink != 0) { // skip symlink checks
+				if c.Mode&fs.ModeSymlink == 0 { // skip symlink checks
 					if stat.Mode().Perm() != c.Mode.Perm() {
 						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), path)
 					}

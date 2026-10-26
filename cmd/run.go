@@ -114,7 +114,7 @@ func Run(version, commit, date string) {
 			logger.Error("opening archive failed", "err", err)
 			os.Exit(-1)
 		} else {
-			defer archive.(*os.File).Close()
+			defer func() { _ = archive.(*os.File).Close() }()
 		}
 	}
 

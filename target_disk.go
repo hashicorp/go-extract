@@ -60,7 +60,7 @@ func (d *TargetDisk) CreateFile(path string, src io.Reader, mode fs.FileMode, ov
 		return 0, fmt.Errorf("failed to create file: %w", err)
 	}
 	defer func() {
-		dstFile.Close()
+		_ = dstFile.Close()
 	}()
 
 	// write data to file
