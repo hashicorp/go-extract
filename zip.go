@@ -46,8 +46,8 @@ func unpackZip(ctx context.Context, t Target, dst string, src io.Reader, c *Conf
 	}
 	defer func() {
 		if f, ok := src.(*os.File); ok {
-			f.Close()
-			os.Remove(f.Name())
+			_ = f.Close()
+			_ = os.Remove(f.Name())
 		}
 	}()
 
@@ -110,23 +110,23 @@ type zipEntry struct {
 
 // Name returns the name of the entry
 func (z *zipEntry) Name() string {
-	return z.zf.FileHeader.Name
+	return z.zf.Name
 }
 
 // Size returns the size of the entry
 func (z *zipEntry) Size() int64 {
-	return int64(z.zf.FileHeader.UncompressedSize64)
+	return int64(z.zf.UncompressedSize64)
 }
 
 // Mode returns the mode of the entry
 func (z *zipEntry) Mode() os.FileMode {
-	return z.zf.FileHeader.Mode()
+	return z.zf.Mode()
 }
 
 // Linkname returns the linkname of the entry
 func (z *zipEntry) Linkname() string {
 	rc, _ := z.zf.Open()
-	defer func() { rc.Close() }()
+	defer func() { _ = rc.Close() }()
 	data, _ := io.ReadAll(rc)
 	return string(data)
 }

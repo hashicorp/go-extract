@@ -46,8 +46,8 @@ func unpack7Zip(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 	}
 	defer func() {
 		if f, ok := sra.(*os.File); ok {
-			f.Close()
-			os.Remove(f.Name())
+			_ = f.Close()
+			_ = os.Remove(f.Name())
 		}
 	}()
 
@@ -131,7 +131,7 @@ func (z *sevenZipEntry) Linkname() string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	c, err := io.ReadAll(f)
 	if err != nil {
 		return ""

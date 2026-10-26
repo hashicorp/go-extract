@@ -54,7 +54,7 @@ func processRar(ctx context.Context, t Target, dst string, src io.Reader, cfg *C
 		if err != nil {
 			return handleError(cfg, td, "cannot create rar decoder", err)
 		}
-		defer a.Close()
+		defer func() { _ = a.Close() }()
 		return extract(ctx, t, dst, &rarWalker{&a.Reader}, cfg, td)
 	}
 

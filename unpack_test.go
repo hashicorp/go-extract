@@ -1211,7 +1211,7 @@ func TestUnsupportedArchiveNames(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error opening file: %s", err)
 			}
-			defer src.Close()
+			defer func() { _ = src.Close() }()
 			if err := extract.Unpack(ctx, tmpDir, src, extract.NewConfig()); err != nil {
 				t.Fatalf("error unpacking file: %s", err)
 			}
@@ -1727,7 +1727,7 @@ func asIoReader(t *testing.T, b []byte) io.Reader {
 	t.Helper()
 	r, w := io.Pipe()
 	go func() {
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		if _, err := w.Write(b); err != nil {
 			t.Logf("error writing data to pipe: %v", err)
 			t.Fail()

@@ -667,7 +667,7 @@ func (m *TargetMemory) ReadFile(path string) ([]byte, error) {
 	if err != nil {
 		return nil, &fs.PathError{Op: "ReadFile", Path: path, Err: fs.ErrNotExist}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// check if it is a directory
 	stat, err := f.Stat()

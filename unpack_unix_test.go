@@ -35,7 +35,7 @@ func TestUnpackWithPreserveFileAttributes(t *testing.T) {
 				if err != nil {
 					t.Fatalf("error getting file stats: %v", err)
 				}
-				if !(c.Mode&fs.ModeSymlink != 0) { // skip symlink checks
+				if c.Mode&fs.ModeSymlink == 0 { // skip symlink checks
 					if stat.Mode().Perm() != c.Mode.Perm() {
 						t.Fatalf("expected file mode %v, got %v, file %s", c.Mode.Perm(), stat.Mode().Perm(), c.Name)
 					}

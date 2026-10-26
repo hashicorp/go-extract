@@ -89,7 +89,7 @@ func (e extractors) GetUnpackFunctionByFileName(name string) unpackFunc {
 	ext := strings.ToLower(name)
 	if strings.Contains(ext, ".") {
 		ext = filepath.Ext(ext)
-		ext = strings.Replace(ext, ".", "", -1) // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
+		ext = strings.ReplaceAll(ext, ".", "") // remove leading dot if the file extension is the only part of the file name (e.g. ".tar")
 	}
 
 	if ae, found := e[ext]; found {
@@ -363,7 +363,7 @@ func extract(ctx context.Context, t Target, dst string, src archiveWalker, cfg *
 					if err != nil {
 						return handleError(cfg, td, "failed to open file", err), false
 					}
-					defer fin.Close()
+					defer func() { _ = fin.Close() }()
 
 					// create file
 					n, err := createFile(t, dst, ae.Name(), fin, ae.Mode(), cfg.MaxExtractionSize()-extractionSize, cfg)
@@ -520,13 +520,13 @@ func readerToReaderAtSeeker(c *Config, r io.Reader) (seekerReaderAt, error) {
 
 	// copy reader to temp file
 	if _, err := io.Copy(tmpFile, ler); err != nil {
-		defer os.Remove(tmpFile.Name())
+		defer func() { _ = os.Remove(tmpFile.Name()) }()
 		return nil, fmt.Errorf("cannot copy reader to file: %w", err)
 	}
 
 	// seek to start
 	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
-		defer os.Remove(tmpFile.Name())
+		defer func() { _ = os.Remove(tmpFile.Name()) }()
 		return nil, err
 	}
 
