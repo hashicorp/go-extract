@@ -7,7 +7,7 @@ require (
 	github.com/andybalholm/brotli v1.2.6
 	github.com/bodgit/sevenzip v1.6.5
 	github.com/dsnet/compress v0.0.1
-	github.com/klauspost/compress v1.19.0
+	github.com/klauspost/compress v1.20.3
 	github.com/nwaples/rardecode/v2 v2.2.2
 	github.com/pierrec/lz4/v4 v4.1.33
 	github.com/ulikunitz/xz v0.5.17
