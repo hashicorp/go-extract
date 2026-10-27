@@ -8,7 +8,7 @@ require (
 	github.com/bodgit/sevenzip v1.6.5
 	github.com/dsnet/compress v0.0.1
 	github.com/klauspost/compress v1.20.3
-	github.com/nwaples/rardecode/v2 v2.2.2
+	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/pierrec/lz4/v4 v4.1.33
 	github.com/ulikunitz/xz v0.5.17
 	golang.org/x/sys v0.49.0
