@@ -11,7 +11,7 @@ require (
 	github.com/nwaples/rardecode/v2 v2.4.6
 	github.com/pierrec/lz4/v4 v4.1.33
 	github.com/ulikunitz/xz v0.5.17
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
